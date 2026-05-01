@@ -1,29 +1,46 @@
+import { Switch } from "@/components/ui/switch"
 import { usePrint } from "../context/PrintContext"
-import styles from "./Sidebar.module.css"
 
 export default function Sidebar() {
   const { printMode, setPrintMode } = usePrint()
 
   return (
-    <aside className={styles.sidebar}>
-      <label className={styles.toggle}>
-        <div
-          className={`${styles.toggleTrack} ${printMode ? styles.on : ""}`}
-          onClick={() => setPrintMode(v => !v)}
-        >
-          <div className={styles.toggleThumb} />
-        </div>
-        <span className={styles.toggleLabel}>Modo impresión</span>
-      </label>
+    <aside style={{
+      position: "fixed",
+      right: 0, top: 44, bottom: 0,
+      width: 220,
+      background: "#ffffff",
+      borderLeft: "1px solid #e5e7eb",
+      display: "flex",
+      flexDirection: "column",
+      zIndex: 40,
+    }} className="app-chrome">
 
-      <button className={styles.printBtn} onClick={() => window.print()}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="6 9 6 2 18 2 18 9"/>
-          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-          <rect x="6" y="14" width="12" height="8"/>
-        </svg>
-        Guardar PDF
-      </button>
+      {/* Marcas de corte */}
+      <div style={{ padding: "16px" }}>
+        <div style={{
+          fontSize: 10, fontWeight: 600, color: "#9ca3af",
+          textTransform: "uppercase", letterSpacing: "0.06em",
+          marginBottom: 10,
+        }}>
+          Vista
+        </div>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}>
+          <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
+            Marcas de corte
+          </span>
+          <Switch
+            id="print-mode-sidebar"
+            checked={printMode}
+            onCheckedChange={setPrintMode}
+          />
+        </div>
+      </div>
+
     </aside>
   )
 }

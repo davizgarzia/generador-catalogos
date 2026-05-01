@@ -1,3 +1,38 @@
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@import "tailwindcss";
+
+/* ── shadcn/ui theme (zinc, New York style, Tailwind v4) ── */
+@theme inline {
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(240 10% 3.9%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(240 10% 3.9%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(240 10% 3.9%);
+  --color-primary: hsl(240 5.9% 10%);
+  --color-primary-foreground: hsl(0 0% 98%);
+  --color-secondary: hsl(240 4.8% 95.9%);
+  --color-secondary-foreground: hsl(240 5.9% 10%);
+  --color-muted: hsl(240 4.8% 95.9%);
+  --color-muted-foreground: hsl(240 3.8% 46.1%);
+  --color-accent: hsl(240 4.8% 95.9%);
+  --color-accent-foreground: hsl(240 5.9% 10%);
+  --color-destructive: hsl(0 72.22% 50.59%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-border: hsl(240 5.9% 90%);
+  --color-input: hsl(240 5.9% 90%);
+  --color-ring: hsl(240 5.9% 10%);
+  --radius: 0.5rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
 /* ── Global reset & base ───────────────────────────────── */
 *,
 *::before,
@@ -13,7 +48,7 @@ html {
 
 body {
   font-family: "Montserrat", Arial, sans-serif;
-  background: #c8c8c8;
+  background: #f0f0f0;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
   color: #1a1a2e;
@@ -47,6 +82,16 @@ body {
     background: #fff;
   }
 
+  /* Ocultar chrome de la app */
+  .app-chrome {
+    display: none !important;
+  }
+
+  /* Anular los márgenes del área de catálogo */
+  #catalog-area {
+    margin: 0 !important;
+  }
+
   #catalog {
     gap: 0;
     padding: 0;
@@ -67,9 +112,14 @@ body {
   }
 }
 
-@page {
-  size: 210mm 297mm;
-  margin: 0;
+/* @page se inyecta dinámicamente desde App.jsx según printMode */
+
+@media print {
+  /* Modo sin marcas: el wrapper exterior (sheetNormal) no debe añadir
+     espacio — display:contents lo colapsa y el inner queda como raíz */
+  body.mode-normal [class*="sheetNormal"] {
+    display: contents !important;
+  }
 }
 
 

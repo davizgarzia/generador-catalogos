@@ -5,6 +5,7 @@ import { createServer } from "net"
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
+import puppeteer from "puppeteer"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -66,37 +67,15 @@ final.save('${dest}', 'PNG')
 })
 
 // ── POST /api/generate-pdf ────────────────────────────────
-// Body: { width, height, landscape, bleed, marks, media, outputName }
+// Body: { marks } — true = con marcas de corte (A4), false = sin marcas (A5)
 app.post("/api/generate-pdf", async (req, res) => {
-  const {
-    width = 210,
-    height = 297,
-    landscape = false,
-    bleed = "3mm",
-    marks = true,
-    media = "print",
-    outputName = "catalogo-impormed-2025.pdf",
-  } = req.body ?? {}
+  const { marks = false } = req.body ?? {}
+  const outputName = "catalogo-impormed-2025.pdf"
 
-  const outputPath = path.join(__dirname, outputName)
+  const PAGE_W_MM = marks ? 210 : 148
+  const PAGE_H_MM = marks ? 297 : 210
 
-  // Genera CSS extra para @page según las opciones
-  const pageW = landscape ? height : width
-  const pageH = landscape ? width : height
-  const bleedValue = bleed || "0"
-  const marksValue = marks ? "crop cross" : "none"
-
-  const extraCss = `
-@page {
-  size: ${pageW}mm ${pageH}mm;
-  bleed: ${bleedValue};
-  marks: ${marksValue};
-}
-`
-  const tmpCss = path.join(__dirname, "_print-options.css")
-  fs.writeFileSync(tmpCss, extraCss)
-
-  // Puerto libre para servir el build de Vite (ya tiene que estar en dist/)
+  // Puerto libre para servir el build de Vite
   const freePort = await new Promise((resolve) => {
     const srv = createServer()
     srv.listen(0, () => {
@@ -105,34 +84,74 @@ app.post("/api/generate-pdf", async (req, res) => {
     })
   })
 
-  // Servir el build estático
   const staticServer = spawn(
     "npx",
     ["serve", "dist", "--listen", String(freePort), "--no-clipboard"],
     { cwd: __dirname, stdio: "pipe" }
   )
+  await new Promise((r) => setTimeout(r, 1500))
 
-  await new Promise((r) => setTimeout(r, 2000))
+  const browser = await puppeteer.launch({ headless: true })
 
   try {
-    const cmd = [
-      "pagedjs-cli",
-      `http://localhost:${freePort}`,
-      "-o", outputPath,
-      "--style", tmpCss,
-      "--media", media,
-      "--timeout", "120000",
-    ]
-    if (landscape) cmd.push("-l")
+    const browserPage = await browser.newPage()
+    await browserPage.setViewport({ width: 1600, height: 900 })
+    await browserPage.goto(`http://localhost:${freePort}`, {
+      waitUntil: "networkidle0",
+      timeout: 60000,
+    })
 
-    execSync(cmd.join(" "), { stdio: "pipe" })
+    // Esperar imágenes
+    await browserPage.evaluate(() =>
+      Promise.all(
+        [...document.images]
+          .filter(img => !img.complete)
+          .map(img => new Promise(r => { img.onload = r; img.onerror = r }))
+      )
+    )
 
-    res.json({ ok: true, file: outputName })
+    // Sincronizar el toggle de marcas con el parámetro recibido
+    const switchOn = await browserPage.evaluate(() =>
+      document.querySelector('[role="switch"]')?.getAttribute("aria-checked") === "true"
+    )
+    if (switchOn !== marks) {
+      await browserPage.click('[role="switch"]')
+      await new Promise(r => setTimeout(r, 500))
+    }
+    await new Promise(r => setTimeout(r, 800))
+
+    // Inyectar CSS de impresión: ocultar chrome, resetear márgenes, configurar @page
+    const printCSS = marks ? `
+      .app-chrome { display: none !important; }
+      #catalog-area { margin: 0 !important; }
+      body { background: white !important; }
+      #catalog { gap: 0 !important; padding: 0 !important; }
+      #catalog > *, #catalog section > * { box-shadow: none !important; }
+      @page { size: 210mm 297mm; margin: 0; }
+    ` : `
+      .app-chrome { display: none !important; }
+      #catalog-area { margin: 0 !important; }
+      body { background: white !important; }
+      #catalog { gap: 0 !important; padding: 0 !important; align-items: flex-start !important; }
+      #catalog > *, #catalog section > * { box-shadow: none !important; }
+      [class*="sheetNormal"] { display: contents !important; }
+      @page { size: 148mm 210mm; margin: 0; }
+    `
+    await browserPage.addStyleTag({ content: printCSS })
+
+    const pdfBuffer = await browserPage.pdf({
+      printBackground: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    })
+
+    res.setHeader("Content-Type", "application/pdf")
+    res.setHeader("Content-Disposition", `attachment; filename="${outputName}"`)
+    res.send(Buffer.from(pdfBuffer))
   } catch (e) {
     res.status(500).json({ error: e.message })
   } finally {
+    await browser.close()
     staticServer.kill()
-    fs.unlinkSync(tmpCss)
   }
 })
 
