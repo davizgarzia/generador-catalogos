@@ -5,14 +5,26 @@ import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 import puppeteer from "puppeteer"
+import multer from "multer"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 app.use(cors())
 app.use(express.json())
 
-const IMAGES_DIR = path.join(__dirname, "public/images")
-const NOBG_DIR = path.join(__dirname, "public/images-nobg")
+const IMAGES_DIR   = path.join(__dirname, "public/images")
+const NOBG_DIR     = path.join(__dirname, "public/images-nobg")
+const OVERRIDES_PATH = path.join(__dirname, "src/data/overrides.json")
+
+const upload = multer({ storage: multer.memoryStorage() })
+
+function readOverrides() {
+  try { return JSON.parse(fs.readFileSync(OVERRIDES_PATH, "utf8")) }
+  catch { return {} }
+}
+function writeOverrides(data) {
+  fs.writeFileSync(OVERRIDES_PATH, JSON.stringify(data, null, 2))
+}
 
 // Encuentra el archivo original de una imagen (jpg o jpeg)
 function findOriginal(id) {
@@ -23,6 +35,20 @@ function findOriginal(id) {
   return null
 }
 
+// GET /api/overrides — devuelve todos los overrides
+app.get("/api/overrides", (req, res) => {
+  res.json(readOverrides())
+})
+
+// PATCH /api/overrides/:id — mergea campos en el override de un producto
+app.patch("/api/overrides/:id", (req, res) => {
+  const { id } = req.params
+  const overrides = readOverrides()
+  overrides[id] = { ...(overrides[id] ?? {}), ...req.body }
+  writeOverrides(overrides)
+  res.json({ ok: true, override: overrides[id] })
+})
+
 // POST /api/revert/:id — el cliente ya muestra el JPG original directamente,
 // este endpoint solo confirma que el original existe
 app.post("/api/revert/:id", (req, res) => {
@@ -30,6 +56,20 @@ app.post("/api/revert/:id", (req, res) => {
   const original = findOriginal(id)
   if (!original) return res.status(404).json({ error: "Original no encontrado" })
   res.json({ ok: true, message: "Mostrando imagen original" })
+})
+
+// POST /api/upload/:id — sube una imagen y la guarda en images-nobg/<id>.png
+app.post("/api/upload/:id", upload.single("image"), (req, res) => {
+  const { id } = req.params
+  if (!req.file) return res.status(400).json({ error: "No se recibió ningún archivo" })
+
+  const dest = path.join(NOBG_DIR, `${id}.png`)
+  try {
+    fs.writeFileSync(dest, req.file.buffer)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
 })
 
 // POST /api/remove-bg/:id — pasa rembg sobre el JPG original y guarda en images-nobg

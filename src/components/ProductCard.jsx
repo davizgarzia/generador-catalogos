@@ -1,66 +1,56 @@
 import { useState } from "react"
 import styles from "./ProductCard.module.css"
+import { useEdit } from "../context/EditContext"
+import { useOverrides } from "../context/OverridesContext"
 
-const API = "http://localhost:3001/api"
+export default function ProductCard({ product: rawProduct, accentColor }) {
+  const { setEditingProduct }        = useEdit()
+  const { applyOverride }            = useOverrides()
+  const product                      = applyOverride(rawProduct)
 
-// Modos de imagen:
-//   "multiply"  — JPG original con mix-blend-mode: multiply (default)
-//   "nobg"      — PNG sin fondo procesado con rembg
-//   "original"  — JPG original sin ningún blend
-
-export default function ProductCard({ product, accentColor }) {
   const [imgError, setImgError] = useState(false)
-  const [status, setStatus] = useState(null) // null | "loading" | "ok" | "error"
-  const [imgKey, setImgKey] = useState(0)
-  const [mode, setMode] = useState("multiply")
-
-  async function handleRemoveBg() {
-    setStatus("loading")
-    try {
-      const res = await fetch(`${API}/remove-bg/${product.id}`, { method: "POST" })
-      const data = await res.json()
-      if (data.ok) {
-        setStatus("ok")
-        setImgError(false)
-        setMode("nobg")
-        setTimeout(() => { setImgKey(k => k + 1); setStatus(null) }, 800)
-      } else {
-        setStatus("error")
-        setTimeout(() => setStatus(null), 2000)
-      }
-    } catch {
-      setStatus("error")
-      setTimeout(() => setStatus(null), 2000)
-    }
-  }
+  const [imgKey, setImgKey]     = useState(() => Date.now())
+  const [mode, setMode]         = useState("nobg")
 
   function getImgSrc() {
-    if (!product.image) return null
-    const ext = product.image.match(/\.(jpe?g)$/i)?.[1] ?? "jpg"
-    if (mode === "nobg") return `/images-nobg/${product.id}.png?v=${imgKey}`
-    return `/images/${product.id}.${ext}?v=${imgKey}`
+    if (!rawProduct.image) return null
+    const ext = rawProduct.image.match(/\.(jpe?g)$/i)?.[1] ?? "jpg"
+    if (mode === "nobg") return `/images-nobg/${rawProduct.id}.png?v=${imgKey}`
+    return `/images/${rawProduct.id}.${ext}?v=${imgKey}`
   }
 
-  const imgSrc = getImgSrc()
+  function handleImgError() {
+    if (mode === "nobg") setMode("multiply")
+    else setImgError(true)
+  }
+
+  const imgSrc  = getImgSrc()
   const isBlend = mode === "multiply"
+
+  // Transform de posición y escala desde overrides
+  const imgStyle = {
+    transform: `translate(${product.imgX ?? 0}%, ${product.imgY ?? 0}%) scale(${product.imgScale ?? 1})`,
+    transformOrigin: "center center",
+  }
 
   return (
     <div className={styles.card}>
-        <div className={styles.imgWrap}>
-        {imgSrc && !imgError ? (
+      <div className={styles.imgWrap}>
+        {!product.imgHidden && imgSrc && !imgError ? (
           <img
             src={imgSrc}
             alt={product.name}
             className={isBlend ? undefined : styles.noBlend}
-            onError={() => setImgError(true)}
+            style={imgStyle}
+            onError={handleImgError}
           />
         ) : (
           <div className={styles.noImg}>SIN<br />IMAGEN</div>
         )}
 
-        {product.id && (
+        {rawProduct.id && (
           <span className={styles.refBadge} style={{ background: accentColor }}>
-            Ref: {product.id}
+            Ref: {rawProduct.id}
           </span>
         )}
 
@@ -73,36 +63,18 @@ export default function ProductCard({ product, accentColor }) {
           </span>
         )}
 
-        {/* Overlay — solo en pantalla */}
-        <div className={styles.overlay}>
-          {status === "loading" && (
-            <div className={styles.overlayStatus}>⏳ Procesando...</div>
-          )}
-          {status === "ok" && (
-            <div className={`${styles.overlayStatus} ${styles.ok}`}>✓ Listo</div>
-          )}
-          {status === "error" && (
-            <div className={`${styles.overlayStatus} ${styles.error}`}>✗ Error</div>
-          )}
-          {!status && product.image && (
-            <div className={styles.overlayActions}>
-              {mode !== "multiply" && (
-                <button className={styles.actionBtn} onClick={() => { setMode("multiply"); setImgError(false) }}>
-                  ◈ Blend
-                </button>
-              )}
-              {mode !== "nobg" && (
-                <button className={styles.actionBtn} onClick={handleRemoveBg}>
-                  ✦ Quitar fondo
-                </button>
-              )}
-              {mode !== "original" && (
-                <button className={styles.actionBtn} onClick={() => { setMode("original"); setImgError(false) }}>
-                  ↩ Original
-                </button>
-              )}
-            </div>
-          )}
+        {/* Overlay editar — solo en pantalla */}
+        <div
+          className={styles.overlay}
+          onClick={() => setEditingProduct({ ...rawProduct, _refreshImg: (key) => { setImgKey(key); setImgError(false) } })}
+        >
+          <div className={styles.editHint}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Editar
+          </div>
         </div>
       </div>
 

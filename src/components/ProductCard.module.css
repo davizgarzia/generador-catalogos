@@ -13,7 +13,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: transparent;
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
@@ -94,50 +94,31 @@
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   transition: opacity 0.15s;
+  cursor: pointer;
 }
 
 .imgWrap:hover .overlay {
   opacity: 1;
 }
 
-.overlayActions {
+.editHint {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 6px;
-}
-
-.actionBtn {
   background: #fff;
-  color: #1a1a2e;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
+  color: #111827;
   font-size: 7.5pt;
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: 0.3px;
-  transition: background 0.1s;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
 }
-
-.actionBtn:hover {
-  background: #f0f0f0;
-}
-
-.overlayStatus {
-  color: #fff;
-  font-size: 8pt;
-  font-weight: 700;
-  text-align: center;
-}
-
-.ok { color: #4ade80; }
-.error { color: #f87171; }
 
 @media print {
   .overlay { display: none; }
