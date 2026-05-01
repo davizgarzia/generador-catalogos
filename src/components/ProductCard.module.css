@@ -64,12 +64,22 @@
   letter-spacing: 0.4px;
 }
 
-.units {
-  font-size: 7pt;
-  color: #999;
-  font-weight: 600;
+.unitsBadge {
+  position: absolute;
+  top: calc(2mm + 6mm);   /* justo debajo del refBadge */
+  left: 2mm;
+  display: flex;
+  align-items: center;
+  gap: 1.5mm;
+  background: #fff;
+  color: #555;
+  font-size: 6.5pt;
+  font-weight: 700;
+  padding: 0.6mm 2mm;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
 .name {
