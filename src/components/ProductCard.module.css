@@ -48,7 +48,7 @@
   flex-direction: column;
   gap: 1mm;
   flex-shrink: 0;
-  height: 18mm;
+  height: 20mm;
   overflow: hidden;
 }
 
@@ -57,7 +57,7 @@
   top: 2mm;
   left: 2mm;
   color: #fff;
-  font-size: 6.5pt;
+  font-size: 7pt;
   font-weight: 700;
   padding: 0.8mm 2.5mm;
   border-radius: 20px;
@@ -65,7 +65,7 @@
 }
 
 .units {
-  font-size: 6pt;
+  font-size: 7pt;
   color: #999;
   font-weight: 600;
   text-transform: uppercase;
@@ -73,7 +73,7 @@
 }
 
 .name {
-  font-size: 7pt;
+  font-size: 8pt;
   font-weight: 700;
   color: #1a1a2e;
   line-height: 1.35;

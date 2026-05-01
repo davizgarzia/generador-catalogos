@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { usePrint } from "../context/PrintContext"
 
 export default function Topbar({ totalProducts, totalPages }) {
-  const { printMode } = usePrint()
+  const { printMode, printSize } = usePrint()
   const [generating, setGenerating] = useState(false)
 
   async function handleGeneratePdf() {
@@ -15,7 +15,7 @@ export default function Topbar({ totalProducts, totalPages }) {
       const res = await fetch("http://localhost:3001/api/generate-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ marks: printMode }),
+        body: JSON.stringify({ marks: printMode, size: printSize }),
       })
       if (!res.ok) {
         const { error } = await res.json()

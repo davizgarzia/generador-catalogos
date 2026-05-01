@@ -1,13 +1,13 @@
 .page {
-  width: 154mm;
-  height: 216mm;
-  /* 3mm sangre + 18mm margen = 21mm */
-  padding: 21mm;
+  width: 216mm;
+  height: 303mm;
+  /* 3mm sangre + 20mm margen = 23mm */
+  padding: 23mm;
   background: #fff;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10mm;
+  gap: 12mm;
   box-sizing: border-box;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
@@ -19,14 +19,14 @@
 }
 
 .header h2 {
-  font-size: 22pt;
+  font-size: 28pt;
   color: #1b3da6;
   font-weight: 800;
   margin: 0 0 2mm;
 }
 
 .header p {
-  font-size: 9pt;
+  font-size: 11pt;
   color: #666;
   margin: 0;
 }
@@ -50,7 +50,7 @@
 }
 
 .cardTitle {
-  font-size: 8.5pt;
+  font-size: 10pt;
   font-weight: 700;
   color: #1b3da6;
   text-transform: uppercase;
@@ -59,7 +59,7 @@
 }
 
 .cardText {
-  font-size: 8.5pt;
+  font-size: 10pt;
   color: #444;
   line-height: 1.6;
 }
@@ -76,7 +76,7 @@
 }
 
 .contactLabel {
-  font-size: 11pt;
+  font-size: 13pt;
   font-weight: 700;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -85,7 +85,7 @@
 .contactItems {
   display: flex;
   gap: 8mm;
-  font-size: 9pt;
+  font-size: 11pt;
   font-weight: 500;
   opacity: 0.92;
 }

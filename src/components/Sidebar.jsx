@@ -2,7 +2,7 @@ import { Switch } from "@/components/ui/switch"
 import { usePrint } from "../context/PrintContext"
 
 export default function Sidebar() {
-  const { printMode, setPrintMode } = usePrint()
+  const { printMode, setPrintMode, printSize, setPrintSize } = usePrint()
 
   return (
     <aside style={{
@@ -17,14 +17,15 @@ export default function Sidebar() {
     }} className="app-chrome">
 
       {/* Marcas de corte */}
-      <div style={{ padding: "16px" }}>
+      <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{
           fontSize: 10, fontWeight: 600, color: "#9ca3af",
           textTransform: "uppercase", letterSpacing: "0.06em",
-          marginBottom: 10,
         }}>
           Vista
         </div>
+
+        {/* Toggle marcas */}
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -39,6 +40,37 @@ export default function Sidebar() {
             onCheckedChange={setPrintMode}
           />
         </div>
+
+        {/* Selector de tamaño — solo visible con marcas activas */}
+        {printMode && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 500 }}>
+              Tamaño de impresión
+            </span>
+            <div style={{ display: "flex", gap: 6 }}>
+              {["A4", "A5"].map(size => (
+                <button
+                  key={size}
+                  onClick={() => setPrintSize(size)}
+                  style={{
+                    flex: 1,
+                    padding: "5px 0",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    borderRadius: 6,
+                    border: printSize === size ? "1.5px solid #111827" : "1.5px solid #e5e7eb",
+                    background: printSize === size ? "#111827" : "#fff",
+                    color: printSize === size ? "#fff" : "#374151",
+                    cursor: "pointer",
+                    transition: "all 0.12s",
+                  }}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
     </aside>

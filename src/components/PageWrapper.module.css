@@ -1,7 +1,7 @@
-/* Hoja A4 — soporte de impresión */
+/* ── Sheet A4 con sangre (216×303mm) ── */
 .sheet {
-  width: 210mm;
-  height: 297mm;
+  width: 216mm;
+  height: 303mm;
   background: #fff;
   display: flex;
   align-items: center;
@@ -10,8 +10,10 @@
   box-sizing: border-box;
 }
 
-/* Sin A4: wrapper transparente, el inner dicta el tamaño */
+/* Sin marcas: mismo tamaño que .sheet para que el gap sea consistente */
 .sheetNormal {
+  width: 216mm;
+  height: 303mm;
   background: transparent;
   display: flex;
   align-items: center;
@@ -20,35 +22,80 @@
   box-sizing: border-box;
 }
 
-/* Área con sangre: A5 + 3mm por cada lado = 154×216mm */
+/* ── Inner A4 con sangre: 216×303mm ── */
 .inner {
-  width: 154mm;
-  height: 216mm;
+  width: 216mm;
+  height: 303mm;
   position: relative;
 }
 
-/* Área sin sangre: A5 exacto = 148×210mm */
+/* ── Inner A4 sin sangre: mismo tamaño que con sangre en pantalla ── */
 .innerNormal {
-  width: 148mm;
-  height: 210mm;
+  width: 216mm;
+  height: 303mm;
   position: relative;
 }
 
-/* ── Marcas de corte ── */
+/* ── Contenido A4 escalado al 71.3% para caber en A5 ──
+   Centrado dentro del .inner A4. El sheet sigue siendo A4.
+   154/216 = 0.7130 (relación A5/A4 en anchura)           */
+.innerA5Scaled {
+  width: 216mm;
+  height: 303mm;
+  position: relative;
+  transform: scale(0.7130);
+  transform-origin: center center;
+  flex-shrink: 0;
+}
+
+/* ── Marcas de corte — modo A4 ──
+   Dentro del sheet A4 (216×303mm), en las esquinas, apuntando hacia adentro.
+   La línea de corte real está a 3mm del borde (fin del sangrado).
+   Cada marca: empieza en el borde de corte (3mm) y se extiende 6mm hacia adentro. */
 .cropMark {
+  position: absolute;
+  background: #999;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* top-left */
+.tl-h { top: 3mm;  left: 0;   width: 6mm;    height: 0.25mm; }
+.tl-v { top: 0;    left: 3mm; width: 0.25mm; height: 6mm; }
+/* top-right */
+.tr-h { top: 3mm;  right: 0;   width: 6mm;    height: 0.25mm; }
+.tr-v { top: 0;    right: 3mm; width: 0.25mm; height: 6mm; }
+/* bottom-left */
+.bl-h { bottom: 3mm; left: 0;   width: 6mm;    height: 0.25mm; }
+.bl-v { bottom: 0;   left: 3mm; width: 0.25mm; height: 6mm; }
+/* bottom-right */
+.br-h { bottom: 3mm; right: 0;   width: 6mm;    height: 0.25mm; }
+.br-v { bottom: 0;   right: 3mm; width: 0.25mm; height: 6mm; }
+
+/* ── Marcas de corte — modo A5 dentro de A4 ──
+   El A5 (154×216mm) queda centrado en el A4 (216×303mm).
+   Márgenes: h = (216-154)/2 = 31mm, v = (303-216)/2 = 43.5mm
+   Las marcas están en el .sheet (position: relative) apuntando
+   a las esquinas del A5 con 3mm de sangre incluidos.           */
+.cropMarkA5 {
   position: absolute;
   background: #555;
   z-index: 10;
+  pointer-events: none;
 }
 
-.tl-h { top: 3mm;    left: -5mm;  width: 7mm;    height: 0.25mm; }
-.tl-v { top: -5mm;   left: 3mm;   width: 0.25mm; height: 7mm; }
-.tr-h { top: 3mm;    right: -5mm; width: 7mm;    height: 0.25mm; }
-.tr-v { top: -5mm;   right: 3mm;  width: 0.25mm; height: 7mm; }
-.bl-h { bottom: 3mm; left: -5mm;  width: 7mm;    height: 0.25mm; }
-.bl-v { bottom: -5mm; left: 3mm;  width: 0.25mm; height: 7mm; }
-.br-h { bottom: 3mm; right: -5mm; width: 7mm;    height: 0.25mm; }
-.br-v { bottom: -5mm; right: 3mm; width: 0.25mm; height: 7mm; }
+/* top-left */
+.a5-tl-h { top: calc(43.5mm + 3mm);  left: calc(31mm - 5mm);  width: 7mm;    height: 0.25mm; }
+.a5-tl-v { top: calc(43.5mm - 5mm);  left: calc(31mm + 3mm);  width: 0.25mm; height: 7mm; }
+/* top-right */
+.a5-tr-h { top: calc(43.5mm + 3mm);  right: calc(31mm - 5mm); width: 7mm;    height: 0.25mm; }
+.a5-tr-v { top: calc(43.5mm - 5mm);  right: calc(31mm + 3mm); width: 0.25mm; height: 7mm; }
+/* bottom-left */
+.a5-bl-h { bottom: calc(43.5mm + 3mm); left: calc(31mm - 5mm);  width: 7mm;    height: 0.25mm; }
+.a5-bl-v { bottom: calc(43.5mm - 5mm); left: calc(31mm + 3mm);  width: 0.25mm; height: 7mm; }
+/* bottom-right */
+.a5-br-h { bottom: calc(43.5mm + 3mm); right: calc(31mm - 5mm); width: 7mm;    height: 0.25mm; }
+.a5-br-v { bottom: calc(43.5mm - 5mm); right: calc(31mm + 3mm); width: 0.25mm; height: 7mm; }
 
 /* ── Paginación ── */
 .pagination {
@@ -76,4 +123,3 @@
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
-

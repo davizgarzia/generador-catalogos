@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
-// Dimensiones fijas del área imprimible sin sangre (innerNormal: 148×210mm a 96dpi)
+// Dimensiones fijas del área imprimible sin sangre (innerNormal: 210×297mm a 96dpi)
 const MM = 3.7795275591
-const INNER_W_PX = Math.round(148 * MM)  // ~559px
-const INNER_H_PX = Math.round(210 * MM)  // ~794px
+const INNER_W_PX = Math.round(210 * MM)  // ~794px
+const INNER_H_PX = Math.round(297 * MM)  // ~1123px
 const THUMB_W = 164
 const THUMB_H = Math.round(THUMB_W * (INNER_H_PX / INNER_W_PX))
 const SCALE = THUMB_W / INNER_W_PX

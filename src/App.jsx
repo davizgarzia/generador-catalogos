@@ -12,14 +12,15 @@ import Sidebar from "./components/Sidebar"
 import PageWrapper from "./components/PageWrapper"
 import PageNavigator from "./components/PageNavigator"
 
-const PER_PAGE = 9
+const PER_PAGE = 12
 
 export default function App() {
-  const { printMode } = usePrint()
+  const { printMode, printSize } = usePrint()
 
-  // Inyectar @page dinámicamente según modo:
-  // - con marcas: A4 (el .sheet A4 envuelve el .inner 154×216mm con sangre)
-  // - sin marcas: A5 (el .innerNormal 148×210mm es la página directamente)
+  // Inyectar @page dinámicamente según modo y tamaño:
+  // - sin marcas:            A4 exacto 210×297mm
+  // - con marcas A4:         216×303mm (A4 + 3mm sangre)
+  // - con marcas A5 en A4:   216×303mm (el papel sigue siendo A4, el contenido se escala)
   useEffect(() => {
     let el = document.getElementById("dynamic-page-style")
     if (!el) {
@@ -27,16 +28,17 @@ export default function App() {
       el.id = "dynamic-page-style"
       document.head.appendChild(el)
     }
-    if (printMode) {
+    if (!printMode) {
       el.textContent = `@page { size: 210mm 297mm; margin: 0; }`
-      document.body.classList.remove("mode-normal")
-      document.body.classList.add("mode-print")
-    } else {
-      el.textContent = `@page { size: 148mm 210mm; margin: 0; }`
       document.body.classList.remove("mode-print")
       document.body.classList.add("mode-normal")
+    } else {
+      // Tanto A4 como A5: el papel impreso es siempre A4 con sangre
+      el.textContent = `@page { size: 216mm 303mm; margin: 0; }`
+      document.body.classList.remove("mode-normal")
+      document.body.classList.add("mode-print")
     }
-  }, [printMode])
+  }, [printMode, printSize])
   const grouped = useMemo(() => {
     const map = {}
     for (const product of products) {

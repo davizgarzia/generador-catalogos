@@ -1,7 +1,6 @@
 import express from "express"
 import cors from "cors"
-import { execSync, spawn } from "child_process"
-import { createServer } from "net"
+import { execSync } from "child_process"
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -67,39 +66,26 @@ final.save('${dest}', 'PNG')
 })
 
 // ── POST /api/generate-pdf ────────────────────────────────
-// Body: { marks } — true = con marcas de corte (A4), false = sin marcas (A5)
+// Body: { marks, size } — marks: bool, size: "A4" | "A5"
 app.post("/api/generate-pdf", async (req, res) => {
-  const { marks = false } = req.body ?? {}
+  const { marks = false, size = "A4" } = req.body ?? {}
   const outputName = "catalogo-impormed-2025.pdf"
 
-  const PAGE_W_MM = marks ? 210 : 148
-  const PAGE_H_MM = marks ? 297 : 210
+  // Tamaño de página para Puppeteer:
+  // sin marcas → A4 exacto; con marcas (A4 o A5) → A4 con sangre (el A5 se escala dentro)
+  const pageSize = marks ? "216mm 303mm" : "210mm 297mm"
 
-  // Puerto libre para servir el build de Vite
-  const freePort = await new Promise((resolve) => {
-    const srv = createServer()
-    srv.listen(0, () => {
-      const { port } = srv.address()
-      srv.close(() => resolve(port))
-    })
-  })
-
-  const staticServer = spawn(
-    "npx",
-    ["serve", "dist", "--listen", String(freePort), "--no-clipboard"],
-    { cwd: __dirname, stdio: "pipe" }
-  )
-  await new Promise((r) => setTimeout(r, 1500))
+  // Puppeteer apunta directamente al servidor Vite dev que ya está corriendo
+  const marksParam = marks ? "1" : "0"
+  const viteUrl = `http://localhost:5173?marks=${marksParam}&size=${size}`
 
   const browser = await puppeteer.launch({ headless: true })
 
   try {
     const browserPage = await browser.newPage()
     await browserPage.setViewport({ width: 1600, height: 900 })
-    await browserPage.goto(`http://localhost:${freePort}`, {
-      waitUntil: "networkidle0",
-      timeout: 60000,
-    })
+
+    await browserPage.goto(viteUrl, { waitUntil: "networkidle0", timeout: 60000 })
 
     // Esperar imágenes
     await browserPage.evaluate(() =>
@@ -109,33 +95,24 @@ app.post("/api/generate-pdf", async (req, res) => {
           .map(img => new Promise(r => { img.onload = r; img.onerror = r }))
       )
     )
-
-    // Sincronizar el toggle de marcas con el parámetro recibido
-    const switchOn = await browserPage.evaluate(() =>
-      document.querySelector('[role="switch"]')?.getAttribute("aria-checked") === "true"
-    )
-    if (switchOn !== marks) {
-      await browserPage.click('[role="switch"]')
-      await new Promise(r => setTimeout(r, 500))
-    }
     await new Promise(r => setTimeout(r, 800))
 
-    // Inyectar CSS de impresión: ocultar chrome, resetear márgenes, configurar @page
+    // CSS de impresión: solo ocultar chrome y resetear layout.
+    // El estado (marks/size) ya está correcto porque lo leyó la app desde la URL.
     const printCSS = marks ? `
       .app-chrome { display: none !important; }
       #catalog-area { margin: 0 !important; }
       body { background: white !important; }
       #catalog { gap: 0 !important; padding: 0 !important; }
       #catalog > *, #catalog section > * { box-shadow: none !important; }
-      @page { size: 210mm 297mm; margin: 0; }
+      @page { size: ${pageSize}; margin: 0; }
     ` : `
       .app-chrome { display: none !important; }
       #catalog-area { margin: 0 !important; }
       body { background: white !important; }
       #catalog { gap: 0 !important; padding: 0 !important; align-items: flex-start !important; }
       #catalog > *, #catalog section > * { box-shadow: none !important; }
-      [class*="sheetNormal"] { display: contents !important; }
-      @page { size: 148mm 210mm; margin: 0; }
+      @page { size: ${pageSize}; margin: 0; }
     `
     await browserPage.addStyleTag({ content: printCSS })
 
@@ -151,7 +128,6 @@ app.post("/api/generate-pdf", async (req, res) => {
     res.status(500).json({ error: e.message })
   } finally {
     await browser.close()
-    staticServer.kill()
   }
 })
 
