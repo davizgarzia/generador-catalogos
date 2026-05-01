@@ -1,0 +1,90 @@
+.page {
+  position: relative;
+  width: 154mm;
+  min-height: 216mm;
+  background: #1b3da6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 13mm;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4mm;
+}
+
+/* ... resto igual ... */
+
+.footer {
+  width: 100%;
+  padding: 6mm 12mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-top: 1px solid rgba(255,255,255,0.15);
+}
+
+.footerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  font-size: 7.5pt;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.5px;
+}
+
+.year {
+  font-size: 52pt;
+  font-weight: 900;
+  color: rgba(255,255,255,0.12);
+  line-height: 1;
+}
+
+.logo {
+  font-size: 52pt;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.logo span {
+  color: #a0b8ff;
+}
+
+.tagline {
+  font-size: 8pt;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+}
+
+.divider {
+  width: 20mm;
+  height: 2px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  margin: 4mm 0;
+}
+
+.title {
+  font-size: 22pt;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.categories {
+  font-size: 9pt;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1.5px;
+}

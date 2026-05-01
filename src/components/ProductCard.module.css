@@ -1,0 +1,134 @@
+.card {
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  break-inside: avoid;
+  height: 100%;
+  min-height: 0;
+}
+
+.imgWrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.imgWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  mix-blend-mode: multiply;
+}
+
+.imgWrap img.noBlend {
+  mix-blend-mode: normal;
+}
+
+.noImg {
+  font-size: 7pt;
+  color: #ccc;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.body {
+  padding: 2mm 3mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  flex-shrink: 0;
+  height: 18mm;
+  overflow: hidden;
+}
+
+.refBadge {
+  position: absolute;
+  top: 2mm;
+  left: 2mm;
+  color: #fff;
+  font-size: 6.5pt;
+  font-weight: 700;
+  padding: 0.8mm 2.5mm;
+  border-radius: 20px;
+  letter-spacing: 0.4px;
+}
+
+.units {
+  font-size: 6pt;
+  color: #999;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.name {
+  font-size: 7pt;
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+/* ── Overlay herramientas (solo pantalla) ── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.imgWrap:hover .overlay {
+  opacity: 1;
+}
+
+.overlayActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.actionBtn {
+  background: #fff;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 7.5pt;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.1s;
+}
+
+.actionBtn:hover {
+  background: #f0f0f0;
+}
+
+.overlayStatus {
+  color: #fff;
+  font-size: 8pt;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ok { color: #4ade80; }
+.error { color: #f87171; }
+
+@media print {
+  .overlay { display: none; }
+}

@@ -1,0 +1,91 @@
+.page {
+  width: 154mm;
+  height: 216mm;
+  /* 3mm sangre + 18mm margen = 21mm */
+  padding: 21mm;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10mm;
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.header {
+  padding-bottom: 5mm;
+  border-bottom: 2px solid #1b3da6;
+}
+
+.header h2 {
+  font-size: 22pt;
+  color: #1b3da6;
+  font-weight: 800;
+  margin: 0 0 2mm;
+}
+
+.header p {
+  font-size: 9pt;
+  color: #666;
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6mm;
+}
+
+.card {
+  padding: 6mm;
+  border: 1px solid #dde2f0;
+  border-left: 3px solid #1b3da6;
+}
+
+.cardIcon {
+  color: #1b3da6;
+  margin-bottom: 3mm;
+  display: block;
+}
+
+.cardTitle {
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: #1b3da6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3mm;
+}
+
+.cardText {
+  font-size: 8.5pt;
+  color: #444;
+  line-height: 1.6;
+}
+
+.contact {
+  background: #1b3da6;
+  padding: 6mm 10mm;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.contactLabel {
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.contactItems {
+  display: flex;
+  gap: 8mm;
+  font-size: 9pt;
+  font-weight: 500;
+  opacity: 0.92;
+}

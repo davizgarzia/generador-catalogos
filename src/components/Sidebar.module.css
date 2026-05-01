@@ -1,0 +1,313 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 260px;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+/* ── Toggle ── */
+.toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.toggleTrack {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: #2e2e4e;
+  position: relative;
+  transition: background 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggleTrack.on {
+  background: #4A6CF7;
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+
+.toggleTrack.on .toggleThumb {
+  transform: translateX(20px);
+}
+
+.toggleLabel {
+  font-size: 8pt;
+  color: #888;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* ── Botón ── */
+.printBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #4A6CF7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 18px;
+  font-size: 9.5pt;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.15s;
+}
+
+.printBtn:hover {
+  background: #3558e8;
+}
+
+@media print {
+  .sidebar { display: none; }
+}
+
+
+.logo {
+  font-size: 11pt;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.label {
+  font-size: 8pt;
+  color: #888;
+  letter-spacing: 0.5px;
+  margin-top: -6px;
+}
+
+.divider {
+  height: 1px;
+  background: #2e2e4e;
+  margin: 2px 0;
+  flex-shrink: 0;
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 20pt;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+}
+
+.statLabel {
+  font-size: 7.5pt;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Sección opciones ── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-size: 7pt;
+  font-weight: 700;
+  color: #4A6CF7;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fieldLabel {
+  font-size: 7pt;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.select,
+.input {
+  background: #12122a;
+  border: 1px solid #2e2e4e;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 8pt;
+  padding: 4px 6px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.select:focus,
+.input:focus {
+  border-color: #4A6CF7;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+.row .field {
+  flex: 1;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.toggle input {
+  width: 13px;
+  height: 13px;
+  accent-color: #4A6CF7;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggleLabel {
+  font-size: 8pt;
+  color: #aaa;
+  line-height: 1.3;
+}
+
+.pageInfo {
+  font-size: 7pt;
+  color: #555;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Botones ── */
+.pdfBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #4A6CF7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 10px;
+  font-size: 8.5pt;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.pdfBtn:hover:not(:disabled) {
+  background: #3558e8;
+}
+
+.pdfBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.printBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  color: #888;
+  border: 1px solid #2e2e4e;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 8pt;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.printBtn:hover {
+  border-color: #4A6CF7;
+  color: #ccc;
+}
+
+/* ── Spinner ── */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Resultado ── */
+.resultOk {
+  font-size: 7.5pt;
+  color: #4ade80;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.resultErr {
+  font-size: 7.5pt;
+  color: #f87171;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.hint {
+  font-size: 7pt;
+  color: #444;
+  line-height: 1.6;
+}
+
+.hint strong {
+  color: #666;
+}
+
+@media print {
+  .sidebar {
+    display: none;
+  }
+}

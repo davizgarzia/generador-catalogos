@@ -1,0 +1,79 @@
+/* Hoja A4 — soporte de impresión */
+.sheet {
+  width: 210mm;
+  height: 297mm;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Sin A4: wrapper transparente, el inner dicta el tamaño */
+.sheetNormal {
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Área con sangre: A5 + 3mm por cada lado = 154×216mm */
+.inner {
+  width: 154mm;
+  height: 216mm;
+  position: relative;
+}
+
+/* Área sin sangre: A5 exacto = 148×210mm */
+.innerNormal {
+  width: 148mm;
+  height: 210mm;
+  position: relative;
+}
+
+/* ── Marcas de corte ── */
+.cropMark {
+  position: absolute;
+  background: #555;
+  z-index: 10;
+}
+
+.tl-h { top: 3mm;    left: -5mm;  width: 7mm;    height: 0.25mm; }
+.tl-v { top: -5mm;   left: 3mm;   width: 0.25mm; height: 7mm; }
+.tr-h { top: 3mm;    right: -5mm; width: 7mm;    height: 0.25mm; }
+.tr-v { top: -5mm;   right: 3mm;  width: 0.25mm; height: 7mm; }
+.bl-h { bottom: 3mm; left: -5mm;  width: 7mm;    height: 0.25mm; }
+.bl-v { bottom: -5mm; left: 3mm;  width: 0.25mm; height: 7mm; }
+.br-h { bottom: 3mm; right: -5mm; width: 7mm;    height: 0.25mm; }
+.br-v { bottom: -5mm; right: 3mm; width: 0.25mm; height: 7mm; }
+
+/* ── Paginación ── */
+.pagination {
+  position: absolute;
+  bottom: 6mm;
+  left: 13mm;
+  right: 13mm;
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  z-index: 5;
+}
+
+.paginationLine {
+  flex: 1;
+  height: 0.3mm;
+  background: #ddd;
+}
+
+.paginationText {
+  font-size: 7pt;
+  color: #aaa;
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+

@@ -1,0 +1,75 @@
+/* ── Global reset & base ───────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: "Montserrat", Arial, sans-serif;
+  background: #c8c8c8;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color: #1a1a2e;
+}
+
+/* ── Page wrapper (A4 simulation in browser) ──────────── */
+#catalog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8mm;
+  padding: 8mm 0;
+}
+
+#catalog section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8mm;
+}
+
+#catalog > *,
+#catalog section > * {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+}
+
+
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  #catalog {
+    gap: 0;
+    padding: 0;
+  }
+
+  #catalog > *,
+  #catalog section > * {
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* Last element: no forced page break after */
+  #catalog > *:last-child,
+  #catalog section:last-child > *:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+}
+
+@page {
+  size: 210mm 297mm;
+  margin: 0;
+}
+
+

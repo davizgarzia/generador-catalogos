@@ -1,0 +1,16 @@
+.page {
+  width: 154mm;
+  height: 216mm;
+  /* 3mm sangre + 10mm margen = 13mm */
+  padding: 13mm;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 3mm;
+  height: 100%;
+}

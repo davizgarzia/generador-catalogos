@@ -1,0 +1,81 @@
+.page {
+  width: 154mm;
+  min-height: 216mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 13mm;
+}
+
+.bgText,
+.content {
+  position: relative;
+  z-index: 1;
+}
+
+.bgText {
+  position: absolute;
+  font-size: 80pt;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+  letter-spacing: -4px;
+  bottom: 10mm;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  width: 100%;
+  text-align: center;
+  opacity: 0.07;
+  z-index: 1;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: #fff;
+  padding: 20mm;
+}
+
+.icon {
+  font-size: 58pt;
+  margin-bottom: 5mm;
+}
+
+.title {
+  font-size: 40pt;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin: 0 0 4mm;
+}
+
+.subtitle {
+  font-size: 11pt;
+  font-weight: 300;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.line {
+  width: 18mm;
+  height: 3px;
+  margin: 6mm auto;
+  border-radius: 2px;
+}
+
+.count {
+  font-size: 9pt;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 1px;
+  margin: 0;
+  text-transform: uppercase;
+}
