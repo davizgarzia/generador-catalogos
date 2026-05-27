@@ -61,21 +61,6 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
           <div className={styles.noImg}>SIN<br />IMAGEN</div>
         )}
 
-        {rawProduct.id && (
-          <span className={styles.refBadge} style={{ background: accentColor }}>
-            Ref: {rawProduct.id}
-          </span>
-        )}
-
-        {product.unitsLabel && (
-          <span className={styles.unitsBadge}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
-            </svg>
-            {product.unitsLabel.replace(/\/Caja$/i, "").trim()}
-          </span>
-        )}
-
         {/* Overlay editar — solo en pantalla */}
         <div
           className={styles.overlay}
@@ -92,6 +77,17 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
       </div>
 
       <div className={styles.body}>
+        <div className={styles.meta}>
+          {rawProduct.id && (
+            <span className={styles.ref} style={{ color: accentColor }}>Ref: {rawProduct.id}</span>
+          )}
+          {rawProduct.id && product.unitsLabel && (
+            <span className={styles.sep}>·</span>
+          )}
+          {product.unitsLabel && (
+            <span className={styles.units}>{product.unitsLabel}</span>
+          )}
+        </div>
         <div className={styles.name}>{product.name}</div>
       </div>
     </div>

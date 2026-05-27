@@ -625,19 +625,23 @@
     "imgMode": "nobg"
   },
   "57001": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.4
   },
   "57002": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1
   },
   "57003": {
     "imgMode": "nobg"
   },
   "57004": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.1
   },
   "57008": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgY": 1
   },
   "57010": {
     "imgMode": "nobg"
@@ -652,25 +656,32 @@
     "imgMode": "nobg"
   },
   "57017": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45,
+    "imgY": 3
   },
   "57018": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.55
   },
   "57023": {
     "imgMode": "nobg"
   },
   "57027": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45,
+    "imgY": 2
   },
   "57041": {
     "imgMode": "nobg"
   },
   "57063": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.55
   },
   "57069": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.35
   },
   "57076": {
     "imgMode": "nobg"
@@ -694,10 +705,12 @@
     "imgMode": "nobg"
   },
   "57086": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.35
   },
   "57090": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.4
   },
   "57092": {
     "imgMode": "nobg"
@@ -718,25 +731,31 @@
     "imgMode": "nobg"
   },
   "57111": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.4
   },
   "57112": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.1
   },
   "57113": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.4
   },
   "57114": {
     "imgMode": "nobg"
   },
   "57115": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.3
   },
   "57116": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.2
   },
   "57117": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.3
   },
   "63005": {
     "imgMode": "nobg",
@@ -925,7 +944,8 @@
     "imgX": -1,
     "imgY": 1,
     "imgMode": "nobg",
-    "nobgVersion": 1779875106113
+    "nobgVersion": 1779875106113,
+    "unitsLabel": "6 uds./caja"
   },
   "76022": {
     "imgMode": "nobg",
@@ -1130,7 +1150,8 @@
     "imgMode": "nobg"
   },
   "IP12059": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "unitsLabel": "5 uds./caja"
   },
   "IP12068": {
     "imgMode": "nobg"
@@ -1432,9 +1453,9 @@
   },
   "IP30199": {
     "imgMode": "nobg",
-    "imgX": 31,
-    "imgScale": 1.6,
-    "imgY": 7
+    "imgX": 2,
+    "imgScale": 2,
+    "imgY": 3
   },
   "IP30200": {
     "imgMode": "nobg"
@@ -1634,15 +1655,18 @@
     "nobgVersion": 1779880475452
   },
   "IP57007": {
-    "imgMode": "original"
+    "imgMode": "original",
+    "imgScale": 1.4
   },
   "IP57014": {
     "imgMode": "nobg",
-    "nobgVersion": 1779880209351
+    "nobgVersion": 1779880209351,
+    "imgScale": 1.3
   },
   "IP57015": {
     "imgMode": "nobg",
-    "nobgVersion": 1779880219924
+    "nobgVersion": 1779880219924,
+    "imgScale": 1.35
   },
   "IP66005": {
     "imgMode": "original"

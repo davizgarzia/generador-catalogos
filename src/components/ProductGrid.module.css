@@ -1,16 +1,113 @@
 .page {
   width: 216mm;
   height: 303mm;
-  /* 3mm sangre + 12mm margen = 15mm */
-  padding: 15mm;
   background: #fff;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+/* ── Header de categoría ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  padding: 0 8mm;
+  height: 14mm;
+  min-height: 14mm;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.headerIcon {
+  font-size: 16pt;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+  flex: 1;
+}
+
+.headerTitle {
+  font-size: 10pt;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.headerSubtitle {
+  font-size: 6pt;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+/* Franja de acento en el lado derecho del header */
+.headerAccent {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3mm;
+  opacity: 0.7;
+}
+
+/* ── Grid de productos ── */
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: 4mm;
-  height: 100%;
+  gap: 3mm;
+  flex: 1;
+  min-height: 0;
+  padding: 4mm 8mm;
+  box-sizing: border-box;
+}
+
+/* ── Footer de paginación — mismo alto y estilo que el header ── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 14mm;
+  min-height: 14mm;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.footerAccentLeft {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3mm;
+  opacity: 0.7;
+}
+
+.footerAccentRight {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3mm;
+  opacity: 0.7;
+}
+
+.footerPage {
+  font-size: 9pt;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }

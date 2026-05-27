@@ -43,51 +43,55 @@
 }
 
 .body {
-  padding: 2mm 3mm;
+  padding: 2mm 3mm 2.5mm;
   display: flex;
   flex-direction: column;
-  gap: 1mm;
+  align-items: center;
+  gap: 0;
   flex-shrink: 0;
   height: 20mm;
   overflow: hidden;
 }
 
-.refBadge {
-  position: absolute;
-  top: 2mm;
-  left: 2mm;
-  color: #fff;
-  font-size: 7pt;
-  font-weight: 700;
-  padding: 0.8mm 2.5mm;
-  border-radius: 20px;
-  letter-spacing: 0.4px;
-}
-
-.unitsBadge {
-  position: absolute;
-  top: calc(2mm + 6mm);   /* justo debajo del refBadge */
-  left: 2mm;
-  display: flex;
-  align-items: center;
-  gap: 1.5mm;
-  background: #fff;
-  color: #555;
-  font-size: 6.5pt;
-  font-weight: 700;
-  padding: 0.6mm 2mm;
-  border-radius: 20px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-}
-
 .name {
-  font-size: 8pt;
+  font-size: 7.5pt;
   font-weight: 700;
   color: #1a1a2e;
-  line-height: 1.35;
+  line-height: 1.3;
   text-transform: uppercase;
+  text-align: center;
+  width: 100%;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1mm;
+  padding-bottom: 1.5mm;
+  margin-bottom: 1.5mm;
+  border-bottom: 0.3mm solid #e0e0e0;
+  width: 100%;
+}
+
+.ref {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.sep {
+  font-size: 6.5pt;
+  color: #bbb;
+  font-weight: 400;
+}
+
+.units {
+  font-size: 6.5pt;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 /* ── Overlay herramientas (solo pantalla) ── */

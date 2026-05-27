@@ -5,7 +5,6 @@ export default function CategoryDivider({ category, productCount }) {
   const config = CATEGORY_CONFIG[category] ?? {
     bg: "#1b4f72",
     accent: "#2e86ab",
-    icon: "📦",
     subtitle: "",
   }
 
@@ -15,7 +14,6 @@ export default function CategoryDivider({ category, productCount }) {
         {category}
       </div>
       <div className={styles.content}>
-        <div className={styles.icon}>{config.icon}</div>
         <h1 className={styles.title}>{category}</h1>
         <p className={styles.subtitle} style={{ color: config.accent }}>
           {config.subtitle}

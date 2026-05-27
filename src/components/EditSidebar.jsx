@@ -37,6 +37,43 @@ function TextInput({ value, onChange, placeholder }) {
   )
 }
 
+// Extrae el número de "N uds./caja" o devuelve "" si no hay
+function parseUnitsNum(label) {
+  if (!label) return ""
+  const m = label.match(/^(\d+)\s*uds\.\/caja$/i)
+  return m ? m[1] : ""
+}
+
+function UnitsInput({ value, onChange }) {
+  const num = parseUnitsNum(value)
+  function handleChange(e) {
+    const raw = e.target.value.replace(/\D/g, "") // solo dígitos
+    if (raw === "") {
+      onChange(null)
+    } else {
+      onChange(`${raw} uds./caja`)
+    }
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <input
+        type="number"
+        min="1"
+        value={num}
+        onChange={handleChange}
+        placeholder="—"
+        style={{
+          fontSize: 12, color: "#111827", fontWeight: 500,
+          border: "1px solid #e5e7eb", borderRadius: 6,
+          padding: "5px 8px", outline: "none", width: 64,
+          background: "#fff", appearance: "textfield", MozAppearance: "textfield",
+        }}
+      />
+      <span style={{ fontSize: 12, color: "#6b7280", whiteSpace: "nowrap" }}>uds./caja</span>
+    </div>
+  )
+}
+
 function SliderRow({ label, value, min, max, step = 1, unit = "", onChange, onReset }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -321,10 +358,9 @@ export default function EditSidebar() {
         </Field>
 
         <Field label="Unidades">
-          <TextInput
+          <UnitsInput
             value={unitsLabel}
             onChange={v => patch({ unitsLabel: v })}
-            placeholder={editingProduct.unitsLabel ?? ""}
           />
           {o.unitsLabel && o.unitsLabel !== editingProduct.unitsLabel && (
             <button onClick={() => patch({ unitsLabel: editingProduct.unitsLabel })}

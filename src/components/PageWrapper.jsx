@@ -2,7 +2,7 @@ import { forwardRef } from "react"
 import { usePrint } from "../context/PrintContext"
 import styles from "./PageWrapper.module.css"
 
-const PageWrapper = forwardRef(function PageWrapper({ children, page, total }, ref) {
+const PageWrapper = forwardRef(function PageWrapper({ children, accentColor, bgColor }, ref) {
   const { printMode, printSize } = usePrint()
 
   const isA5 = printMode && printSize === "A5"
@@ -50,14 +50,6 @@ const PageWrapper = forwardRef(function PageWrapper({ children, page, total }, r
         )}
 
         {children}
-
-        {page != null && (
-          <div className={styles.pagination}>
-            <div className={styles.paginationLine} />
-            <span className={styles.paginationText}>{page}</span>
-            <div className={styles.paginationLine} />
-          </div>
-        )}
       </div>
     </div>
   )
