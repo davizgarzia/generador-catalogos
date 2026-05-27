@@ -3,3 +3,7 @@ dist
 .DS_Store
 *.local
 *.pdf
+public/images/
+public/images-nobg/
+data/PRODUCTOS/
+data/*.xlsx

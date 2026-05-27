@@ -86,17 +86,55 @@ export default function EditSidebar() {
   const imgX       = o.imgX       ?? 0
   const imgY       = o.imgY       ?? 0
   const imgScale   = o.imgScale   ?? 1
+  const imgMode    = o.imgMode    ?? "original"  // sync con applyOverride default
+  const [removingBg, setRemovingBg] = useState(false)
+  const [imgKey, setImgKey] = useState(() => Date.now())
 
   function patch(fields) {
     patchOverride(id, fields)
   }
 
-  // Preview de imagen en el sidebar (siempre nobg si existe)
-  const [imgKey, setImgKey] = useState(() => Date.now())
-  const imgSrc = editingProduct.image
-    ? `/images-nobg/${id}.png?v=${imgKey}`
-    : null
+  async function handleToggleNobg() {
+    if (imgMode === "nobg") {
+      // Desactivar: volver a original
+      patch({ imgMode: "original" })
+    } else {
+      // Comprobar si ya existe el PNG sin fondo (via API, no Vite que devuelve 200 siempre)
+      const nobgVersion = o.nobgVersion ?? 0
+      const existsRes = await fetch(`${API}/nobg-exists/${id}`)
+      const { exists } = await existsRes.json()
+      if (exists) {
+        // Ya procesada — activar directamente sin reprocesar
+        patch({ imgMode: "nobg", nobgVersion })
+        setImgKey(Date.now())
+        return
+      }
+      // No existe — llamar al endpoint para quitar fondo
+      setRemovingBg(true)
+      try {
+        const r = await fetch(`${API}/remove-bg/${id}`, { method: "POST" })
+        const data = await r.json()
+        if (r.ok) {
+          patch({ imgMode: "nobg", nobgVersion: Date.now() })
+          setImgKey(Date.now())
+        } else {
+          alert(`Error quitando fondo: ${data.error}`)
+        }
+      } catch (e) {
+        alert(`Error de red: ${e.message}`)
+      } finally {
+        setRemovingBg(false)
+      }
+    }
+  }
 
+  // Preview de imagen en el sidebar: nobg si modo nobg, original en otro caso
+  const origExt = editingProduct.image?.match(/\.(\w+)$/)?.[1] ?? "jpg"
+  const imgSrc = editingProduct.image
+    ? (imgMode === "nobg"
+        ? `/images-nobg/${id}.png?v=${imgKey}`
+        : `/images/${id}.${origExt}?v=${imgKey}`)
+    : null
   const imgPreviewStyle = {
     width: "100%", height: "100%", objectFit: "contain",
     transform: `translate(${imgX}%, ${imgY}%) scale(${imgScale})`,
@@ -213,6 +251,33 @@ export default function EditSidebar() {
               }} />
             </button>
           </div>
+
+          {/* Toggle sin fondo */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+            <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 500 }}>
+              Sin fondo{removingBg ? " (procesando…)" : ""}
+            </span>
+            <button
+              onClick={handleToggleNobg}
+              disabled={removingBg}
+              style={{
+                width: 36, height: 20, borderRadius: 10, border: "none",
+                cursor: removingBg ? "wait" : "pointer",
+                background: imgMode === "nobg" ? "#111827" : "#e5e7eb",
+                position: "relative", transition: "background 0.2s", flexShrink: 0,
+                opacity: removingBg ? 0.6 : 1,
+              }}
+            >
+              <span style={{
+                position: "absolute", top: 2,
+                left: imgMode === "nobg" ? 18 : 2,
+                width: 16, height: 16, borderRadius: "50%",
+                background: "#fff", transition: "left 0.2s",
+              }} />
+            </button>
+          </div>
+
+
         </Field>
 
         {divider}

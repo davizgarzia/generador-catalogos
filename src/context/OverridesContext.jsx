@@ -45,6 +45,7 @@ export function OverridesProvider({ children }) {
       imgX:        o.imgX        ?? 0,
       imgY:        o.imgY        ?? 0,
       imgScale:    o.imgScale    ?? 1,
+      imgMode:     o.imgMode     ?? "original",
     }
   }, [overrides])
 

@@ -35,6 +35,7 @@ export default function Topbar({ totalProducts, totalPages }) {
       setGenerating(false)
     }
   }
+
   return (
     <header style={{
       position: "fixed",
@@ -81,6 +82,7 @@ export default function Topbar({ totalProducts, totalPages }) {
 
       <div style={{ flex: 1 }} />
 
+      {/* Guardar PDF */}
       <Button
         size="sm"
         onClick={handleGeneratePdf}
@@ -92,6 +94,7 @@ export default function Topbar({ totalProducts, totalPages }) {
           : <><FileDown size={13} /> Guardar PDF</>
         }
       </Button>
+
     </header>
   )
 }

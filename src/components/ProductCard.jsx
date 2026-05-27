@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import styles from "./ProductCard.module.css"
 import { useEdit } from "../context/EditContext"
 import { useOverrides } from "../context/OverridesContext"
@@ -8,24 +8,37 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
   const { applyOverride }            = useOverrides()
   const product                      = applyOverride(rawProduct)
 
-  const [imgError, setImgError] = useState(false)
-  const [imgKey, setImgKey]     = useState(() => Date.now())
-  const [mode, setMode]         = useState("nobg")
+  const [imgError, setImgError]       = useState(false)
+  const [nobgFailed, setNobgFailed]   = useState(false)
+  // imgMode viene del override:
+  //   "original" → imagen tal cual, sin multiply (fondo no blanco detectado o sin detectar)
+  //   "blend"    → mix-blend-mode multiply (fondo blanco detectado automáticamente)
+  //   "nobg"     → PNG sin fondo procesado con rembg, sin multiply
+  const mode = product.imgMode ?? "original"
+  // nobgVersion se guarda en el override al procesar — sirve de cache-buster
+  const nobgVersion = product.nobgVersion ?? 0
+
+  // Reset de errores cuando cambia el producto, modo, o versión nobg
+  useEffect(() => { setImgError(false); setNobgFailed(false) }, [rawProduct.id, mode, nobgVersion])
 
   function getImgSrc() {
     if (!rawProduct.image) return null
     const ext = rawProduct.image.match(/\.(jpe?g)$/i)?.[1] ?? "jpg"
-    if (mode === "nobg") return `/images-nobg/${rawProduct.id}.png?v=${imgKey}`
-    return `/images/${rawProduct.id}.${ext}?v=${imgKey}`
+    if (mode === "nobg" && !nobgFailed) return `/images-nobg/${rawProduct.id}.png?v=${nobgVersion}`
+    return `/images/${rawProduct.id}.${ext}`
   }
 
   function handleImgError() {
-    if (mode === "nobg") setMode("multiply")
-    else setImgError(true)
+    if (mode === "nobg" && !nobgFailed) {
+      // nobg no existe → caer a original
+      setNobgFailed(true)
+    } else {
+      setImgError(true)
+    }
   }
 
   const imgSrc  = getImgSrc()
-  const isBlend = mode === "multiply"
+  const isBlend = mode === "blend"  // multiply solo si fondo blanco detectado
 
   // Transform de posición y escala desde overrides
   const imgStyle = {
@@ -40,7 +53,7 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
           <img
             src={imgSrc}
             alt={product.name}
-            className={isBlend ? undefined : styles.noBlend}
+            className={isBlend ? styles.blend : undefined}
             style={imgStyle}
             onError={handleImgError}
           />
@@ -66,7 +79,7 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
         {/* Overlay editar — solo en pantalla */}
         <div
           className={styles.overlay}
-          onClick={() => setEditingProduct({ ...rawProduct, _refreshImg: (key) => { setImgKey(key); setImgError(false) } })}
+          onClick={() => setEditingProduct(rawProduct)}
         >
           <div className={styles.editHint}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
