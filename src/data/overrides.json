@@ -3,7 +3,8 @@
     "imgMode": "nobg"
   },
   "12012": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.15
   },
   "12017": {
     "imgMode": "nobg"
@@ -16,30 +17,38 @@
   },
   "14002": {
     "imgMode": "nobg",
-    "nobgVersion": 0
+    "nobgVersion": 0,
+    "imgScale": 1.6
   },
   "14003": {
     "imgMode": "nobg",
-    "nobgVersion": 0
+    "nobgVersion": 0,
+    "imgScale": 1.7
   },
   "14007": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.6
   },
   "14010": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.65
   },
   "14012": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 2
   },
   "14015": {
     "imgMode": "original",
-    "nobgVersion": 0
+    "nobgVersion": 0,
+    "imgScale": 1.65
   },
   "14018": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 2
   },
   "14020": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.85
   },
   "16003": {
     "imgMode": "original"
@@ -99,7 +108,8 @@
     "imgMode": "original"
   },
   "16044": {
-    "imgMode": "original"
+    "imgMode": "original",
+    "imgX": -2
   },
   "18011": {
     "imgMode": "nobg"
@@ -120,13 +130,16 @@
     "imgMode": "nobg"
   },
   "18022": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.4
   },
   "18023": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45
   },
   "18024": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.55
   },
   "18027": {
     "imgMode": "nobg"
@@ -144,28 +157,38 @@
     "imgMode": "nobg"
   },
   "19001": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.95
   },
   "19006": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.2
   },
   "19007": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.25
   },
   "19008": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.3
   },
   "19010": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.1
   },
   "19011": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.2
   },
   "19022": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.15
   },
   "19024": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.55,
+    "imgY": 2,
+    "imgX": 24
   },
   "20028": {
     "imgMode": "nobg",
@@ -1161,50 +1184,67 @@
     "imgMode": "nobg"
   },
   "IP14030": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.85,
+    "imgX": 4,
+    "imgY": 14
   },
   "IP14031": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45
   },
   "IP14032": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.35
   },
   "IP14033": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45
   },
   "IP14034": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.5
   },
   "IP14035": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.35
   },
   "IP14036": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45
   },
   "IP14037": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45
   },
   "IP14039": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.4
   },
   "IP14038": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.4
   },
   "IP14040": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45
   },
   "IP14041": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.35
   },
   "IP14043": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.45
   },
   "IP14044": {
-    "imgMode": "nobg"
+    "imgMode": "nobg",
+    "imgScale": 1.3
   },
   "IP14045": {
     "imgMode": "nobg",
-    "nobgVersion": 0
+    "nobgVersion": 0,
+    "imgScale": 1.6
   },
   "IP14047": {
     "imgMode": "nobg"
