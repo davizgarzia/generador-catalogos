@@ -2,13 +2,37 @@ import ProductCard from "./ProductCard"
 import { CATEGORY_CONFIG } from "../config/categories"
 import styles from "./ProductGrid.module.css"
 import PageWrapper from "./PageWrapper"
+import { paginateBalanced } from "../lib/pagination"
 
-export default function ProductGrid({ products, category, perPage = 12, pageRefs = [], pageMeta = [] }) {
+export default function ProductGrid({ products, category, perPage = 9, pageRefs = [], pageMeta = [] }) {
   const config = CATEGORY_CONFIG[category] ?? { accent: "#4A6CF7", bg: "#1F2937", icon: "📦", subtitle: "" }
+  const pages = paginateBalanced(products, perPage)
 
-  const pages = []
-  for (let i = 0; i < products.length; i += perPage) {
-    pages.push(products.slice(i, i + perPage))
+  function gridPositions(count) {
+    const rowsByCount = {
+      1: [1],
+      2: [2],
+      3: [3],
+      4: [2, 2],
+      5: [2, 3],
+      6: [3, 3],
+      7: [2, 3, 2],
+      8: [3, 2, 3],
+      9: [3, 3, 3],
+    }
+    const rows = rowsByCount[count] ?? [3, 3, 3]
+
+    return rows.flatMap((rowSize, rowIndex) => {
+      const startsBySize = {
+        1: [3],
+        2: [2, 4],
+        3: [1, 3, 5],
+      }
+      return startsBySize[rowSize].map(columnStart => ({
+        gridColumn: `${columnStart} / span 2`,
+        gridRow: rowIndex + 1,
+      }))
+    })
   }
 
   return (
@@ -20,6 +44,9 @@ export default function ProductGrid({ products, category, perPage = 12, pageRefs
           accentColor={config.accent}
           bgColor={config.bg}
         >
+          {(() => {
+            const positions = gridPositions(pageProducts.length)
+            return (
           <div className={styles.page}>
             {/* Header de categoría */}
             <div className={styles.header} style={{ background: config.bg }}>
@@ -34,12 +61,17 @@ export default function ProductGrid({ products, category, perPage = 12, pageRefs
             </div>
 
             <div className={styles.grid}>
-              {pageProducts.map((product) => (
-                <ProductCard
+              {pageProducts.map((product, productIndex) => (
+                <div
                   key={product.id || product.name}
-                  product={product}
-                  accentColor={config.accent}
-                />
+                  className={styles.slot}
+                  style={positions[productIndex]}
+                >
+                  <ProductCard
+                    product={product}
+                    accentColor={config.accent}
+                  />
+                </div>
               ))}
             </div>
 
@@ -52,6 +84,8 @@ export default function ProductGrid({ products, category, perPage = 12, pageRefs
               </div>
             )}
           </div>
+            )
+          })()}
         </PageWrapper>
       ))}
     </>

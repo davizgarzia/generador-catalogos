@@ -92,10 +92,13 @@ const AUTO_FIT_PYTHON_SCRIPT = `
 import sys, json, math
 from PIL import Image
 
-CONTAINER_W = 47.75
-CONTAINER_H = 69.0
-TARGET_W = CONTAINER_W * 0.90
-TARGET_H = CONTAINER_H * 0.88
+# Medidas aproximadas del hueco de imagen con ProductGrid 3x3.
+# La tarjeta ocupa 2 columnas internas de una grid de 6; el alto descuenta
+# el bloque fijo de texto del producto.
+CONTAINER_W = 64.7
+CONTAINER_H = 67.0
+TARGET_W = CONTAINER_W * 0.86
+TARGET_H = CONTAINER_H * 0.84
 
 def clamp(value, low, high):
     return max(low, min(high, value))
@@ -177,7 +180,7 @@ def fit_for(path):
         return None
 
     scale = min(TARGET_W / rendered_bw, TARGET_H / rendered_bh)
-    scale = round(clamp(scale, 0.85, 2.35), 2)
+    scale = round(clamp(scale, 0.8, 1.95), 2)
 
     cx = box["x"] + bw / 2
     cy = box["y"] + bh / 2

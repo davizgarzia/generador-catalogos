@@ -11,8 +11,9 @@ import Topbar from "./components/Topbar"
 import Sidebar from "./components/Sidebar"
 import PageWrapper from "./components/PageWrapper"
 import PageNavigator from "./components/PageNavigator"
+import { paginateBalanced } from "./lib/pagination"
 
-const PER_PAGE = 12
+const PER_PAGE = 9
 
 export default function App() {
   const { printMode, printSize } = usePrint()
@@ -57,7 +58,7 @@ export default function App() {
       if (!cat?.length) continue
       const cfg = CATEGORY_CONFIG[category]
       list.push({ label: category, color: cfg.bg, icon: cfg.icon, paginated: false })
-      const n = Math.ceil(cat.length / PER_PAGE)
+      const n = paginateBalanced(cat, PER_PAGE).length
       for (let i = 0; i < n; i++) {
         list.push({ label: `${category} ${i + 1}/${n}`, color: null, paginated: true })
       }
@@ -106,7 +107,7 @@ export default function App() {
           {CATEGORY_ORDER.map((category) => {
             const categoryProducts = grouped[category]
             if (!categoryProducts?.length) return null
-            const numPages = Math.ceil(categoryProducts.length / PER_PAGE)
+            const numPages = paginateBalanced(categoryProducts, PER_PAGE).length
             const dividerRef = pageRefs[ri++]
             const gridRefs = pageRefs.slice(ri, ri + numPages)
             const gridMeta = pageMeta.slice(ri, ri + numPages)

@@ -125,7 +125,12 @@ Si se cambia una familia en el Excel o aparece una nueva categoría, revisar tan
    - Con marcas A5: contenido escalado y centrado dentro de una hoja A4.
 5. `Topbar`, `PageNavigator` y `Sidebar` son chrome de pantalla y se ocultan al imprimir/PDF.
 
-El número de productos por página se controla con `PER_PAGE` en `src/App.jsx`.
+El máximo de productos por página se controla con `PER_PAGE` en `src/App.jsx`.
+Las páginas de cada categoría se reparten con `paginateBalanced`, en
+`src/lib/pagination.js`, para evitar últimas páginas muy vacías. Actualmente el
+máximo es 9 productos por página y `ProductGrid` mantiene una retícula 3×3 para
+que las tarjetas conserven siempre el mismo tamaño. Por ejemplo, 26 productos se
+renderizan como `9 + 9 + 8` en vez de `12 + 12 + 2`.
 
 ## Edición de productos
 
