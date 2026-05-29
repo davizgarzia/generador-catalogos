@@ -49,7 +49,15 @@ export default function ProductGrid({ products, category, perPage = 9, pageRefs 
             return (
           <div className={styles.page}>
             {/* Header de categoría */}
-            <div className={styles.header} style={{ background: config.bg }}>
+            <div className={styles.header} style={{ background: config.bg, "--header-bg": config.bg }}>
+              {config.coverImages?.[0] && (
+                <img
+                  className={styles.headerCover}
+                  src={config.coverImages[0]}
+                  alt=""
+                  aria-hidden="true"
+                />
+              )}
               <span className={styles.headerIcon}>{config.icon}</span>
               <div className={styles.headerText}>
                 <span className={styles.headerTitle}>{category}</span>
@@ -75,9 +83,15 @@ export default function ProductGrid({ products, category, perPage = 9, pageRefs 
             {/* Footer de paginación — mismo estilo que el header */}
             {pageMeta[pageIndex]?.pageNum != null && (
               <div className={styles.footer} style={{ background: config.bg }}>
-                <div className={styles.footerAccentLeft} style={{ background: config.accent }} />
-                <span className={styles.footerPage}>{pageMeta[pageIndex].pageNum}</span>
-                <div className={styles.footerAccentRight} style={{ background: config.accent }} />
+                <div className={styles.footerSide}>
+                  <span className={styles.footerBrand}>
+                    <strong>IMPORMED</strong>
+                    <span> · CATÁLOGO DE PRODUCTOS</span>
+                  </span>
+                </div>
+                <div className={styles.footerSide}>
+                  <span className={styles.footerPage}>{pageMeta[pageIndex].pageNum}</span>
+                </div>
               </div>
             )}
           </div>

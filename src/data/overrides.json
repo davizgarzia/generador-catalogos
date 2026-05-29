@@ -1804,15 +1804,15 @@
   "95014": {
     "imgMode": "nobg",
     "nobgVersion": 0,
-    "imgScale": 0.91,
-    "imgX": 8.5,
+    "imgScale": 1.05,
+    "imgX": 2,
     "imgY": 3.9
   },
   "95059": {
     "imgMode": "nobg",
     "nobgVersion": 0,
-    "imgScale": 0.96,
-    "imgX": 5,
+    "imgScale": 1.2,
+    "imgX": 0,
     "imgY": 8.1
   },
   "IP98015": {

@@ -1,6 +1,6 @@
 import { COMPANY } from "../config/categories"
 import styles from "./InfoPage.module.css"
-import { PhoneCall, Truck, ShoppingCart, PackageSearch } from "lucide-react"
+import { PhoneCall, Truck, ShoppingCart, PackageSearch, ArrowRight } from "lucide-react"
 
 const INFO_ITEMS = [
   {
@@ -29,27 +29,49 @@ export default function InfoPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
+        <div className={styles.kicker}>Distribución para profesionales</div>
         <h2>¿Por qué {COMPANY.name}?</h2>
-        <p>Tu distribuidor de confianza en productos internacionales</p>
+        <p>
+          Un catálogo internacional pensado para que restaurantes, tiendas y
+          negocios especializados puedan comprar con agilidad y confianza.
+        </p>
       </div>
 
-      <div className={styles.grid}>
+      <div className={styles.main}>
+        <div className={styles.statement}>
+          <div className={styles.statementNumber}>+500</div>
+          <div className={styles.statementText}>
+            referencias seleccionadas para cubrir el día a día de tu negocio:
+            bebidas, alimentación, congelado, refrigerado y mucho más.
+          </div>
+        </div>
+
+        <div className={styles.benefits}>
         {INFO_ITEMS.map((item) => (
-          <div key={item.title} className={styles.card}>
-            <item.icon className={styles.cardIcon} size={20} strokeWidth={1.5} />
-            <div className={styles.cardTitle}>{item.title}</div>
-            <div className={styles.cardText}>{item.text}</div>
+          <div key={item.title} className={styles.benefit}>
+            <div className={styles.benefitIcon}>
+              <item.icon size={18} strokeWidth={1.7} />
+            </div>
+            <div>
+              <div className={styles.benefitTitle}>{item.title}</div>
+              <div className={styles.benefitText}>{item.text}</div>
+            </div>
           </div>
         ))}
+        </div>
       </div>
 
       <div className={styles.contact}>
-        <div className={styles.contactLabel}>Realiza tu pedido</div>
+        <div>
+          <div className={styles.contactLabel}>Realiza tu pedido</div>
+          <div className={styles.contactHint}>Te ayudamos a preparar tu compra y resolver dudas de producto.</div>
+        </div>
         <div className={styles.contactItems}>
           <span>{COMPANY.phone}</span>
           <span>{COMPANY.email}</span>
           <span>{COMPANY.web}</span>
         </div>
+        <ArrowRight className={styles.contactIcon} size={22} strokeWidth={1.8} />
       </div>
     </div>
   )
