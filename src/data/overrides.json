@@ -1035,7 +1035,7 @@
   },
   "50346": {
     "imgMode": "nobg",
-    "imgScale": 0.94,
+    "imgScale": 0.89,
     "imgX": 0.1,
     "imgY": -2.8
   },
@@ -1053,13 +1053,13 @@
   },
   "50400": {
     "imgMode": "nobg",
-    "imgScale": 1.1,
+    "imgScale": 1,
     "imgX": 1.5,
     "imgY": 0.7
   },
   "50403": {
     "imgMode": "nobg",
-    "imgScale": 1.09,
+    "imgScale": 1.21,
     "imgX": -2.9,
     "imgY": -0.4
   },
@@ -1083,25 +1083,25 @@
   },
   "50412": {
     "imgMode": "nobg",
-    "imgScale": 0.98,
+    "imgScale": 0.93,
     "imgX": 3.8,
     "imgY": 6
   },
   "50413": {
     "imgMode": "nobg",
-    "imgScale": 0.99,
+    "imgScale": 0.94,
     "imgX": 4.5,
     "imgY": 5.7
   },
   "50429": {
     "imgMode": "nobg",
-    "imgScale": 0.97,
+    "imgScale": 0.93,
     "imgX": 0.3,
     "imgY": -0.5
   },
   "50430": {
     "imgMode": "nobg",
-    "imgScale": 1.17,
+    "imgScale": 0.95,
     "imgX": -0.2,
     "imgY": -1.4
   },
