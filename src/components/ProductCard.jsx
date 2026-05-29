@@ -23,9 +23,8 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
 
   function getImgSrc() {
     if (!rawProduct.image) return null
-    const ext = rawProduct.image.match(/\.(jpe?g)$/i)?.[1] ?? "jpg"
     if (mode === "nobg" && !nobgFailed) return `/images-nobg/${rawProduct.id}.png?v=${nobgVersion}`
-    return `/images/${rawProduct.id}.${ext}`
+    return rawProduct.image
   }
 
   function handleImgError() {
