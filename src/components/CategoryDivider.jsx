@@ -6,20 +6,40 @@ export default function CategoryDivider({ category, productCount }) {
     bg: "#1b4f72",
     accent: "#2e86ab",
     subtitle: "",
+    coverImages: [],
   }
+  const coverImages = config.coverImages?.slice(0, 3) ?? []
+  const mainImage = coverImages[0]
 
   return (
-    <div className={styles.page} style={{ background: config.bg }}>
-      <div className={styles.bgText} style={{ color: config.accent }}>
-        {category}
+    <div
+      className={styles.page}
+      style={{
+        "--category-bg": config.bg,
+        "--category-accent": config.accent,
+      }}
+    >
+      <div className={styles.header}>
+        <div className={styles.headerInner}>
+          <div className={styles.kicker}>{productCount} productos</div>
+          <h1 className={styles.title}>{category}</h1>
+        </div>
       </div>
-      <div className={styles.content}>
-        <h1 className={styles.title}>{category}</h1>
-        <p className={styles.subtitle} style={{ color: config.accent }}>
-          {config.subtitle}
-        </p>
-        <div className={styles.line} style={{ background: config.accent }} />
-        <p className={styles.count}>{productCount} productos</p>
+
+      <div className={styles.imageArea} aria-hidden="true">
+        <div className={styles.placeholder}>
+          <span>Imagen principal</span>
+          <small>{mainImage ?? "Sin ruta configurada"}</small>
+        </div>
+        {mainImage && (
+          <img
+            src={mainImage}
+            alt=""
+            onError={(event) => {
+              event.currentTarget.style.display = "none"
+            }}
+          />
+        )}
       </div>
     </div>
   )

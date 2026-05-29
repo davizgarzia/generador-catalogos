@@ -107,6 +107,9 @@ La configuración visual y de negocio está en `src/config/categories.js`:
 
 - `CATEGORY_ORDER`: orden de secciones.
 - `CATEGORY_CONFIG`: color, subtítulo e imágenes destacadas por categoría.
+  `coverImages[0]` alimenta la imagen principal de la portada de esa categoría.
+  Estas imágenes son editoriales, separadas de los productos, y viven en
+  `public/category-covers/` con nombres tipo `cat-alcohol.png`.
 - `COVER_MOSAIC`: imágenes de portada.
 - `COMPANY`: teléfono, email, web, horario y pedido mínimo.
 - `EXCEL_FAMILY_MAP`: normalización de familias del Excel.

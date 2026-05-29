@@ -64,93 +64,92 @@ export const CATEGORY_CONFIG = {
   ALCOHOL: {
     ...BRAND,
     subtitle: "Aguardientes · Rones · Licores",
-    /** Imágenes usadas en la portada (mosaico) */
-    coverImages: ["/images/82018.jpg", "/images/76002.jpg", "/images/IP98015.jpg"],
+    coverImages: ["/category-covers/cat-alcohol.png"],
   },
   REFRESCOS: {
     ...BRAND,
     subtitle: "Bebidas Refrescantes",
-    coverImages: ["/images/63028.jpg", "/images/63037.jpg", "/images/63068.jpg"],
+    coverImages: ["/category-covers/cat-refrescos.png"],
   },
   "ZUMOS Y LACTEOS": {
     ...BRAND,
     subtitle: "Zumos Naturales · Leches Vegetales",
-    coverImages: ["/images/69015.jpg", "/images/69021.jpg", "/images/69027.jpg"],
+    coverImages: ["/category-covers/cat-zumos-lacteos.png"],
   },
   "CERVEZAS Y MALTAS": {
     ...BRAND,
     subtitle: "Cervezas · Maltas",
-    coverImages: ["/images/66003.jpg", "/images/66007.jpg", "/images/72004.jpg"],
+    coverImages: ["/category-covers/cat-cervezas-maltas.png"],
   },
   LEGUMBRES: {
     ...BRAND,
     subtitle: "Legumbres · Granos",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-legumbres.png"],
   },
   HARINAS: {
     ...BRAND,
     subtitle: "Harinas · Cereales",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-harinas.png"],
   },
   "CAFE Y TE": {
     ...BRAND,
     subtitle: "Café · Té · Infusiones",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-cafe-te.png"],
   },
   CONDIMENTOS: {
     ...BRAND,
     subtitle: "Salsas · Especias · Aderezos",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-condimentos.png"],
   },
   CONGELADOS: {
     ...BRAND,
     subtitle: "Productos Congelados",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-congelados.png"],
   },
   HELADOS: {
     ...BRAND,
     subtitle: "Helados · Sorbetes",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-helados.png"],
   },
   PULPAS: {
     ...BRAND,
     subtitle: "Pulpas de Frutas",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-pulpas.png"],
   },
   REFRIGERADOS: {
     ...BRAND,
     subtitle: "Productos Refrigerados",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-refrigerados.png"],
   },
   CONSERVAS: {
     ...BRAND,
     subtitle: "Conservas · Enlatados",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-conservas.png"],
   },
   GALLETAS: {
     ...BRAND,
     subtitle: "Galletas · Bizcochos",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-galletas.png"],
   },
   GOLOSINAS: {
     ...BRAND,
     subtitle: "Caramelos · Chucherías",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-golosinas.png"],
   },
   PASTAS: {
     ...BRAND,
     subtitle: "Pastas · Arroces",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-pastas.png"],
   },
   SNAKS: {
     ...BRAND,
     subtitle: "Snacks · Aperitivos",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-snaks.png"],
   },
   VARIOS: {
     ...BRAND,
     subtitle: "Utensilios · Higiene · Cosmética",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-varios.png"],
   },
 }
 

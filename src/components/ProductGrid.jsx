@@ -53,9 +53,6 @@ export default function ProductGrid({ products, category, perPage = 9, pageRefs 
               <span className={styles.headerIcon}>{config.icon}</span>
               <div className={styles.headerText}>
                 <span className={styles.headerTitle}>{category}</span>
-                {config.subtitle && (
-                  <span className={styles.headerSubtitle}>{config.subtitle}</span>
-                )}
               </div>
               <div className={styles.headerAccent} style={{ background: config.accent }} />
             </div>
