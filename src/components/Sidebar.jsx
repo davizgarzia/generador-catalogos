@@ -379,7 +379,7 @@ function AutoFitImagesButton() {
         onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
         onMouseLeave={e => e.currentTarget.style.background = "#fff"}
       >
-        Ajustar tamaño automático
+        Ajustar tamaño y proporción
       </button>
     )
   }

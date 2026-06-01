@@ -209,10 +209,83 @@ function readProducts() {
   const currentText = fs.existsSync(PRODUCTS_PATH) ? fs.readFileSync(PRODUCTS_PATH, "utf8") : ""
   const blocks = currentText.match(/\{\s*id:\s*"[^"]+"[\s\S]*?\n\s*\}/g) ?? []
   return blocks.map(block => {
-    const id = block.match(/id:\s*"([^"]+)"/)?.[1]
-    const image = block.match(/image:\s*"([^"]+)"/)?.[1] ?? null
-    return id ? { id, image } : null
+    const readString = (field) => block.match(new RegExp(`${field}:\\s*"([^"]*)"`))?.[1] ?? null
+    const id = readString("id")
+    const image = readString("image")
+    return id ? {
+      id,
+      name: readString("name") ?? "",
+      fullName: readString("fullName") ?? "",
+      unitsLabel: readString("unitsLabel") ?? "",
+      category: readString("category") ?? "",
+      image,
+    } : null
   }).filter(Boolean)
+}
+
+function parseDecimal(value) {
+  return Number.parseFloat(String(value).replace(",", "."))
+}
+
+function detectVolumeMl(text) {
+  const normalized = text.toUpperCase().replace(/\s+/g, " ")
+
+  const literMatch = normalized.match(/(\d+(?:[,.]\d+)?)\s*(?:L|LT|LTR|LITRO|LITROS)\b/)
+  if (literMatch) return parseDecimal(literMatch[1]) * 1000
+
+  const mlMatch = normalized.match(/(\d+(?:[,.]\d+)?)\s*(?:ML|M\.L\.|CC|CL)\b/)
+  if (mlMatch) {
+    const value = parseDecimal(mlMatch[1])
+    // En el Excel aparecen algunos "0,700 CL" que realmente representan 700 ml.
+    if (value > 0 && value < 10) return value * 1000
+    if (normalized.includes("CL") && value <= 100) return value * 10
+    return value
+  }
+
+  const bareLargeBottle = normalized.match(/\b(1500|1750|2000)\b/)
+  if (bareLargeBottle) return Number.parseInt(bareLargeBottle[1], 10)
+
+  return null
+}
+
+function detectWeightG(text) {
+  const normalized = text.toUpperCase().replace(/\s+/g, " ")
+
+  const kgMatch = normalized.match(/(\d+(?:[,.]\d+)?)\s*(?:KG|KILO|KILOS)\b/)
+  if (kgMatch) return parseDecimal(kgMatch[1]) * 1000
+
+  const gMatch = normalized.match(/(\d+(?:[,.]\d+)?)\s*(?:GR|G|GRAMOS)\b/)
+  if (gMatch) return parseDecimal(gMatch[1])
+
+  return null
+}
+
+function visualScaleAdjustment(product) {
+  const text = `${product.name} ${product.fullName} ${product.unitsLabel}`.toUpperCase()
+  const volumeMl = detectVolumeMl(text)
+  if (volumeMl) {
+    if (volumeMl <= 250) return 0.68
+    if (volumeMl <= 355) return 0.74
+    if (volumeMl <= 500) return 0.84
+    if (volumeMl <= 750) return 1
+    if (volumeMl <= 1000) return 1.12
+    if (volumeMl <= 1500) return 1.32
+    return 1.5
+  }
+
+  const weightG = detectWeightG(text)
+  if (weightG) {
+    if (weightG <= 100) return 0.72
+    if (weightG <= 250) return 0.82
+    if (weightG <= 500) return 1
+    if (weightG <= 1000) return 1.12
+    return 1.28
+  }
+
+  if (/\b(LATA|CAN|330|355)\b/.test(text)) return 0.74
+  if (/\b(2L|2 L|1\.5L|1,5L|1\.75L|1,75L|GARRAFA|PET)\b/.test(text)) return 1.42
+
+  return 1
 }
 
 // Ejecuta el script Python de forma async (no bloquea el event loop)
@@ -472,6 +545,7 @@ app.post("/api/remove-bg-bulk/stop", (req, res) => {
 app.post("/api/auto-fit-images-bulk", async (req, res) => {
   const products = readProducts()
   const overrides = readOverrides()
+  const productsById = new Map(products.map(product => [product.id, product]))
   const tasks = products.flatMap(product => {
     const src = findImageForFit(product, overrides)
     return src ? [{ id: product.id, src }] : []
@@ -505,14 +579,19 @@ app.post("/api/auto-fit-images-bulk", async (req, res) => {
         done++
         if (result.ok) {
           fitted++
+          const product = productsById.get(result.id)
+          const scaleAdjustment = product ? visualScaleAdjustment(product) : 1
+          const imgScale = Math.round(Math.max(0.7, Math.min(2.1, result.imgScale * scaleAdjustment)) * 100) / 100
           const current = readOverrides()
           current[result.id] = {
             ...(current[result.id] ?? {}),
-            imgScale: result.imgScale,
+            imgScale,
             imgX: result.imgX,
             imgY: result.imgY,
           }
           writeOverrides(current)
+          result.imgScale = imgScale
+          result.scaleAdjustment = scaleAdjustment
         } else {
           skipped++
         }
