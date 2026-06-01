@@ -1,6 +1,6 @@
 .page {
-  width: 216mm;
-  height: 303mm;
+  width: 210mm;
+  height: 297mm;
   background: #fff;
   box-sizing: border-box;
   display: flex;
@@ -14,11 +14,45 @@
   align-items: center;
   gap: 3mm;
   padding: 0 8mm;
-  height: 14mm;
-  min-height: 14mm;
+  height: 18mm;
+  min-height: 18mm;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
+}
+
+.header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(26, 63, 102, 1) 0%, rgba(26, 63, 102, 1) 42%, rgba(26, 63, 102, 0.86) 58%, rgba(26, 63, 102, 0.34) 78%, rgba(26, 63, 102, 0) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 78mm;
+  bottom: 0;
+  width: 28mm;
+  background: linear-gradient(90deg, var(--header-bg, #1a3f66) 0%, rgba(26, 63, 102, 0) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.headerCover {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 96mm;
+  height: 44mm;
+  object-fit: cover;
+  object-position: bottom center;
+  opacity: 1;
+  z-index: 0;
 }
 
 .headerIcon {
@@ -26,6 +60,8 @@
   line-height: 1;
   flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+  position: relative;
+  z-index: 4;
 }
 
 .headerText {
@@ -33,10 +69,12 @@
   flex-direction: column;
   gap: 0.5mm;
   flex: 1;
+  position: relative;
+  z-index: 4;
 }
 
 .headerTitle {
-  font-size: 10pt;
+  font-size: 12pt;
   font-weight: 800;
   color: #fff;
   letter-spacing: 1.5px;
@@ -44,70 +82,112 @@
   line-height: 1;
 }
 
-.headerSubtitle {
-  font-size: 6pt;
-  color: rgba(255, 255, 255, 0.65);
-  letter-spacing: 0.5px;
-  line-height: 1;
-}
-
 /* Franja de acento en el lado derecho del header */
 .headerAccent {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 3mm;
-  opacity: 0.7;
+  display: none;
 }
 
 /* ── Grid de productos ── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(3, 1fr);
   gap: 3mm;
   flex: 1;
   min-height: 0;
   padding: 4mm 8mm;
   box-sizing: border-box;
+  align-content: center;
+}
+
+.grid3 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: calc((100% - 6mm) / 3);
+}
+
+.grid4x3 {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-rows: calc((100% - 6mm) / 3);
+}
+
+.grid4 {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-rows: calc((100% - 9mm) / 4);
+}
+
+.grid4Compact {
+  grid-template-columns: repeat(2, 44mm);
+  grid-auto-rows: 74mm;
+  justify-content: center;
+  align-content: center;
+}
+
+.slot {
+  min-width: 0;
+  min-height: 0;
 }
 
 /* ── Footer de paginación — mismo alto y estilo que el header ── */
 .footer {
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 14mm;
-  min-height: 14mm;
+  justify-content: space-between;
+  height: 18mm;
+  min-height: 18mm;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
+  padding: 0 8mm;
+  box-sizing: border-box;
 }
 
-.footerAccentLeft {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3mm;
-  opacity: 0.7;
+.footerSide {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 3;
 }
 
-.footerAccentRight {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 3mm;
-  opacity: 0.7;
+.footerSide:first-child {
+  justify-content: flex-start;
+}
+
+.footerSide:last-child {
+  justify-content: flex-end;
+}
+
+.footerBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 3mm;
+  font-size: 10pt;
+  font-weight: 400;
+  color: #fff;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.footerLogo {
+  width: 29mm;
+  height: auto;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.footerDivider {
+  width: 0.3mm;
+  height: 5mm;
+  background: rgba(255, 255, 255, 0.55);
+  display: inline-block;
+  flex: 0 0 auto;
 }
 
 .footerPage {
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight: 800;
   color: #fff;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }

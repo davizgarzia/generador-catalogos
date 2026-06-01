@@ -21,12 +21,12 @@ const PRODUCTS_PATH  = path.join(__dirname, "src/data/products.js")
 // Mapeo de familias del Excel → claves de categoría del catálogo
 const EXCEL_FAMILY_MAP = {
   "ALCOHOLES":           "ALCOHOL",
-  "REFRESCOS":           "REFRESCOS",
+  "REFRESCOS":           "REFRESCOS, MALTAS Y CERVEZAS",
   "ZUMOS Y LACTEOS":     "ZUMOS Y LACTEOS",
-  "MALTAS Y CERVEZAS":   "CERVEZAS Y MALTAS",
-  "CERVEZAS Y MALTAS":   "CERVEZAS Y MALTAS",
+  "MALTAS Y CERVEZAS":   "REFRESCOS, MALTAS Y CERVEZAS",
+  "CERVEZAS Y MALTAS":   "REFRESCOS, MALTAS Y CERVEZAS",
   "LEGUMBRES":           "LEGUMBRES",
-  "HARINAS":             "HARINAS",
+  "HARINAS":             "HARINAS Y PASTAS",
   "CAFE Y TE":           "CAFE Y TE",
   "CONDIMENTOS":         "CONDIMENTOS",
   "CONGELADOS":          "CONGELADOS",
@@ -36,7 +36,7 @@ const EXCEL_FAMILY_MAP = {
   "CONSERVAS":           "CONSERVAS",
   "GALLETAS":            "GALLETAS",
   "GOLOSINAS":           "GOLOSINAS",
-  "PASTAS":              "PASTAS",
+  "PASTAS":              "HARINAS Y PASTAS",
   "SNAKS":               "SNAKS",
   "UTENSILIOS":          "UTENSILIOS",
   "HIGIENE Y COSMETICA": "HIGIENE Y COSMETICA",
@@ -85,6 +85,136 @@ for item in data:
         print(json.dumps({'id': item['id'], 'ok': False, 'error': str(e)[:200]}), flush=True)
 `
 
+// Script Python para autoencajar imágenes en las tarjetas.
+// Detecta el bounding box visual ignorando transparencia y fondos casi blancos.
+// Devuelve {id, ok, imgScale, imgX, imgY} por stdout en líneas JSON.
+const AUTO_FIT_PYTHON_SCRIPT = `
+import sys, json, math
+from PIL import Image
+
+# Medidas aproximadas del hueco de imagen con ProductGrid 3x3.
+# La tarjeta ocupa 2 columnas internas de una grid de 6; el alto descuenta
+# el bloque fijo de texto del producto.
+CONTAINER_W = 64.7
+CONTAINER_H = 67.0
+TARGET_W = CONTAINER_W * 0.86
+TARGET_H = CONTAINER_H * 0.84
+
+def clamp(value, low, high):
+    return max(low, min(high, value))
+
+def median(values):
+    values = sorted(values)
+    if not values:
+        return 255
+    return values[len(values) // 2]
+
+def background_color(pixels, w, h):
+    sample = []
+    edge = max(2, min(w, h) // 20)
+    for y in range(h):
+        for x in range(w):
+            if x < edge or x >= w - edge or y < edge or y >= h - edge:
+                r, g, b, a = pixels[x, y]
+                if a > 16:
+                    sample.append((r, g, b))
+    if not sample:
+        return (255, 255, 255)
+    return tuple(median([p[i] for p in sample]) for i in range(3))
+
+def bbox_for(path):
+    im = Image.open(path).convert("RGBA")
+    w, h = im.size
+    pixels = im.load()
+    bg = background_color(pixels, w, h)
+    bg_is_light = sum(bg) / 3 > 210
+
+    min_x, min_y = w, h
+    max_x, max_y = -1, -1
+
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = pixels[x, y]
+            if a <= 16:
+                continue
+
+            if bg_is_light:
+                dist = math.sqrt((r - bg[0]) ** 2 + (g - bg[1]) ** 2 + (b - bg[2]) ** 2)
+                chroma = max(r, g, b) - min(r, g, b)
+                # Evita que sombras JPEG muy suaves expandan el bbox, pero conserva
+                # etiquetas claras si forman parte de una silueta coloreada.
+                if dist < 30 and chroma < 18 and a > 245:
+                    continue
+
+            min_x = min(min_x, x)
+            min_y = min(min_y, y)
+            max_x = max(max_x, x)
+            max_y = max(max_y, y)
+
+    if max_x < min_x or max_y < min_y:
+        return None
+
+    return {
+        "w": w,
+        "h": h,
+        "x": min_x,
+        "y": min_y,
+        "bw": max_x - min_x + 1,
+        "bh": max_y - min_y + 1,
+    }
+
+def fit_for(path):
+    box = bbox_for(path)
+    if not box:
+        return None
+
+    w = box["w"]
+    h = box["h"]
+    bw = box["bw"]
+    bh = box["bh"]
+
+    base = min(CONTAINER_W / w, CONTAINER_H / h)
+    rendered_bw = bw * base
+    rendered_bh = bh * base
+    if rendered_bw <= 0 or rendered_bh <= 0:
+        return None
+
+    scale = min(TARGET_W / rendered_bw, TARGET_H / rendered_bh)
+    scale = round(clamp(scale, 0.8, 1.95), 2)
+
+    cx = box["x"] + bw / 2
+    cy = box["y"] + bh / 2
+    img_x = round(clamp((0.5 - cx / w) * 100, -35, 35), 1)
+    img_y = round(clamp((0.5 - cy / h) * 100, -35, 35), 1)
+
+    return {
+        "imgScale": scale,
+        "imgX": img_x,
+        "imgY": img_y,
+    }
+
+items = json.loads(sys.stdin.readline())
+for item in items:
+    try:
+        fit = fit_for(item["src"])
+        if fit:
+            print(json.dumps({"id": item["id"], "ok": True, **fit}), flush=True)
+        else:
+            print(json.dumps({"id": item["id"], "ok": False, "error": "No se pudo detectar producto"}), flush=True)
+    except Exception as e:
+        print(json.dumps({"id": item["id"], "ok": False, "error": str(e)[:200]}), flush=True)
+`
+
+function readProducts() {
+  const currentText = fs.existsSync(PRODUCTS_PATH) ? fs.readFileSync(PRODUCTS_PATH, "utf8") : ""
+  const blocks = currentText.match(/\{\s*id:\s*"[^"]+"[\s\S]*?\n\s*\}/g) ?? []
+  return blocks.map(block => {
+    const id = block.match(/id:\s*"([^"]+)"/)?.[1]
+    const image = block.match(/image:\s*"([^"]+)"/)?.[1] ?? null
+    return id ? { id, image } : null
+  }).filter(Boolean)
+}
+
 // Ejecuta el script Python de forma async (no bloquea el event loop)
 // signal: AbortSignal opcional — si se aborta, mata el proceso Python
 function runPython(script, timeoutMs = 120000, signal = null) {
@@ -120,9 +250,9 @@ function runPython(script, timeoutMs = 120000, signal = null) {
 // emite líneas JSON por stdout a medida que procesa cada imagen.
 // onLine(parsedObj) se llama por cada línea de stdout.
 // signal: AbortSignal opcional — mata el proceso al abortar.
-function runPythonBulk(items, onLine, timeoutMs = 3600000, signal = null) {
+function runPythonBulk(items, onLine, timeoutMs = 3600000, signal = null, script = BULK_PYTHON_SCRIPT) {
   return new Promise((resolve, reject) => {
-    const proc = spawn("python3", ["-c", BULK_PYTHON_SCRIPT])
+    const proc = spawn("python3", ["-c", script])
     const stderr = []
     proc.stderr.on("data", d => stderr.push(d))
 
@@ -165,11 +295,24 @@ function runPythonBulk(items, onLine, timeoutMs = 3600000, signal = null) {
 }
 
 function findOriginal(id) {
-  for (const ext of ["jpg", "jpeg"]) {
+  for (const ext of ["jpg", "jpeg", "png", "webp"]) {
     const p = path.join(IMAGES_DIR, `${id}.${ext}`)
     if (fs.existsSync(p)) return p
   }
   return null
+}
+
+function findImageForFit(product, overrides) {
+  const nobg = path.join(NOBG_DIR, `${product.id}.png`)
+  if (overrides[product.id]?.imgMode === "nobg" && fs.existsSync(nobg)) return nobg
+
+  if (product.image) {
+    const rel = product.image.replace(/^\/+/, "")
+    const fromProduct = path.join(__dirname, "public", rel)
+    if (fs.existsSync(fromProduct)) return fromProduct
+  }
+
+  return findOriginal(product.id)
 }
 
 // GET /api/overrides — devuelve todos los overrides
@@ -323,10 +466,74 @@ app.post("/api/remove-bg-bulk/stop", (req, res) => {
   res.json({ ok: true, jobId })
 })
 
+// ── POST /api/auto-fit-images-bulk ───────────────────────────────────────────
+// Calcula imgScale/imgX/imgY para que el producto ocupe más espacio en su tarjeta.
+// No modifica imágenes; solo persiste overrides. Responde por SSE.
+app.post("/api/auto-fit-images-bulk", async (req, res) => {
+  const products = readProducts()
+  const overrides = readOverrides()
+  const tasks = products.flatMap(product => {
+    const src = findImageForFit(product, overrides)
+    return src ? [{ id: product.id, src }] : []
+  })
+
+  const total = products.length
+  let done = 0
+  let fitted = 0
+  let skipped = total - tasks.length
+
+  res.setHeader("Content-Type", "text/event-stream")
+  res.setHeader("Cache-Control", "no-cache")
+  res.setHeader("Connection", "keep-alive")
+  res.flushHeaders()
+
+  const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
+  send({ total })
+
+  const taskIds = new Set(tasks.map(t => t.id))
+  for (const product of products) {
+    if (!taskIds.has(product.id)) {
+      done++
+      send({ done, total, id: product.id, ok: false, skipped: true, error: "Sin imagen" })
+    }
+  }
+
+  try {
+    await runPythonBulk(
+      tasks,
+      (result) => {
+        done++
+        if (result.ok) {
+          fitted++
+          const current = readOverrides()
+          current[result.id] = {
+            ...(current[result.id] ?? {}),
+            imgScale: result.imgScale,
+            imgX: result.imgX,
+            imgY: result.imgY,
+          }
+          writeOverrides(current)
+        } else {
+          skipped++
+        }
+        send({ done, total, ...result })
+      },
+      3600000,
+      null,
+      AUTO_FIT_PYTHON_SCRIPT
+    )
+  } catch (e) {
+    send({ done, total, id: null, ok: false, error: e.message?.slice(0, 200) })
+  }
+
+  send({ done, total, fitted, skipped, finished: true })
+  res.end()
+})
+
 // ── POST /api/generate-pdf ────────────────────────────────
 // Body: { marks, size } — marks: bool, size: "A4" | "A5"
 app.post("/api/generate-pdf", async (req, res) => {
-  const { marks = false, size = "A4" } = req.body ?? {}
+  const { marks = false, size = "A4", draft = false, grid = "4x4" } = req.body ?? {}
   const outputName = "catalogo-impormed-2025.pdf"
 
   // Tamaño de página para Puppeteer:
@@ -335,13 +542,26 @@ app.post("/api/generate-pdf", async (req, res) => {
 
   // Puppeteer apunta directamente al servidor Vite dev que ya está corriendo
   const marksParam = marks ? "1" : "0"
-  const viteUrl = `http://localhost:5173?marks=${marksParam}&size=${size}`
+  const draftParam = draft ? "1" : "0"
+  const gridParam = ["3x3", "4x3", "4x4"].includes(grid) ? grid : "4x4"
+  const viteUrl = `http://localhost:5173?marks=${marksParam}&size=${size}&draft=${draftParam}&grid=${gridParam}`
 
-  const browser = await puppeteer.launch({ headless: true })
+  const browser = await puppeteer.launch({
+    headless: true,
+    protocolTimeout: 300000,
+  })
 
   try {
     const browserPage = await browser.newPage()
-    await browserPage.setViewport({ width: 1600, height: 900 })
+    browserPage.setDefaultTimeout(300000)
+    browserPage.setDefaultNavigationTimeout(300000)
+    await browserPage.setViewport({
+      width: 1600,
+      height: 900,
+      // Renderiza las capturas a más resolución para que textos y producto
+      // no queden blandos al montar el PDF rasterizado.
+      deviceScaleFactor: draft ? 1 : 2.5,
+    })
 
     await browserPage.goto(viteUrl, { waitUntil: "networkidle0", timeout: 60000 })
 
@@ -355,13 +575,15 @@ app.post("/api/generate-pdf", async (req, res) => {
     )
     await new Promise(r => setTimeout(r, 800))
 
-    // CSS de impresión: solo ocultar chrome y resetear layout.
-    // El estado (marks/size) ya está correcto porque lo leyó la app desde la URL.
+    // CSS para aislar las páginas antes de capturarlas una a una.
+    // Evitamos delegar el paginado completo a Chromium porque con muchas páginas,
+    // wrappers y assets grandes puede generar hojas vacías y PDFs enormes.
     const printCSS = marks ? `
       .app-chrome { display: none !important; }
       #catalog-area { margin: 0 !important; }
       body { background: white !important; }
       #catalog { gap: 0 !important; padding: 0 !important; }
+      #catalog section { gap: 0 !important; }
       #catalog > *, #catalog section > * { box-shadow: none !important; }
       @page { size: ${pageSize}; margin: 0; }
     ` : `
@@ -369,14 +591,91 @@ app.post("/api/generate-pdf", async (req, res) => {
       #catalog-area { margin: 0 !important; }
       body { background: white !important; }
       #catalog { gap: 0 !important; padding: 0 !important; align-items: flex-start !important; }
+      #catalog section { gap: 0 !important; }
       #catalog > *, #catalog section > * { box-shadow: none !important; }
       @page { size: ${pageSize}; margin: 0; }
     `
     await browserPage.addStyleTag({ content: printCSS })
 
-    const pdfBuffer = await browserPage.pdf({
+    const boxes = await browserPage.evaluate(() => {
+      const pages = [...document.querySelectorAll('[class*="sheet"]')]
+      return pages
+        .map((el) => {
+          const r = el.getBoundingClientRect()
+          return {
+            x: r.left + window.scrollX,
+            y: r.top + window.scrollY,
+            width: r.width,
+            height: r.height,
+          }
+        })
+        .filter((box) => box.width > 0 && box.height > 0)
+    })
+
+    if (!boxes.length) {
+      throw new Error("No se encontraron páginas para generar el PDF")
+    }
+
+    const screenshots = []
+    for (const box of boxes) {
+      const jpg = await browserPage.screenshot({
+        type: "jpeg",
+        quality: draft ? 86 : 94,
+        captureBeyondViewport: true,
+        clip: {
+          x: Math.max(0, box.x),
+          y: Math.max(0, box.y),
+          width: box.width,
+          height: box.height,
+        },
+      })
+      screenshots.push(Buffer.from(jpg).toString("base64"))
+    }
+
+    const [pageWidth, pageHeight] = pageSize.split(" ")
+    const pdfPage = await browser.newPage()
+    pdfPage.setDefaultTimeout(300000)
+
+    const html = `<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { background: white; }
+            @page { size: ${pageSize}; margin: 0; }
+            .pdf-page {
+              width: ${pageWidth};
+              height: ${pageHeight};
+              page-break-after: always;
+              break-after: page;
+              overflow: hidden;
+            }
+            .pdf-page:last-child {
+              page-break-after: auto;
+              break-after: auto;
+            }
+            img {
+              width: 100%;
+              height: 100%;
+              display: block;
+              object-fit: fill;
+            }
+          </style>
+        </head>
+        <body>
+          ${screenshots.map((image) => `<div class="pdf-page"><img src="data:image/jpeg;base64,${image}" /></div>`).join("")}
+        </body>
+      </html>`
+
+    await pdfPage.setContent(html, { waitUntil: "load", timeout: 300000 })
+
+    const pdfBuffer = await pdfPage.pdf({
+      width: pageWidth,
+      height: pageHeight,
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      timeout: 300000,
     })
 
     res.setHeader("Content-Type", "application/pdf")

@@ -1,4 +1,4 @@
-/* ── Sheet A4 con sangre (216×303mm) ── */
+/* ── Sheet A4 con margen para marcas (210×297mm + 3mm alrededor) ── */
 .sheet {
   width: 216mm;
   height: 303mm;
@@ -10,10 +10,10 @@
   box-sizing: border-box;
 }
 
-/* Sin marcas: mismo tamaño que .sheet para que el gap sea consistente */
+/* Sin marcas: A4 exacto */
 .sheetNormal {
-  width: 216mm;
-  height: 303mm;
+  width: 210mm;
+  height: 297mm;
   background: transparent;
   display: flex;
   align-items: center;
@@ -22,17 +22,17 @@
   box-sizing: border-box;
 }
 
-/* ── Inner A4 con sangre: 216×303mm ── */
+/* ── Inner A4 exacto ── */
 .inner {
-  width: 216mm;
-  height: 303mm;
+  width: 210mm;
+  height: 297mm;
   position: relative;
 }
 
-/* ── Inner A4 sin sangre: mismo tamaño que con sangre en pantalla ── */
+/* ── Inner A4 sin marcas ── */
 .innerNormal {
-  width: 216mm;
-  height: 303mm;
+  width: 210mm;
+  height: 297mm;
   position: relative;
 }
 
@@ -40,18 +40,15 @@
    Centrado dentro del .inner A4. El sheet sigue siendo A4.
    154/216 = 0.7130 (relación A5/A4 en anchura)           */
 .innerA5Scaled {
-  width: 216mm;
-  height: 303mm;
+  width: 210mm;
+  height: 297mm;
   position: relative;
-  transform: scale(0.7130);
+  transform: scale(0.7048);
   transform-origin: center center;
   flex-shrink: 0;
 }
 
-/* ── Marcas de corte — modo A4 ──
-   Dentro del sheet A4 (216×303mm), en las esquinas, apuntando hacia adentro.
-   La línea de corte real está a 3mm del borde (fin del sangrado).
-   Cada marca: empieza en el borde de corte (3mm) y se extiende 6mm hacia adentro. */
+/* ── Marcas de corte — modo A4 ── */
 .cropMark {
   position: absolute;
   background: #999;
@@ -96,4 +93,3 @@
 /* bottom-right */
 .a5-br-h { bottom: calc(43.5mm + 3mm); right: calc(31mm - 5mm); width: 7mm;    height: 0.25mm; }
 .a5-br-v { bottom: calc(43.5mm - 5mm); right: calc(31mm + 3mm); width: 0.25mm; height: 7mm; }
-

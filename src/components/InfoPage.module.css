@@ -1,91 +1,178 @@
 .page {
-  width: 216mm;
-  height: 303mm;
-  /* 3mm sangre + 20mm margen = 23mm */
-  padding: 23mm;
-  background: #fff;
+  width: 210mm;
+  height: 297mm;
+  padding: 25mm 22mm 22mm;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #ffffff 58%, #f3f8fc 100%);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 12mm;
   box-sizing: border-box;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
 .header {
-  padding-bottom: 5mm;
-  border-bottom: 2px solid #1b3da6;
+  max-width: 144mm;
+  padding-bottom: 14mm;
+}
+
+.kicker {
+  margin-bottom: 6mm;
+  font-size: 7.8pt;
+  font-weight: 850;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #2e70b2;
 }
 
 .header h2 {
-  font-size: 28pt;
-  color: #1b3da6;
-  font-weight: 800;
-  margin: 0 0 2mm;
+  margin: 0;
+  font-size: 34pt;
+  font-weight: 900;
+  line-height: 0.98;
+  color: #173a5f;
+  letter-spacing: 0;
 }
 
 .header p {
-  font-size: 11pt;
-  color: #666;
-  margin: 0;
+  max-width: 128mm;
+  margin: 7mm 0 0;
+  font-size: 13pt;
+  line-height: 1.45;
+  color: #536271;
 }
 
-.grid {
+.main {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6mm;
+  grid-template-columns: 62mm 1fr;
+  gap: 13mm;
+  align-items: stretch;
 }
 
-.card {
-  padding: 6mm;
-  border: 1px solid #dde2f0;
-  border-left: 3px solid #1b3da6;
+.statement {
+  padding: 8mm 7mm;
+  background: #1a3f66;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 110mm;
 }
 
-.cardIcon {
-  color: #1b3da6;
-  margin-bottom: 3mm;
-  display: block;
+.statementNumber {
+  margin-bottom: 7mm;
+  font-size: 35pt;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
 }
 
-.cardTitle {
-  font-size: 10pt;
-  font-weight: 700;
-  color: #1b3da6;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 3mm;
+.statementText {
+  font-size: 10.6pt;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.86);
 }
 
-.cardText {
-  font-size: 10pt;
-  color: #444;
-  line-height: 1.6;
+.benefits {
+  display: flex;
+  flex-direction: column;
+  border-top: 0.35mm solid rgba(26, 63, 102, 0.16);
+}
+
+.benefit {
+  display: grid;
+  grid-template-columns: 11mm 1fr;
+  gap: 5mm;
+  padding: 7mm 0;
+  border-bottom: 0.25mm solid rgba(26, 63, 102, 0.12);
+}
+
+.benefitIcon {
+  width: 11mm;
+  height: 11mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf3fb;
+  color: #2e70b2;
+}
+
+.benefitTitle {
+  margin-bottom: 2mm;
+  font-size: 11.3pt;
+  font-weight: 850;
+  line-height: 1.15;
+  color: #173a5f;
+}
+
+.benefitText {
+  font-size: 9.5pt;
+  line-height: 1.5;
+  color: #5b6874;
 }
 
 .contact {
-  background: #1b3da6;
-  padding: 6mm 10mm;
-  color: #fff;
-  display: flex;
+  margin-top: auto;
+  min-height: 38mm;
+  padding: 8mm 9mm;
+  background: #f8fbfe;
+  border: 0.3mm solid rgba(46, 112, 178, 0.18);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7mm;
   align-items: center;
   justify-content: space-between;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
+  color: #173a5f;
+  box-sizing: border-box;
 }
 
 .contactLabel {
-  font-size: 13pt;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
+  margin-bottom: 2mm;
+  font-size: 15pt;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.contactHint {
+  max-width: 70mm;
+  font-size: 8.5pt;
+  line-height: 1.4;
+  color: #697786;
 }
 
 .contactItems {
   display: flex;
-  gap: 8mm;
-  font-size: 11pt;
-  font-weight: 500;
-  opacity: 0.92;
+  flex-direction: column;
+  gap: 1.8mm;
+  font-size: 9pt;
+  font-weight: 750;
+  color: #1a3f66;
+  white-space: nowrap;
+  align-items: flex-start;
+}
+
+.contactItem {
+  display: grid;
+  grid-template-columns: 5mm max-content;
+  align-items: center;
+  gap: 1.8mm;
+  width: 100%;
+}
+
+.contactItemIcon {
+  width: 4.8mm;
+  height: 4.8mm;
+  color: #2e70b2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.contactItemText {
+  text-align: left;
+}
+
+.whatsappIcon {
+  color: #2e70b2;
 }

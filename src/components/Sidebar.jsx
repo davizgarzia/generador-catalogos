@@ -297,9 +297,150 @@ function DetectBgButton() {
   }
 }
 
+function AutoFitImagesButton() {
+  const { patchOverride } = useOverrides()
+  const [state, setState] = useState("idle") // idle | running | done | error
+  const [progress, setProgress] = useState({ done: 0, total: 0, fitted: 0, skipped: 0 })
+
+  async function start() {
+    setState("running")
+    setProgress({ done: 0, total: 0, fitted: 0, skipped: 0 })
+
+    let fitted = 0
+    let skipped = 0
+
+    try {
+      const res = await fetch("http://localhost:3001/api/auto-fit-images-bulk", { method: "POST" })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ""
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        const lines = buf.split("\n")
+        buf = lines.pop()
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue
+          try {
+            const msg = JSON.parse(line.slice(6))
+            if (msg.total && msg.done === undefined) {
+              setProgress(p => ({ ...p, total: msg.total }))
+              continue
+            }
+            if (msg.ok === true) {
+              fitted++
+              patchOverride(msg.id, {
+                imgScale: msg.imgScale,
+                imgX: msg.imgX,
+                imgY: msg.imgY,
+              })
+            }
+            if (msg.ok === false) skipped++
+            if (msg.done !== undefined) {
+              setProgress({ done: msg.done, total: msg.total, fitted, skipped })
+            }
+            if (msg.finished) {
+              setProgress({
+                done: msg.done,
+                total: msg.total,
+                fitted: msg.fitted ?? fitted,
+                skipped: msg.skipped ?? skipped,
+              })
+              setState("done")
+            }
+          } catch {}
+        }
+      }
+    } catch {
+      setState("error")
+    }
+  }
+
+  function reset() {
+    setState("idle")
+    setProgress({ done: 0, total: 0, fitted: 0, skipped: 0 })
+  }
+
+  const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0
+
+  if (state === "idle") {
+    return (
+      <button
+        onClick={start}
+        style={{
+          width: "100%", padding: "7px 10px", fontSize: 12, fontWeight: 600,
+          borderRadius: 6, border: "1.5px solid #e5e7eb", background: "#fff",
+          color: "#374151", cursor: "pointer", textAlign: "left", transition: "background 0.12s",
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+        onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+      >
+        Ajustar tamaño automático
+      </button>
+    )
+  }
+
+  if (state === "running") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <span style={{ fontSize: 11, color: "#6b7280" }}>
+          Ajustando… {progress.done}/{progress.total}
+        </span>
+        <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{
+            height: "100%", width: `${pct}%`, background: "#111827",
+            borderRadius: 3, transition: "width 0.1s",
+          }} />
+        </div>
+        <span style={{ fontSize: 10, color: "#9ca3af" }}>{pct}%</span>
+      </div>
+    )
+  }
+
+  if (state === "done") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ fontSize: 12, color: "#059669", fontWeight: 600 }}>
+          ✓ {progress.fitted} imágenes ajustadas
+        </span>
+        {progress.skipped > 0 && (
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>{progress.skipped} omitidas</span>
+        )}
+        <button onClick={reset} style={{ fontSize: 11, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
+          Repetir
+        </button>
+      </div>
+    )
+  }
+
+  if (state === "error") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ fontSize: 12, color: "#dc2626" }}>Error al conectar con el servidor</span>
+        <button onClick={reset} style={{ fontSize: 11, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
+          Reintentar
+        </button>
+      </div>
+    )
+  }
+}
+
 
 export default function Sidebar() {
-  const { printMode, setPrintMode, printSize, setPrintSize } = usePrint()
+  const {
+    printMode,
+    setPrintMode,
+    printSize,
+    setPrintSize,
+    draftQuality,
+    setDraftQuality,
+    productGrid,
+    setProductGrid,
+  } = usePrint()
   const { editingProduct } = useEdit()
 
   const excelRef = useRef(null)
@@ -340,6 +481,49 @@ export default function Sidebar() {
               checked={printMode}
               onCheckedChange={setPrintMode}
             />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
+              Calidad borrador
+            </span>
+            <Switch
+              id="draft-quality-sidebar"
+              checked={draftQuality}
+              onCheckedChange={setDraftQuality}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 500 }}>
+              Referencias por hoja
+            </span>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[
+                { label: "3×3", value: "3x3" },
+                { label: "4×3", value: "4x3" },
+                { label: "4×4", value: "4x4" },
+              ].map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setProductGrid(option.value)}
+                  style={{
+                    flex: 1,
+                    padding: "5px 0",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    borderRadius: 6,
+                    border: productGrid === option.value ? "1.5px solid #111827" : "1.5px solid #e5e7eb",
+                    background: productGrid === option.value ? "#111827" : "#fff",
+                    color: productGrid === option.value ? "#fff" : "#374151",
+                    cursor: "pointer",
+                    transition: "all 0.12s",
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {printMode && (
@@ -397,6 +581,7 @@ export default function Sidebar() {
             Imágenes
           </div>
 
+          <AutoFitImagesButton />
           <BulkRemoveBgButton />
 
         </div>

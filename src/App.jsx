@@ -11,11 +11,11 @@ import Topbar from "./components/Topbar"
 import Sidebar from "./components/Sidebar"
 import PageWrapper from "./components/PageWrapper"
 import PageNavigator from "./components/PageNavigator"
-
-const PER_PAGE = 12
+import { paginateBalanced } from "./lib/pagination"
 
 export default function App() {
-  const { printMode, printSize } = usePrint()
+  const { printMode, printSize, productGrid } = usePrint()
+  const perPage = productGrid === "3x3" ? 9 : productGrid === "4x3" ? 12 : 16
 
   // Inyectar @page dinámicamente según modo y tamaño:
   // - sin marcas:            A4 exacto 210×297mm
@@ -57,7 +57,7 @@ export default function App() {
       if (!cat?.length) continue
       const cfg = CATEGORY_CONFIG[category]
       list.push({ label: category, color: cfg.bg, icon: cfg.icon, paginated: false })
-      const n = Math.ceil(cat.length / PER_PAGE)
+      const n = paginateBalanced(cat, perPage).length
       for (let i = 0; i < n; i++) {
         list.push({ label: `${category} ${i + 1}/${n}`, color: null, paginated: true })
       }
@@ -70,7 +70,7 @@ export default function App() {
       pageNum: pageNum++,
       total,
     }))
-  }, [grouped])
+  }, [grouped, perPage])
 
   const pageRefs = useMemo(() => pageMeta.map(() => createRef()), [pageMeta])
   const pages = useMemo(
@@ -106,7 +106,7 @@ export default function App() {
           {CATEGORY_ORDER.map((category) => {
             const categoryProducts = grouped[category]
             if (!categoryProducts?.length) return null
-            const numPages = Math.ceil(categoryProducts.length / PER_PAGE)
+            const numPages = paginateBalanced(categoryProducts, perPage).length
             const dividerRef = pageRefs[ri++]
             const gridRefs = pageRefs.slice(ri, ri + numPages)
             const gridMeta = pageMeta.slice(ri, ri + numPages)
@@ -115,15 +115,12 @@ export default function App() {
             return (
               <section key={category}>
                 <PageWrapper ref={dividerRef}>
-                  <CategoryDivider
-                    category={category}
-                    productCount={categoryProducts.length}
-                  />
+                  <CategoryDivider category={category} />
                 </PageWrapper>
                 <ProductGrid
                   products={categoryProducts}
                   category={category}
-                  perPage={PER_PAGE}
+                  perPage={perPage}
                   pageRefs={gridRefs}
                   pageMeta={gridMeta}
                 />

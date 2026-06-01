@@ -14,11 +14,10 @@ const BRAND = {
 }
 export const CATEGORY_ORDER = [
   "ALCOHOL",
-  "REFRESCOS",
+  "REFRESCOS, MALTAS Y CERVEZAS",
   "ZUMOS Y LACTEOS",
-  "CERVEZAS Y MALTAS",
   "LEGUMBRES",
-  "HARINAS",
+  "HARINAS Y PASTAS",
   "CAFE Y TE",
   "CONDIMENTOS",
   "CONGELADOS",
@@ -28,7 +27,6 @@ export const CATEGORY_ORDER = [
   "CONSERVAS",
   "GALLETAS",
   "GOLOSINAS",
-  "PASTAS",
   "SNAKS",
   "VARIOS",
 ]
@@ -39,12 +37,12 @@ export const CATEGORY_ORDER = [
  */
 export const EXCEL_FAMILY_MAP = {
   "ALCOHOLES":           "ALCOHOL",
-  "REFRESCOS":           "REFRESCOS",
+  "REFRESCOS":           "REFRESCOS, MALTAS Y CERVEZAS",
   "ZUMOS Y LACTEOS":     "ZUMOS Y LACTEOS",
-  "MALTAS Y CERVEZAS":   "CERVEZAS Y MALTAS",
-  "CERVEZAS Y MALTAS":   "CERVEZAS Y MALTAS",
+  "MALTAS Y CERVEZAS":   "REFRESCOS, MALTAS Y CERVEZAS",
+  "CERVEZAS Y MALTAS":   "REFRESCOS, MALTAS Y CERVEZAS",
   "LEGUMBRES":           "LEGUMBRES",
-  "HARINAS":             "HARINAS",
+  "HARINAS":             "HARINAS Y PASTAS",
   "CAFE Y TE":           "CAFE Y TE",
   "CONDIMENTOS":         "CONDIMENTOS",
   "CONGELADOS":          "CONGELADOS",
@@ -54,7 +52,7 @@ export const EXCEL_FAMILY_MAP = {
   "CONSERVAS":           "CONSERVAS",
   "GALLETAS":            "GALLETAS",
   "GOLOSINAS":           "GOLOSINAS",
-  "PASTAS":              "PASTAS",
+  "PASTAS":              "HARINAS Y PASTAS",
   "SNAKS":               "SNAKS",
   "UTENSILIOS":          "VARIOS",
   "HIGIENE Y COSMETICA": "VARIOS",
@@ -64,93 +62,82 @@ export const CATEGORY_CONFIG = {
   ALCOHOL: {
     ...BRAND,
     subtitle: "Aguardientes · Rones · Licores",
-    /** Imágenes usadas en la portada (mosaico) */
-    coverImages: ["/images/82018.jpg", "/images/76002.jpg", "/images/IP98015.jpg"],
+    coverImages: ["/category-covers/cat-alcohol.png"],
   },
-  REFRESCOS: {
+  "REFRESCOS, MALTAS Y CERVEZAS": {
     ...BRAND,
-    subtitle: "Bebidas Refrescantes",
-    coverImages: ["/images/63028.jpg", "/images/63037.jpg", "/images/63068.jpg"],
+    subtitle: "Refrescos · Maltas · Cervezas",
+    coverImages: ["/category-covers/cat-refrescos.png"],
   },
   "ZUMOS Y LACTEOS": {
     ...BRAND,
     subtitle: "Zumos Naturales · Leches Vegetales",
-    coverImages: ["/images/69015.jpg", "/images/69021.jpg", "/images/69027.jpg"],
-  },
-  "CERVEZAS Y MALTAS": {
-    ...BRAND,
-    subtitle: "Cervezas · Maltas",
-    coverImages: ["/images/66003.jpg", "/images/66007.jpg", "/images/72004.jpg"],
+    coverImages: ["/category-covers/cat-zumos-lacteos.png"],
   },
   LEGUMBRES: {
     ...BRAND,
     subtitle: "Legumbres · Granos",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-legumbres.png"],
   },
-  HARINAS: {
+  "HARINAS Y PASTAS": {
     ...BRAND,
-    subtitle: "Harinas · Cereales",
-    coverImages: [],
+    subtitle: "Harinas · Pastas",
+    coverImages: ["/category-covers/cat-harinas.png"],
   },
   "CAFE Y TE": {
     ...BRAND,
     subtitle: "Café · Té · Infusiones",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-cafe-te.png"],
   },
   CONDIMENTOS: {
     ...BRAND,
     subtitle: "Salsas · Especias · Aderezos",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-condimentos.png"],
   },
   CONGELADOS: {
     ...BRAND,
     subtitle: "Productos Congelados",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-congelados.png"],
   },
   HELADOS: {
     ...BRAND,
     subtitle: "Helados · Sorbetes",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-helados.png"],
   },
   PULPAS: {
     ...BRAND,
     subtitle: "Pulpas de Frutas",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-pulpas.png"],
   },
   REFRIGERADOS: {
     ...BRAND,
     subtitle: "Productos Refrigerados",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-refrigerados.png"],
   },
   CONSERVAS: {
     ...BRAND,
     subtitle: "Conservas · Enlatados",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-conservas.png"],
   },
   GALLETAS: {
     ...BRAND,
     subtitle: "Galletas · Bizcochos",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-galletas.png"],
   },
   GOLOSINAS: {
     ...BRAND,
     subtitle: "Caramelos · Chucherías",
-    coverImages: [],
-  },
-  PASTAS: {
-    ...BRAND,
-    subtitle: "Pastas · Arroces",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-golosinas.png"],
   },
   SNAKS: {
     ...BRAND,
     subtitle: "Snacks · Aperitivos",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-snaks.png"],
   },
   VARIOS: {
     ...BRAND,
     subtitle: "Utensilios · Higiene · Cosmética",
-    coverImages: [],
+    coverImages: ["/category-covers/cat-varios.png"],
   },
 }
 
@@ -175,8 +162,9 @@ export const COMPANY = {
   name: "IMPORMED",
   tagline: "Productos Internacionales",
   phone: "961 250 501",
+  whatsapp: "620 685 462",
   email: "pedidos@impormed.com",
   web: "www.impormed.com",
-  minOrder: "50€",
-  hours: "Lunes a Viernes · 9h a 18.30h",
+  minOrder: "70€",
+  hours: "Lunes a Jueves · 9h a 18.30h · Viernes · 9h a 13.30h",
 }
