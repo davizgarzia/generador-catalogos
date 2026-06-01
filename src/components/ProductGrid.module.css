@@ -1,6 +1,6 @@
 .page {
-  width: 216mm;
-  height: 303mm;
+  width: 210mm;
+  height: 297mm;
   background: #fff;
   box-sizing: border-box;
   display: flex;
@@ -90,13 +90,33 @@
 /* ── Grid de productos ── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-auto-rows: calc((100% - 6mm) / 3);
   gap: 3mm;
   flex: 1;
   min-height: 0;
   padding: 4mm 8mm;
   box-sizing: border-box;
+  align-content: center;
+}
+
+.grid3 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: calc((100% - 6mm) / 3);
+}
+
+.grid4x3 {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-rows: calc((100% - 6mm) / 3);
+}
+
+.grid4 {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-rows: calc((100% - 9mm) / 4);
+}
+
+.grid4Compact {
+  grid-template-columns: repeat(2, 44mm);
+  grid-auto-rows: 74mm;
+  justify-content: center;
   align-content: center;
 }
 
@@ -137,6 +157,9 @@
 }
 
 .footerBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 3mm;
   font-size: 10pt;
   font-weight: 400;
   color: #fff;
@@ -145,8 +168,19 @@
   line-height: 1;
 }
 
-.footerBrand strong {
-  font-weight: 800;
+.footerLogo {
+  width: 29mm;
+  height: auto;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.footerDivider {
+  width: 0.3mm;
+  height: 5mm;
+  background: rgba(255, 255, 255, 0.55);
+  display: inline-block;
+  flex: 0 0 auto;
 }
 
 .footerPage {

@@ -1,8 +1,8 @@
 .page {
   --category-bg: #1A3F66;
   --category-accent: #2E70B2;
-  width: 216mm;
-  min-height: 303mm;
+  width: 210mm;
+  min-height: 297mm;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -10,32 +10,20 @@
 }
 
 .header {
-  height: 118mm;
+  height: 116mm;
   background: var(--category-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 24mm;
+  padding: 0 14mm;
   box-sizing: border-box;
 }
 
 .headerInner {
+  width: 100%;
+  max-width: 182mm;
   text-align: center;
   color: #fff;
-}
-
-.kicker {
-  display: inline-flex;
-  align-items: center;
-  height: 7mm;
-  padding: 0 3.5mm;
-  margin-bottom: 8mm;
-  border: 0.3mm solid rgba(255, 255, 255, 0.55);
-  font-size: 7.5pt;
-  font-weight: 800;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
 }
 
 .title {
@@ -49,7 +37,7 @@
 }
 
 .imageArea {
-  height: 185mm;
+  height: 181mm;
   position: relative;
   background: #fff;
   overflow: hidden;

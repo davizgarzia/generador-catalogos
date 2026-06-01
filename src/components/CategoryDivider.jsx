@@ -1,7 +1,7 @@
 import { CATEGORY_CONFIG } from "../config/categories"
 import styles from "./CategoryDivider.module.css"
 
-export default function CategoryDivider({ category, productCount }) {
+export default function CategoryDivider({ category }) {
   const config = CATEGORY_CONFIG[category] ?? {
     bg: "#1b4f72",
     accent: "#2e86ab",
@@ -21,7 +21,6 @@ export default function CategoryDivider({ category, productCount }) {
     >
       <div className={styles.header}>
         <div className={styles.headerInner}>
-          <div className={styles.kicker}>{productCount} productos</div>
           <h1 className={styles.title}>{category}</h1>
         </div>
       </div>

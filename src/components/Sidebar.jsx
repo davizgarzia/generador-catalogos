@@ -431,7 +431,16 @@ function AutoFitImagesButton() {
 
 
 export default function Sidebar() {
-  const { printMode, setPrintMode, printSize, setPrintSize } = usePrint()
+  const {
+    printMode,
+    setPrintMode,
+    printSize,
+    setPrintSize,
+    draftQuality,
+    setDraftQuality,
+    productGrid,
+    setProductGrid,
+  } = usePrint()
   const { editingProduct } = useEdit()
 
   const excelRef = useRef(null)
@@ -472,6 +481,49 @@ export default function Sidebar() {
               checked={printMode}
               onCheckedChange={setPrintMode}
             />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
+              Calidad borrador
+            </span>
+            <Switch
+              id="draft-quality-sidebar"
+              checked={draftQuality}
+              onCheckedChange={setDraftQuality}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 500 }}>
+              Referencias por hoja
+            </span>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[
+                { label: "3×3", value: "3x3" },
+                { label: "4×3", value: "4x3" },
+                { label: "4×4", value: "4x4" },
+              ].map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setProductGrid(option.value)}
+                  style={{
+                    flex: 1,
+                    padding: "5px 0",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    borderRadius: 6,
+                    border: productGrid === option.value ? "1.5px solid #111827" : "1.5px solid #e5e7eb",
+                    background: productGrid === option.value ? "#111827" : "#fff",
+                    color: productGrid === option.value ? "#fff" : "#374151",
+                    cursor: "pointer",
+                    transition: "all 0.12s",
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {printMode && (

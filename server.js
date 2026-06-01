@@ -21,12 +21,12 @@ const PRODUCTS_PATH  = path.join(__dirname, "src/data/products.js")
 // Mapeo de familias del Excel → claves de categoría del catálogo
 const EXCEL_FAMILY_MAP = {
   "ALCOHOLES":           "ALCOHOL",
-  "REFRESCOS":           "REFRESCOS",
+  "REFRESCOS":           "REFRESCOS, MALTAS Y CERVEZAS",
   "ZUMOS Y LACTEOS":     "ZUMOS Y LACTEOS",
-  "MALTAS Y CERVEZAS":   "CERVEZAS Y MALTAS",
-  "CERVEZAS Y MALTAS":   "CERVEZAS Y MALTAS",
+  "MALTAS Y CERVEZAS":   "REFRESCOS, MALTAS Y CERVEZAS",
+  "CERVEZAS Y MALTAS":   "REFRESCOS, MALTAS Y CERVEZAS",
   "LEGUMBRES":           "LEGUMBRES",
-  "HARINAS":             "HARINAS",
+  "HARINAS":             "HARINAS Y PASTAS",
   "CAFE Y TE":           "CAFE Y TE",
   "CONDIMENTOS":         "CONDIMENTOS",
   "CONGELADOS":          "CONGELADOS",
@@ -36,7 +36,7 @@ const EXCEL_FAMILY_MAP = {
   "CONSERVAS":           "CONSERVAS",
   "GALLETAS":            "GALLETAS",
   "GOLOSINAS":           "GOLOSINAS",
-  "PASTAS":              "PASTAS",
+  "PASTAS":              "HARINAS Y PASTAS",
   "SNAKS":               "SNAKS",
   "UTENSILIOS":          "UTENSILIOS",
   "HIGIENE Y COSMETICA": "HIGIENE Y COSMETICA",
@@ -533,7 +533,7 @@ app.post("/api/auto-fit-images-bulk", async (req, res) => {
 // ── POST /api/generate-pdf ────────────────────────────────
 // Body: { marks, size } — marks: bool, size: "A4" | "A5"
 app.post("/api/generate-pdf", async (req, res) => {
-  const { marks = false, size = "A4" } = req.body ?? {}
+  const { marks = false, size = "A4", draft = false, grid = "4x4" } = req.body ?? {}
   const outputName = "catalogo-impormed-2025.pdf"
 
   // Tamaño de página para Puppeteer:
@@ -542,13 +542,26 @@ app.post("/api/generate-pdf", async (req, res) => {
 
   // Puppeteer apunta directamente al servidor Vite dev que ya está corriendo
   const marksParam = marks ? "1" : "0"
-  const viteUrl = `http://localhost:5173?marks=${marksParam}&size=${size}`
+  const draftParam = draft ? "1" : "0"
+  const gridParam = ["3x3", "4x3", "4x4"].includes(grid) ? grid : "4x4"
+  const viteUrl = `http://localhost:5173?marks=${marksParam}&size=${size}&draft=${draftParam}&grid=${gridParam}`
 
-  const browser = await puppeteer.launch({ headless: true })
+  const browser = await puppeteer.launch({
+    headless: true,
+    protocolTimeout: 300000,
+  })
 
   try {
     const browserPage = await browser.newPage()
-    await browserPage.setViewport({ width: 1600, height: 900 })
+    browserPage.setDefaultTimeout(300000)
+    browserPage.setDefaultNavigationTimeout(300000)
+    await browserPage.setViewport({
+      width: 1600,
+      height: 900,
+      // Renderiza las capturas a más resolución para que textos y producto
+      // no queden blandos al montar el PDF rasterizado.
+      deviceScaleFactor: draft ? 1 : 2.5,
+    })
 
     await browserPage.goto(viteUrl, { waitUntil: "networkidle0", timeout: 60000 })
 
@@ -562,13 +575,15 @@ app.post("/api/generate-pdf", async (req, res) => {
     )
     await new Promise(r => setTimeout(r, 800))
 
-    // CSS de impresión: solo ocultar chrome y resetear layout.
-    // El estado (marks/size) ya está correcto porque lo leyó la app desde la URL.
+    // CSS para aislar las páginas antes de capturarlas una a una.
+    // Evitamos delegar el paginado completo a Chromium porque con muchas páginas,
+    // wrappers y assets grandes puede generar hojas vacías y PDFs enormes.
     const printCSS = marks ? `
       .app-chrome { display: none !important; }
       #catalog-area { margin: 0 !important; }
       body { background: white !important; }
       #catalog { gap: 0 !important; padding: 0 !important; }
+      #catalog section { gap: 0 !important; }
       #catalog > *, #catalog section > * { box-shadow: none !important; }
       @page { size: ${pageSize}; margin: 0; }
     ` : `
@@ -576,14 +591,91 @@ app.post("/api/generate-pdf", async (req, res) => {
       #catalog-area { margin: 0 !important; }
       body { background: white !important; }
       #catalog { gap: 0 !important; padding: 0 !important; align-items: flex-start !important; }
+      #catalog section { gap: 0 !important; }
       #catalog > *, #catalog section > * { box-shadow: none !important; }
       @page { size: ${pageSize}; margin: 0; }
     `
     await browserPage.addStyleTag({ content: printCSS })
 
-    const pdfBuffer = await browserPage.pdf({
+    const boxes = await browserPage.evaluate(() => {
+      const pages = [...document.querySelectorAll('[class*="sheet"]')]
+      return pages
+        .map((el) => {
+          const r = el.getBoundingClientRect()
+          return {
+            x: r.left + window.scrollX,
+            y: r.top + window.scrollY,
+            width: r.width,
+            height: r.height,
+          }
+        })
+        .filter((box) => box.width > 0 && box.height > 0)
+    })
+
+    if (!boxes.length) {
+      throw new Error("No se encontraron páginas para generar el PDF")
+    }
+
+    const screenshots = []
+    for (const box of boxes) {
+      const jpg = await browserPage.screenshot({
+        type: "jpeg",
+        quality: draft ? 86 : 94,
+        captureBeyondViewport: true,
+        clip: {
+          x: Math.max(0, box.x),
+          y: Math.max(0, box.y),
+          width: box.width,
+          height: box.height,
+        },
+      })
+      screenshots.push(Buffer.from(jpg).toString("base64"))
+    }
+
+    const [pageWidth, pageHeight] = pageSize.split(" ")
+    const pdfPage = await browser.newPage()
+    pdfPage.setDefaultTimeout(300000)
+
+    const html = `<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { background: white; }
+            @page { size: ${pageSize}; margin: 0; }
+            .pdf-page {
+              width: ${pageWidth};
+              height: ${pageHeight};
+              page-break-after: always;
+              break-after: page;
+              overflow: hidden;
+            }
+            .pdf-page:last-child {
+              page-break-after: auto;
+              break-after: auto;
+            }
+            img {
+              width: 100%;
+              height: 100%;
+              display: block;
+              object-fit: fill;
+            }
+          </style>
+        </head>
+        <body>
+          ${screenshots.map((image) => `<div class="pdf-page"><img src="data:image/jpeg;base64,${image}" /></div>`).join("")}
+        </body>
+      </html>`
+
+    await pdfPage.setContent(html, { waitUntil: "load", timeout: 300000 })
+
+    const pdfBuffer = await pdfPage.pdf({
+      width: pageWidth,
+      height: pageHeight,
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      timeout: 300000,
     })
 
     res.setHeader("Content-Type", "application/pdf")

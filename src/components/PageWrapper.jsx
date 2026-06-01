@@ -34,21 +34,21 @@ const PageWrapper = forwardRef(function PageWrapper({ children, accentColor, bgC
         </>
       )}
 
-      <div className={innerClass}>
-        {/* Marcas de corte A4: relativas al inner A4 */}
-        {printMode && !isA5 && (
-          <>
-            <div className={`${styles.cropMark} ${styles["tl-h"]}`} />
-            <div className={`${styles.cropMark} ${styles["tl-v"]}`} />
-            <div className={`${styles.cropMark} ${styles["tr-h"]}`} />
-            <div className={`${styles.cropMark} ${styles["tr-v"]}`} />
-            <div className={`${styles.cropMark} ${styles["bl-h"]}`} />
-            <div className={`${styles.cropMark} ${styles["bl-v"]}`} />
-            <div className={`${styles.cropMark} ${styles["br-h"]}`} />
-            <div className={`${styles.cropMark} ${styles["br-v"]}`} />
-          </>
-        )}
+      {/* Marcas de corte A4: relativas al sheet con 3mm de margen alrededor del contenido */}
+      {printMode && !isA5 && (
+        <>
+          <div className={`${styles.cropMark} ${styles["tl-h"]}`} />
+          <div className={`${styles.cropMark} ${styles["tl-v"]}`} />
+          <div className={`${styles.cropMark} ${styles["tr-h"]}`} />
+          <div className={`${styles.cropMark} ${styles["tr-v"]}`} />
+          <div className={`${styles.cropMark} ${styles["bl-h"]}`} />
+          <div className={`${styles.cropMark} ${styles["bl-v"]}`} />
+          <div className={`${styles.cropMark} ${styles["br-h"]}`} />
+          <div className={`${styles.cropMark} ${styles["br-v"]}`} />
+        </>
+      )}
 
+      <div className={innerClass}>
         {children}
       </div>
     </div>

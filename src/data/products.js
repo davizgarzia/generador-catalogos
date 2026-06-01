@@ -183,7 +183,7 @@ const products = [
     name: "ANDIN´S CRISTAL KOLA 2 L.",
     fullName: "ANDIN´S CRISTAL KOLA 2 L. (6 UxC)",
     unitsLabel: "6 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63006.jpg",
   },
   {
@@ -191,7 +191,7 @@ const products = [
     name: "ANDIN´S CRISTAL KOLA 1/2",
     fullName: "ANDIN´S CRISTAL KOLA 1/2  (12 UxC)",
     unitsLabel: "12 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63005.jpg",
   },
   {
@@ -199,7 +199,7 @@ const products = [
     name: "REFRESCO MANZANA BOLARU 2 L.",
     fullName: "REFRESCO MANZANA BOLARU 2 L. (6 UxC)",
     unitsLabel: "6 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63024.jpg",
   },
   {
@@ -207,7 +207,7 @@ const products = [
     name: "REFRESCO MANZANA BOLARU 500 CC",
     fullName: "REFRESCO MANZANA BOLARU 500 CC (12UxC)",
     unitsLabel: "12 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63025.jpg",
   },
   {
@@ -215,7 +215,7 @@ const products = [
     name: "REFRESCO TROPICAL BOLARU 2 L.",
     fullName: "REFRESCO TROPICAL BOLARU 2 L. (6 UxC)",
     unitsLabel: "6 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63026.jpg",
   },
   {
@@ -223,7 +223,7 @@ const products = [
     name: "REFRESCO TROPICAL BOLARU 500 CC",
     fullName: "REFRESCO TROPICAL BOLARU 500 CC (12UxC)",
     unitsLabel: "12 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63027.jpg",
   },
   {
@@ -231,7 +231,7 @@ const products = [
     name: "GUARANA ANTARTICA 330 ml.",
     fullName: "GUARANA ANTARTICA 330 ml. (24UXC)",
     unitsLabel: "24 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/IP98015.jpg",
   },
   {
@@ -239,7 +239,7 @@ const products = [
     name: "GUARANA ANTARTICA 1,5 L.",
     fullName: "GUARANA ANTARTICA 1,5 L. (6UXC)",
     unitsLabel: "6 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63037.jpg",
   },
   {
@@ -247,7 +247,7 @@ const products = [
     name: "POSTOBON COLOMBIANA 2 L.",
     fullName: "POSTOBON COLOMBIANA 2 L. (6 UxC)",
     unitsLabel: "6 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63068.jpg",
   },
   {
@@ -255,7 +255,7 @@ const products = [
     name: "POSTOBON MANZANA 2 L.",
     fullName: "POSTOBON MANZANA 2 L. (6 UxC)",
     unitsLabel: "6 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63069.jpg",
   },
   {
@@ -263,7 +263,7 @@ const products = [
     name: "POSTOBON UVA 2 L.",
     fullName: "POSTOBON UVA 2 L. (6 UxC)",
     unitsLabel: "6 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63070.jpg",
   },
   {
@@ -271,7 +271,7 @@ const products = [
     name: "POSTOBON COLOMBIANA 500 ML.",
     fullName: "POSTOBON COLOMBIANA 500 ML. (12 UxC)",
     unitsLabel: "12 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63134.jpg",
   },
   {
@@ -279,7 +279,7 @@ const products = [
     name: "POSTOBON MANZANA 500 ML.",
     fullName: "POSTOBON MANZANA 500 ML. (12 UxC)",
     unitsLabel: "12 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63133.jpg",
   },
   {
@@ -287,7 +287,7 @@ const products = [
     name: "POSTOBON UVA 500 ML.",
     fullName: "POSTOBON UVA 500 ML. (12 UxC)",
     unitsLabel: "12 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63037.jpg",
   },
   {
@@ -295,7 +295,7 @@ const products = [
     name: "COCA COLA LATA",
     fullName: "COCA COLA LATA (24UXC)",
     unitsLabel: "24 uds./caja",
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63028.jpg",
   },
   {
@@ -303,7 +303,7 @@ const products = [
     name: "COCA COLA ZERO LATA 33",
     fullName: "COCA COLA ZERO LATA 33",
     unitsLabel: null,
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63053.jpg",
   },
   {
@@ -311,7 +311,7 @@ const products = [
     name: "FANTA NARANJA LATA 33",
     fullName: "FANTA NARANJA LATA 33",
     unitsLabel: null,
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63059.jpg",
   },
   {
@@ -319,7 +319,7 @@ const products = [
     name: "FANTA LIMON LATA 33",
     fullName: "FANTA LIMON LATA 33",
     unitsLabel: null,
-    category: "REFRESCOS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/63060.jpg",
   },
   {
@@ -479,7 +479,7 @@ const products = [
     name: "PONY MALTA BOTELLA 330 M",
     fullName: "PONY MALTA BOTELLA  330 M (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "CERVEZAS Y MALTAS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/66003.jpg",
   },
   {
@@ -487,7 +487,7 @@ const products = [
     name: "PONY MALTA LATA 330",
     fullName: "PONY MALTA LATA 330 (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "CERVEZAS Y MALTAS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/66007.jpg",
   },
   {
@@ -495,7 +495,7 @@ const products = [
     name: "PONY MALTA 1 L.",
     fullName: "PONY MALTA 1 L. (15 UxC)",
     unitsLabel: "15 uds./caja",
-    category: "CERVEZAS Y MALTAS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/66015.jpg",
   },
   {
@@ -503,7 +503,7 @@ const products = [
     name: "VIMTO RED LATA 330",
     fullName: "VIMTO RED LATA 330 (24 UXC)",
     unitsLabel: "24 uds./caja",
-    category: "CERVEZAS Y MALTAS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/IP66005.jpg",
   },
   {
@@ -511,7 +511,7 @@ const products = [
     name: "VITAL MALT BOTELLA",
     fullName: "VITAL MALT BOTELLA (24 UXC)",
     unitsLabel: "24 uds./caja",
-    category: "CERVEZAS Y MALTAS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/IP66006.jpg",
   },
   {
@@ -519,7 +519,7 @@ const products = [
     name: "CERVEZA AMSTEL LATA 330 ML.",
     fullName: "CERVEZA AMSTEL LATA 330 ML. (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "CERVEZAS Y MALTAS",
+    category: "REFRESCOS, MALTAS Y CERVEZAS",
     image: "/images/72004.jpg",
   },
   {
@@ -831,7 +831,7 @@ const products = [
     name: "COLMAIZ PAN DE BONO 1 K.",
     fullName: "COLMAIZ PAN DE BONO 1 K. (25 UxC)",
     unitsLabel: "25 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22011.jpg",
   },
   {
@@ -839,7 +839,7 @@ const products = [
     name: "COLMAIZ BUÑUELO 1 K.",
     fullName: "COLMAIZ BUÑUELO 1 K. (25 UxC)",
     unitsLabel: "25 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22098.jpg",
   },
   {
@@ -847,7 +847,7 @@ const products = [
     name: "MAIZENA NATILLAS TRADICIONAL 300g",
     fullName: "MAIZENA NATILLAS TRADICIONAL 300g (20 UNI X CAJA)",
     unitsLabel: "20 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: null,
   },
   {
@@ -855,7 +855,7 @@ const products = [
     name: "MAIZENA BUÑUELOS 300g",
     fullName: "MAIZENA BUÑUELOS  300g (20 UNIDA X CAJA)",
     unitsLabel: "20 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/20028.jpg",
   },
   {
@@ -863,7 +863,7 @@ const products = [
     name: "MAIZENA NATILLAS AREQUIPE 300g",
     fullName: "MAIZENA NATILLAS AREQUIPE 300g (20 UNI X CAJA)",
     unitsLabel: "20 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: null,
   },
   {
@@ -871,7 +871,7 @@ const products = [
     name: "MAIZENA NATILLAS COO 300g",
     fullName: "MAIZENA NATILLAS COO 300g (20 UNI X CAJA)",
     unitsLabel: "20 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: null,
   },
   {
@@ -879,7 +879,7 @@ const products = [
     name: "ALMIDON DE YUCA JAPEPO GUARANI DULCE 400 GR.",
     fullName: "ALMIDON DE YUCA JAPEPO GUARANI DULCE 400 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22003.jpg",
   },
   {
@@ -887,7 +887,7 @@ const products = [
     name: "AVENA QUAKER 500 GR.",
     fullName: "AVENA QUAKER 500 GR. (25 UXC)",
     unitsLabel: "25 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22005.jpg",
   },
   {
@@ -895,7 +895,7 @@ const products = [
     name: "AVENA QUAKER MOLIDA 500 GR.",
     fullName: "AVENA QUAKER MOLIDA 500 GR.",
     unitsLabel: null,
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22066.jpg",
   },
   {
@@ -903,7 +903,7 @@ const products = [
     name: "AVENA INSTANTANEA FRESA QUAKER 300 GR.",
     fullName: "AVENA INSTANTANEA FRESA QUAKER 300 GR. (CAJA 24 UNI)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22068.jpg",
   },
   {
@@ -911,7 +911,7 @@ const products = [
     name: "AVENA INSTANTANEA VAINILLA QUAKER 300 GR.",
     fullName: "AVENA INSTANTANEA VAINILLA QUAKER 300 GR. (CAJA 24 UNI)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22007.jpg",
   },
   {
@@ -919,7 +919,7 @@ const products = [
     name: "AVENA INSTANTANEA AREQUIPE QUAKER GR. (CAJA UNI)",
     fullName: "AVENA INSTANTANEA AREQUIPE  QUAKER GR. (CAJA UNI)",
     unitsLabel: null,
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22057.jpg",
   },
   {
@@ -927,7 +927,7 @@ const products = [
     name: "PRODUSUR ALMIDON DE YUCA DULCE 1 K.",
     fullName: "PRODUSUR ALMIDON DE YUCA DULCE 1 K. (10 UxC)",
     unitsLabel: "10 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22072.jpg",
   },
   {
@@ -935,7 +935,7 @@ const products = [
     name: "HARINA MAIZ BLANCA DELI 1KG",
     fullName: "HARINA MAIZ BLANCA DELI 1KG (10 UxC)",
     unitsLabel: "10 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22092.jpg",
   },
   {
@@ -943,7 +943,7 @@ const products = [
     name: "HARINA MAIZ AMARILLA DELI 1KG",
     fullName: "HARINA MAIZ AMARILLA DELI 1KG (10 UxC)",
     unitsLabel: "10 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22093.jpg",
   },
   {
@@ -951,7 +951,7 @@ const products = [
     name: "HARINA MAIZ AMARILLA PAN 1 KG",
     fullName: "HARINA MAIZ AMARILLA PAN 1 KG (10 UxC)",
     unitsLabel: "10 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22019.jpg",
   },
   {
@@ -959,7 +959,7 @@ const products = [
     name: "HARINA MAIZ BLANCA PAN 1KG",
     fullName: "HARINA MAIZ BLANCA PAN 1KG (10 UxC)",
     unitsLabel: "10 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22021.jpg",
   },
   {
@@ -967,7 +967,7 @@ const products = [
     name: "HARINA DE HABA TOSTADA 500 GR.",
     fullName: "HARINA DE HABA TOSTADA 500 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22014.jpg",
   },
   {
@@ -975,7 +975,7 @@ const products = [
     name: "HARINA PARA TAMAL 500 GR.",
     fullName: "HARINA PARA TAMAL 500 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22077.jpg",
   },
   {
@@ -983,7 +983,7 @@ const products = [
     name: "HARINA DE PLATANO ORIENTAL 400 GR.",
     fullName: "HARINA DE PLATANO ORIENTAL 400 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22017.jpg",
   },
   {
@@ -991,7 +991,7 @@ const products = [
     name: "HARINA MORADA 400 GR.",
     fullName: "HARINA MORADA 400 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22022.jpg",
   },
   {
@@ -999,7 +999,7 @@ const products = [
     name: "MACHICA HARINA 400 GR. AMERICA",
     fullName: "MACHICA HARINA 400 GR. AMERICA (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22075.jpg",
   },
   {
@@ -1007,7 +1007,7 @@ const products = [
     name: "HARINA DULCE AREPA AREPA 500 GR.",
     fullName: "HARINA  DULCE  AREPA AREPA 500 GR. (24 UNI X CAJA)",
     unitsLabel: "24 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/IP22065.jpg",
   },
   {
@@ -1015,7 +1015,7 @@ const products = [
     name: "MALAI EXTRA ARPIS K.",
     fullName: "MALAI EXTRA ARPIS K. (10 UxC)",
     unitsLabel: "10 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22026.jpg",
   },
   {
@@ -1023,7 +1023,7 @@ const products = [
     name: "POLVILLO AZEDO AGRIO YOKI 500 g",
     fullName: "POLVILLO AZEDO AGRIO YOKI 500 g (12 UxC)",
     unitsLabel: "12 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22029.jpg",
   },
   {
@@ -1031,7 +1031,7 @@ const products = [
     name: "MAIZAMERICA AMARILLA 500 GR",
     fullName: "MAIZAMERICA AMARILLA 500 GR  (20UxC)",
     unitsLabel: "20 uds./caja",
-    category: "HARINAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/22071.jpg",
   },
   {
@@ -3951,7 +3951,7 @@ const products = [
     name: "FIDEO PACA LAZO GRANDE 400 GR. (CANASTO 2)",
     fullName: "FIDEO PACA LAZO GRANDE 400 GR. (CANASTO 2) (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "PASTAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/35002.jpg",
   },
   {
@@ -3959,7 +3959,7 @@ const products = [
     name: "FIDEO PACA LAZO MEDIANO (REDONDO) 400 GR",
     fullName: "FIDEO PACA LAZO MEDIANO (REDONDO) 400 GR (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "PASTAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/35004.jpg",
   },
   {
@@ -3967,7 +3967,7 @@ const products = [
     name: "FIDEO PACA LAZO PEQUEÑO 400 GR",
     fullName: "FIDEO PACA LAZO PEQUEÑO (ILUSION) 400 GR (24 UxC)",
     unitsLabel: "24 uds./caja",
-    category: "PASTAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/35003.jpg",
   },
   {
@@ -3975,7 +3975,7 @@ const products = [
     name: "TALLARIN FIDEO CAMPO Nº 9",
     fullName: "TALLARIN FIDEO CAMPO Nº 9 (10 UxC)",
     unitsLabel: "10 uds./caja",
-    category: "PASTAS",
+    category: "HARINAS Y PASTAS",
     image: "/images/35007.jpg",
   },
   {
