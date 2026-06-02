@@ -1,6 +1,6 @@
 import { COMPANY } from "../config/categories"
 import styles from "./InfoPage.module.css"
-import { PhoneCall, Truck, ShoppingCart, PackageSearch, Mail, Globe2 } from "lucide-react"
+import { PhoneCall, Truck, PackageSearch, Mail, Globe2 } from "lucide-react"
 
 const INFO_ITEMS = [
   {
@@ -12,11 +12,6 @@ const INFO_ITEMS = [
     icon: Truck,
     title: "Distribución nacional",
     text: "Rutas semanales fijas en distribución nacional e internacional. Tu pedido llega donde lo necesitas.",
-  },
-  {
-    icon: ShoppingCart,
-    title: `Pedido mínimo ${COMPANY.minOrder}`,
-    text: "Accesible para todo tipo de negocios. Sin complicaciones, sin grandes compromisos de volumen.",
   },
   {
     icon: PackageSearch,

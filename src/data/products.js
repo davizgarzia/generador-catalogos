@@ -2704,7 +2704,7 @@ const products = [
     fullName: "PULPA DE TOMATE DE ARBOL DORADO 250 GR. (12 UxC)",
     unitsLabel: "12 uds./caja",
     category: "PULPAS",
-    image: null,
+    image: "/images/14008.jpg",
   },
   {
     id: "14007",
@@ -2888,7 +2888,7 @@ const products = [
     fullName: "PULPA MONODOSIS GUANABANA EL DORADO 90 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
     category: "PULPAS",
-    image: null,
+    image: "/images/14014.jpg",
   },
   {
     id: "14019",
@@ -2896,7 +2896,7 @@ const products = [
     fullName: "PULPA MONODOSIS MORA EL DORADO 90 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
     category: "PULPAS",
-    image: null,
+    image: "/images/14019.jpg",
   },
   {
     id: "14011",
@@ -2904,7 +2904,7 @@ const products = [
     fullName: "PULPA MONODOSIS MANGO EL DORADO 90 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
     category: "PULPAS",
-    image: null,
+    image: "/images/14011.jpg",
   },
   {
     id: "14013",
@@ -2912,7 +2912,7 @@ const products = [
     fullName: "PULPA MONODOSIS GUAYABA EL DORADO 90 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
     category: "PULPAS",
-    image: null,
+    image: "/images/14013.jpg",
   },
   {
     id: "14018",
@@ -3080,7 +3080,7 @@ const products = [
     fullName: "QUESO FRESCO MI ECUADOR JR 300 GR.(30 UxC)",
     unitsLabel: "30 uds./caja",
     category: "REFRIGERADOS",
-    image: null,
+    image: "/images/18013.jpg",
   },
   {
     id: "18014",
@@ -3336,7 +3336,7 @@ const products = [
     fullName: "JALEA BOROJO 500 GR.",
     unitsLabel: null,
     category: "CONSERVAS",
-    image: null,
+    image: "/images/37018.jpg",
   },
   {
     id: "37125",
@@ -3712,7 +3712,7 @@ const products = [
     fullName: "CARAMELO LECHE - MIEL 100 UNI (16 UNI CAJA)",
     unitsLabel: "16 uds./caja",
     category: "GOLOSINAS",
-    image: null,
+    image: "/images/54041.jpg",
   },
   {
     id: "IP54007",
@@ -3784,7 +3784,7 @@ const products = [
     fullName: "SPARKIES  BUBBALOO DISPL. 20 UNI. 500 GR.",
     unitsLabel: "20 uds./caja",
     category: "GOLOSINAS",
-    image: null,
+    image: "/images/54034.jpg",
   },
   {
     id: "54047",
@@ -3792,7 +3792,7 @@ const products = [
     fullName: "QUIPITOS 24 SOBRES",
     unitsLabel: "24 uds./caja",
     category: "GOLOSINAS",
-    image: null,
+    image: "/images/54047.jpg",
   },
   {
     id: "54065",
@@ -4248,7 +4248,7 @@ const products = [
     fullName: "TALCO MEXAVILA PEQUEÑO .",
     unitsLabel: null,
     category: "VARIOS",
-    image: null,
+    image: "/images/95001.jpg",
   },
   {
     id: "95014",
@@ -4272,7 +4272,7 @@ const products = [
     fullName: "JABON REY 300GR. (25UXC)",
     unitsLabel: "25 uds./caja",
     category: "VARIOS",
-    image: null,
+    image: "/images/95002.jpg",
   },
 ]
 
