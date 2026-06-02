@@ -1,4 +1,4 @@
-// Actualizado automáticamente por import-images — 2026-05-27T07:16:53.661Z
+// Actualizado automáticamente por import-images — 2026-06-02T00:00:00.000Z
 // Para añadir o editar productos, edita este archivo directamente o sube un nuevo Excel.
 
 const products = [
@@ -80,7 +80,7 @@ const products = [
     fullName: "BLANCO DEL VALLE SIN AZUCAR 700 (12 UxC)",
     unitsLabel: "12 uds./caja",
     category: "ALCOHOL",
-    image: "/images/76002.jpg",
+    image: "/images/IP76007.jpg",
   },
   {
     id: "IP76126",
@@ -128,7 +128,7 @@ const products = [
     fullName: "BATHUB GIN (6 UxC)",
     unitsLabel: "6 uds./caja",
     category: "ALCOHOL",
-    image: "/images/76126.jpg",
+    image: "/images/IP76023.jpg",
   },
   {
     id: "IP98015",
@@ -232,7 +232,7 @@ const products = [
     fullName: "GUARANA ANTARTICA 330 ml. (24UXC)",
     unitsLabel: "24 uds./caja",
     category: "REFRESCOS, MALTAS Y CERVEZAS",
-    image: "/images/IP98015.jpg",
+    image: "/images/63007.jpg",
   },
   {
     id: "63037",
@@ -288,7 +288,7 @@ const products = [
     fullName: "POSTOBON UVA 500 ML. (12 UxC)",
     unitsLabel: "12 uds./caja",
     category: "REFRESCOS, MALTAS Y CERVEZAS",
-    image: "/images/63037.jpg",
+    image: "/images/63135.jpg",
   },
   {
     id: "63028",
@@ -528,7 +528,7 @@ const products = [
     fullName: "MAIZ MOTE DELI / SNOB  500 GR. (24 UXC)",
     unitsLabel: "24 uds./caja",
     category: "LEGUMBRES",
-    image: "/images/63028.jpg",
+    image: "/images/IP25050.jpg",
   },
   {
     id: "IP25051",
@@ -664,7 +664,7 @@ const products = [
     fullName: "MAZAMORRA AMARILLA 500 GR AMERICA (24 UxC)",
     unitsLabel: "24 uds./caja",
     category: "LEGUMBRES",
-    image: null,
+    image: "/images/25022.jpg",
   },
   {
     id: "25003",
@@ -680,7 +680,7 @@ const products = [
     fullName: "QUINUA AMERICA 500 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
     category: "LEGUMBRES",
-    image: null,
+    image: "/images/25026.jpg",
   },
   {
     id: "25008",
@@ -712,7 +712,7 @@ const products = [
     fullName: "CHUÑO PAPA BLANCA 250 GR. (24 UxC)",
     unitsLabel: "24 uds./caja",
     category: "LEGUMBRES",
-    image: null,
+    image: "/images/25004.jpg",
   },
   {
     id: "25005",
@@ -2456,7 +2456,7 @@ const products = [
     fullName: "HELADO QUESO (50 UxC)",
     unitsLabel: "50 uds./caja",
     category: "HELADOS",
-    image: null,
+    image: "/images/16002.jpg",
   },
   {
     id: "16003",
@@ -2504,7 +2504,7 @@ const products = [
     fullName: "HELADO TROPICAL GUANABANA (50 UxC)",
     unitsLabel: "50 uds./caja",
     category: "HELADOS",
-    image: null,
+    image: "/images/16009.jpg",
   },
   {
     id: "16011",
@@ -2544,7 +2544,7 @@ const products = [
     fullName: "HELADO LULO (50 UxC)",
     unitsLabel: "50 uds./caja",
     category: "HELADOS",
-    image: null,
+    image: "/images/16016.jpg",
   },
   {
     id: "16017",
@@ -2664,7 +2664,7 @@ const products = [
     fullName: "PULPA DE MORA EL DORADO 250 GR.(12 UxC)",
     unitsLabel: "12 uds./caja",
     category: "PULPAS",
-    image: null,
+    image: "/images/14005.jpg",
   },
   {
     id: "14003",
@@ -2688,7 +2688,7 @@ const products = [
     fullName: "PULPA DE MARACUYA EL DORADO  250 GR. (12 UxC)",
     unitsLabel: "12 uds./caja",
     category: "PULPAS",
-    image: null,
+    image: "/images/14004.jpg",
   },
   {
     id: "14006",
@@ -2696,7 +2696,7 @@ const products = [
     fullName: "PULPA DE NARANJILLA EL DORADO  250 GR. (12 UxC)",
     unitsLabel: "12 uds./caja",
     category: "PULPAS",
-    image: null,
+    image: "/images/14006.jpg",
   },
   {
     id: "14008",

@@ -43,11 +43,23 @@
     "imgX": -0.9,
     "imgY": 0.3
   },
+  "14004": {
+    "imgMode": "nobg"
+  },
+  "14005": {
+    "imgMode": "nobg"
+  },
+  "14006": {
+    "imgMode": "nobg"
+  },
   "14007": {
     "imgMode": "nobg",
     "imgScale": 0.92,
     "imgX": 0.1,
     "imgY": -2.5
+  },
+  "14008": {
+    "imgMode": "nobg"
   },
   "14010": {
     "imgMode": "nobg",
@@ -55,14 +67,23 @@
     "imgX": 0.9,
     "imgY": -1.7
   },
+  "14011": {
+    "imgMode": "nobg"
+  },
   "14012": {
     "imgMode": "nobg",
     "imgScale": 0.99,
     "imgX": 5.2,
     "imgY": 0
   },
+  "14013": {
+    "imgMode": "nobg"
+  },
+  "14014": {
+    "imgMode": "nobg"
+  },
   "14015": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "nobgVersion": 0,
     "imgScale": 0.92,
     "imgX": -0.6,
@@ -74,46 +95,58 @@
     "imgX": 0.3,
     "imgY": -1.4
   },
+  "14019": {
+    "imgMode": "nobg"
+  },
   "14020": {
     "imgMode": "nobg",
     "imgScale": 0.93,
     "imgX": 0.4,
     "imgY": -2.4
   },
+  "16002": {
+    "imgScale": 0.85,
+    "imgMode": "nobg",
+    "nobgVersion": 1780386710092
+  },
   "16003": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 2.3,
     "imgY": -0.1
   },
   "16004": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": -0.3,
     "imgY": -0.1
   },
   "16006": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "nobgVersion": 0,
     "imgScale": 0.98,
     "imgX": 0.6,
     "imgY": -0.1
   },
   "16007": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": -0.3,
     "imgY": -0.1
   },
   "16008": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "nobgVersion": 0,
     "imgScale": 0.85,
     "imgX": -0.3,
     "imgY": -0.1
   },
+  "16009": {
+    "imgScale": 0.85,
+    "imgMode": "nobg"
+  },
   "16011": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": 2.3,
     "imgY": -0.2
@@ -126,73 +159,76 @@
     "imgY": -3.7
   },
   "16013": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": 2.2,
     "imgY": -0.2
   },
   "16014": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": 2.3,
     "imgY": -0.1
   },
+  "16016": {
+    "imgMode": "nobg"
+  },
   "16017": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": 2.3,
     "imgY": -0.1
   },
   "16018": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 2.2,
     "imgY": -0.1
   },
   "16019": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": 2.3,
     "imgY": -0.2
   },
   "16020": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": 2.2,
     "imgY": -0.1
   },
   "16021": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 2.2,
     "imgY": -0.1
   },
   "16023": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 2.3,
     "imgY": -0.1
   },
   "16027": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": -0.3,
     "imgY": -0.1
   },
   "16029": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.85,
     "imgX": -0.3,
     "imgY": -0.1
   },
   "16042": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.74,
     "imgX": 0.4,
     "imgY": 0.1
   },
   "16044": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgX": 3.8,
     "imgScale": 0.7,
     "imgY": -1.2
@@ -208,6 +244,9 @@
     "imgScale": 0.9,
     "imgX": -2.2,
     "imgY": 1.2
+  },
+  "18013": {
+    "imgMode": "nobg"
   },
   "18014": {
     "imgMode": "nobg",
@@ -402,6 +441,9 @@
     "imgX": 3.9,
     "imgY": -2.7
   },
+  "25004": {
+    "imgMode": "nobg"
+  },
   "25005": {
     "imgMode": "nobg",
     "imgScale": 0.78,
@@ -431,6 +473,12 @@
     "imgScale": 0.95,
     "imgX": -0.7,
     "imgY": -1
+  },
+  "25022": {
+    "imgMode": "nobg"
+  },
+  "25026": {
+    "imgMode": "nobg"
   },
   "25027": {
     "imgMode": "nobg",
@@ -749,6 +797,9 @@
     "imgScale": 1.37,
     "imgX": 0.5,
     "imgY": -6.6
+  },
+  "37018": {
+    "imgMode": "nobg"
   },
   "37028": {
     "imgMode": "nobg",
@@ -1116,6 +1167,15 @@
     "imgScale": 1.06,
     "imgX": 0.5,
     "imgY": 2.2
+  },
+  "54034": {
+    "imgMode": "nobg"
+  },
+  "54041": {
+    "imgMode": "nobg"
+  },
+  "54047": {
+    "imgMode": "nobg"
   },
   "54065": {
     "imgMode": "nobg",
@@ -1801,6 +1861,12 @@
     "imgX": -0.3,
     "imgY": 2.2
   },
+  "95001": {
+    "imgMode": "nobg"
+  },
+  "95002": {
+    "imgMode": "nobg"
+  },
   "95014": {
     "imgMode": "nobg",
     "nobgVersion": 0,
@@ -1993,7 +2059,7 @@
     "imgY": 1.7
   },
   "IP12020": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
@@ -2005,7 +2071,7 @@
     "imgY": -1.4
   },
   "IP12023": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.96,
     "imgX": 0,
     "imgY": 0
@@ -2030,27 +2096,27 @@
     "imgY": 0
   },
   "IP12038": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
   },
   "IP12053": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "nobgVersion": 0,
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
   },
   "IP12051": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "nobgVersion": 1779872789676,
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
   },
   "IP12054": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
@@ -2075,49 +2141,49 @@
     "imgY": 1
   },
   "IP12069": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
   },
   "IP12070": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
   },
   "IP12071": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
   },
   "IP12074": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.96,
     "imgX": 0,
     "imgY": 0
   },
   "IP12072": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
   },
   "IP12075": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.96,
     "imgX": 0,
     "imgY": 0
   },
   "IP12076": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0.2
   },
   "IP12077": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 2.6
@@ -2129,7 +2195,7 @@
     "imgY": 8
   },
   "IP12080": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.84,
     "imgX": 0,
     "imgY": 0
@@ -2825,7 +2891,7 @@
     "imgY": -1.9
   },
   "IP46109": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 1.1,
     "imgX": 2.3,
     "imgY": -1.9
@@ -2859,43 +2925,43 @@
     "imgY": -0.1
   },
   "IP46117": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 1,
     "imgX": -3.6,
     "imgY": -1.3
   },
   "IP54001": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.99,
     "imgX": 2.1,
     "imgY": 0.7
   },
   "IP54007": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.97,
     "imgX": 1.3,
     "imgY": -1.3
   },
   "IP54008": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.98,
     "imgX": 3.4,
     "imgY": 0.4
   },
   "IP54009": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.97,
     "imgX": 2,
     "imgY": -1.5
   },
   "IP54010": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 1.01,
     "imgX": -0.2,
     "imgY": -0.9
   },
   "IP54011": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.96,
     "imgX": 4.5,
     "imgY": -1.7
@@ -2908,31 +2974,31 @@
     "imgY": 0.8
   },
   "IP54035": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.96,
     "imgX": -0.7,
     "imgY": 0
   },
   "IP54045": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.93,
     "imgX": -0.5,
     "imgY": -1
   },
   "IP54076": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.93,
     "imgX": -1.9,
     "imgY": 0.1
   },
   "IP54086": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.93,
     "imgX": 0.3,
     "imgY": -1.4
   },
   "IP54091": {
-    "imgMode": "original",
+    "imgMode": "nobg",
     "imgScale": 0.86,
     "imgX": 0,
     "imgY": 0
@@ -3034,16 +3100,22 @@
   "IP12050": {
     "imgScale": 0.97,
     "imgX": 0.6,
-    "imgY": 1.2
+    "imgY": 1.2,
+    "imgMode": "nobg"
   },
   "IP12052": {
     "imgScale": 0.86,
     "imgX": 0,
-    "imgY": 0
+    "imgY": 0,
+    "imgMode": "nobg"
   },
   "IP12073": {
     "imgScale": 0.91,
     "imgX": -0.8,
-    "imgY": -0.3
+    "imgY": -0.3,
+    "imgMode": "nobg"
+  },
+  "IP12043": {
+    "imgMode": "nobg"
   }
 }
