@@ -4,7 +4,6 @@ Bulk background removal para todas las imágenes de public/images/
 Guarda PNGs sin fondo en public/images-nobg/
 """
 
-import os
 import sys
 from pathlib import Path
 from rembg import remove, new_session
@@ -14,10 +13,17 @@ import io
 BASE = Path(__file__).parent.parent
 SRC  = BASE / "public" / "images"
 DEST = BASE / "public" / "images-nobg"
+OVERWRITE = "--overwrite" in sys.argv
+IDS_ARG = next((arg for arg in sys.argv if arg.startswith("--ids=")), None)
+ONLY_IDS = set(IDS_ARG.removeprefix("--ids=").split(",")) if IDS_ARG else None
 
 DEST.mkdir(exist_ok=True)
 
-images = sorted([f for f in SRC.iterdir() if f.suffix.lower() in (".jpg", ".jpeg", ".png")])
+images = sorted([
+    f for f in SRC.iterdir()
+    if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")
+    and (ONLY_IDS is None or f.stem in ONLY_IDS)
+])
 total  = len(images)
 
 print(f"Procesando {total} imágenes con rembg...")
@@ -34,7 +40,7 @@ for i, src_path in enumerate(images, 1):
     stem = src_path.stem
     dest_path = DEST / f"{stem}.png"
 
-    if dest_path.exists():
+    if dest_path.exists() and not OVERWRITE:
         print(f"  [{i:02d}/{total}] {src_path.name} → ya existe, saltando")
         ok += 1
         continue
@@ -47,7 +53,7 @@ for i, src_path in enumerate(images, 1):
 
         # Autocrop: recortar al bounding box del contenido opaco
         img = Image.open(io.BytesIO(result)).convert("RGBA")
-        bbox = img.split()[3].getbbox()   # bounding box del canal alpha
+        bbox = img.split()[3].getbbox()
         if bbox:
             img = img.crop(bbox)
         img.save(dest_path, "PNG")

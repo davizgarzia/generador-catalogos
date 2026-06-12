@@ -21,12 +21,15 @@ const PRODUCTS_PATH  = path.join(__dirname, "src/data/products.js")
 // Mapeo de familias del Excel → claves de categoría del catálogo
 const EXCEL_FAMILY_MAP = {
   "ALCOHOLES":           "ALCOHOL",
+  "ALCOHOL":             "ALCOHOL",
   "REFRESCOS":           "REFRESCOS, MALTAS Y CERVEZAS",
+  "REFRESCOS, MALTAS Y CERVEZAS": "REFRESCOS, MALTAS Y CERVEZAS",
   "ZUMOS Y LACTEOS":     "ZUMOS Y LACTEOS",
   "MALTAS Y CERVEZAS":   "REFRESCOS, MALTAS Y CERVEZAS",
   "CERVEZAS Y MALTAS":   "REFRESCOS, MALTAS Y CERVEZAS",
   "LEGUMBRES":           "LEGUMBRES",
   "HARINAS":             "HARINAS Y PASTAS",
+  "HARINAS Y PASTAS":    "HARINAS Y PASTAS",
   "CAFE Y TE":           "CAFE Y TE",
   "CONDIMENTOS":         "CONDIMENTOS",
   "CONGELADOS":          "CONGELADOS",
@@ -40,6 +43,7 @@ const EXCEL_FAMILY_MAP = {
   "SNAKS":               "SNAKS",
   "UTENSILIOS":          "UTENSILIOS",
   "HIGIENE Y COSMETICA": "HIGIENE Y COSMETICA",
+  "VARIOS":              "VARIOS",
 }
 
 const upload = multer({ storage: multer.memoryStorage() })
@@ -286,6 +290,91 @@ function visualScaleAdjustment(product) {
   if (/\b(2L|2 L|1\.5L|1,5L|1\.75L|1,75L|GARRAFA|PET)\b/.test(text)) return 1.42
 
   return 1
+}
+
+function normalizeHeader(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+}
+
+function columnIndex(headers, names) {
+  const normalizedNames = names.map(normalizeHeader)
+  return headers.findIndex(header => normalizedNames.includes(normalizeHeader(header)))
+}
+
+function parseExcelProducts(buffer) {
+  const wb = XLSX.read(buffer, { type: "buffer" })
+  const sheets = wb.SheetNames.map(name => ({ name, rows: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 }) }))
+  const sheet = sheets.find(({ rows }) => {
+    const headers = rows[0] ?? []
+    return columnIndex(headers, ["Artículo", "Articulo"]) !== -1
+      && columnIndex(headers, ["Nombre artículo", "Nombre articulo"]) !== -1
+      && columnIndex(headers, ["Nombre de familia"]) !== -1
+  })
+
+  if (!sheet) {
+    throw new Error("No se encontró una hoja con columnas de catálogo")
+  }
+
+  const headers = sheet.rows[0] ?? []
+  const idIndex = columnIndex(headers, ["Artículo", "Articulo"])
+  const fullNameIndex = columnIndex(headers, ["Nombre artículo", "Nombre articulo"])
+  const familyIndex = columnIndex(headers, ["Nombre de familia"])
+  const bajaIndex = columnIndex(headers, ["Artículo de baja", "Articulo de baja"])
+
+  return sheet.rows.slice(1).flatMap(row => {
+    const id = row[idIndex]
+    const fullName = row[fullNameIndex]
+    const family = row[familyIndex]
+    const baja = bajaIndex === -1 ? null : row[bajaIndex]
+
+    if (!id || !fullName || !family) return []
+    if (String(baja).toLowerCase() === "sí" || String(baja).toLowerCase() === "si") return []
+
+    const category = EXCEL_FAMILY_MAP[String(family).trim().toUpperCase()]
+    if (!category) return []
+
+    const strId = String(id).trim()
+    const cleanFullName = String(fullName).replace(/\s+/g, " ").trim()
+    const unitsLabel = extractUnitsLabel(cleanFullName)
+    const name = cleanProductName(cleanFullName)
+
+    let image = null
+    for (const ext of ["jpg", "jpeg", "png", "webp"]) {
+      if (fs.existsSync(path.join(IMAGES_DIR, `${strId}.${ext}`))) {
+        image = `/images/${strId}.${ext}`
+        break
+      }
+    }
+
+    return [{ id: strId, name, fullName: cleanFullName, unitsLabel, category, image }]
+  })
+}
+
+function extractUnitsLabel(fullName) {
+  const text = String(fullName)
+  const patterns = [
+    /\((?:[^)]*?\b)?(\d+)\s*(?:U\s*x\s*C|UXC|UDS?\s*\/?\s*C(?:AJA)?|UNI(?:D(?:AD(?:ES)?)?)?(?:\s*X\s*CAJA)?|PACKS?|DISP(?:L|LAY)?)[^)]*\)/i,
+    /\b(?:CAJA|DISPLAY)\s*(?:X\s*)?(\d+)\s*(?:UNI(?:D(?:AD(?:ES)?)?)?|UDS?)\b/i,
+    /\b(\d+)\s*(?:UNI(?:D(?:AD(?:ES)?)?)?|UDS?)\b/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+    if (match) return `${Number.parseInt(match[1], 10)} uds./caja`
+  }
+
+  return null
+}
+
+function cleanProductName(fullName) {
+  return String(fullName)
+    .replace(/\s*\([^)]*(?:U\s*x\s*C|UXC|UDS?\s*\/?\s*C(?:AJA)?|UNI(?:D(?:AD(?:ES)?)?)?(?:\s*X\s*CAJA)?|CAJA|PACKS?|DISP(?:L|LAY)?)[^)]*\)/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 // Ejecuta el script Python de forma async (no bloquea el event loop)
@@ -774,43 +863,7 @@ app.post("/api/import-excel", upload.single("excel"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No se recibió ningún archivo" })
 
   try {
-    // Parsear Excel
-    const wb = XLSX.read(req.file.buffer, { type: "buffer" })
-    const ws = wb.Sheets[wb.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 })
-
-    // Cabecera esperada: Artículo | Nombre artículo | Unidades | Nombre de familia | Artículo de baja
-    const newProducts = []
-    for (let i = 1; i < rows.length; i++) {
-      const [id, fullName, , family, baja] = rows[i]
-      if (!id || !fullName || !family) continue
-      if (String(baja).toLowerCase() === "sí" || String(baja).toLowerCase() === "si") continue
-
-      const category = EXCEL_FAMILY_MAP[String(family).trim().toUpperCase()]
-      if (!category) continue // familia desconocida → ignorar
-
-      // Extraer unitsLabel del nombre: busca patrones como (12UXC), (6 UxC), (24 Uds), etc.
-      const unitsMatch = String(fullName).match(/\(\s*(\d+\s*[Uu][xXsS][a-zA-Z\.]*\s*[^\)]*)\)/i)
-      const unitsLabel = unitsMatch ? unitsMatch[0].replace(/[()]/g, "").trim() : null
-
-      // Nombre limpio: quita la parte de unidades y espacios extra
-      const name = String(fullName)
-        .replace(/\s*\([^)]*[Uu][xXsS][^)]*\)/gi, "")
-        .replace(/\s+/g, " ")
-        .trim()
-
-      // Detectar si existe imagen
-      const strId = String(id).trim()
-      let image = null
-      for (const ext of ["jpg", "jpeg", "png"]) {
-        if (fs.existsSync(path.join(IMAGES_DIR, `${strId}.${ext}`))) {
-          image = `/images/${strId}.${ext}`
-          break
-        }
-      }
-
-      newProducts.push({ id: strId, name, fullName: String(fullName).trim(), unitsLabel, category, image })
-    }
+    const newProducts = parseExcelProducts(req.file.buffer)
 
     // Leer productos actuales para calcular diff
     const currentText = fs.existsSync(PRODUCTS_PATH) ? fs.readFileSync(PRODUCTS_PATH, "utf8") : ""
@@ -837,7 +890,7 @@ app.post("/api/import-excel", upload.single("excel"), (req, res) => {
 
     // ── CONFIRMAR: escribir products.js ──────────────────────────────────────
     const lines = newProducts.map(p => {
-      const img = p.image ? `"/images/${p.id}.jpg"` : "null"
+      const img = p.image ? JSON.stringify(p.image) : "null"
       return `  {
     id: "${p.id}",
     name: ${JSON.stringify(p.name)},
