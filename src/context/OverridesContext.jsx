@@ -6,30 +6,39 @@ const OverridesContext = createContext(null)
 
 export function OverridesProvider({ children }) {
   const [overrides, setOverrides] = useState({})
+  const [saveError, setSaveError] = useState("")
 
   // Carga inicial
   useEffect(() => {
     fetch(`${API}/overrides`)
       .then(r => r.json())
       .then(setOverrides)
-      .catch(() => {})
+      .catch(() => setSaveError("No se pudieron cargar los ajustes. ¿Está corriendo npm run dev:all?"))
   }, [])
 
   // Actualiza un campo de un producto y persiste en el servidor
   const patchOverride = useCallback(async (id, fields) => {
+    let previous
     // Optimistic update
-    setOverrides(prev => ({
-      ...prev,
-      [id]: { ...(prev[id] ?? {}), ...fields },
-    }))
+    setOverrides(prev => {
+      previous = prev
+      return {
+        ...prev,
+        [id]: { ...(prev[id] ?? {}), ...fields },
+      }
+    })
     try {
-      await fetch(`${API}/overrides/${id}`, {
+      setSaveError("")
+      const res = await fetch(`${API}/overrides/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(fields),
       })
-    } catch {
-      // Si falla el servidor la UI igual refleja el cambio en sesión
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    } catch (error) {
+      if (previous) setOverrides(previous)
+      setSaveError(`No se ha guardado el ajuste de ${id}. ¿Está corriendo npm run dev:all?`)
+      console.error("Error guardando override", id, fields, error)
     }
   }, [])
 
@@ -50,7 +59,7 @@ export function OverridesProvider({ children }) {
   }, [overrides])
 
   return (
-    <OverridesContext.Provider value={{ overrides, patchOverride, applyOverride }}>
+    <OverridesContext.Provider value={{ overrides, patchOverride, applyOverride, saveError, setSaveError }}>
       {children}
     </OverridesContext.Provider>
   )

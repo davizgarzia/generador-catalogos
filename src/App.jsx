@@ -14,8 +14,12 @@ import PageNavigator from "./components/PageNavigator"
 import { paginateBalanced } from "./lib/pagination"
 
 export default function App() {
-  const { printMode, printSize, productGrid } = usePrint()
+  const { printMode, printSize, productGrid, hideNoImage } = usePrint()
   const perPage = productGrid === "3x3" ? 9 : productGrid === "4x3" ? 12 : 16
+  const visibleProducts = useMemo(
+    () => hideNoImage ? products.filter(product => Boolean(product.image)) : products,
+    [hideNoImage]
+  )
 
   // Inyectar @page dinámicamente según modo y tamaño:
   // - sin marcas:            A4 exacto 210×297mm
@@ -41,12 +45,12 @@ export default function App() {
   }, [printMode, printSize])
   const grouped = useMemo(() => {
     const map = {}
-    for (const product of products) {
+    for (const product of visibleProducts) {
       if (!map[product.category]) map[product.category] = []
       map[product.category].push(product)
     }
     return map
-  }, [])
+  }, [visibleProducts])
 
   const pageMeta = useMemo(() => {
     const list = []
@@ -83,7 +87,11 @@ export default function App() {
   return (
     <TooltipProvider>
       {/* Fixed chrome — hidden on print */}
-      <Topbar totalProducts={products.length} totalPages={pages.length} />
+      <Topbar
+        totalProducts={visibleProducts.length}
+        totalPages={pages.length}
+        hiddenProducts={products.length - visibleProducts.length}
+      />
       <PageNavigator pages={pages} />
       <Sidebar />
 

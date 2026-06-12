@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { usePrint } from "../context/PrintContext"
 
-export default function Topbar({ totalProducts, totalPages }) {
-  const { printMode, printSize, draftQuality, productGrid } = usePrint()
+export default function Topbar({ totalProducts, totalPages, hiddenProducts = 0 }) {
+  const { printMode, printSize, draftQuality, productGrid, hideNoImage } = usePrint()
   const [generating, setGenerating] = useState(false)
 
   async function handleGeneratePdf() {
@@ -15,7 +15,13 @@ export default function Topbar({ totalProducts, totalPages }) {
       const res = await fetch("http://localhost:3001/api/generate-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ marks: printMode, size: printSize, draft: draftQuality, grid: productGrid }),
+        body: JSON.stringify({
+          marks: printMode,
+          size: printSize,
+          draft: draftQuality,
+          grid: productGrid,
+          hideNoImage,
+        }),
       })
       if (!res.ok) {
         const { error } = await res.json()
@@ -75,6 +81,11 @@ export default function Topbar({ totalProducts, totalPages }) {
         <span style={{ fontSize: 12, color: "#6b7280" }}>
           <span style={{ fontWeight: 600, color: "#111827" }}>{totalProducts}</span> productos
         </span>
+        {hiddenProducts > 0 && (
+          <span style={{ fontSize: 12, color: "#9ca3af" }}>
+            {hiddenProducts} ocultos
+          </span>
+        )}
         <span style={{ fontSize: 12, color: "#6b7280" }}>
           <span style={{ fontWeight: 600, color: "#111827" }}>{totalPages}</span> páginas
         </span>

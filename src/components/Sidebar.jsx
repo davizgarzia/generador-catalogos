@@ -440,8 +440,11 @@ export default function Sidebar() {
     setDraftQuality,
     productGrid,
     setProductGrid,
+    hideNoImage,
+    setHideNoImage,
   } = usePrint()
   const { editingProduct } = useEdit()
+  const { saveError, setSaveError } = useOverrides()
 
   const excelRef = useRef(null)
   const imagesRef = useRef(null)
@@ -460,9 +463,13 @@ export default function Sidebar() {
     }} className="app-chrome">
 
       {editingProduct ? (
-        <EditSidebar />
+        <>
+          {saveError && <SaveErrorBanner message={saveError} onClose={() => setSaveError("")} />}
+          <EditSidebar />
+        </>
       ) : (
         <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {saveError && <SaveErrorBanner message={saveError} onClose={() => setSaveError("")} />}
 
           {/* ── Vista ── */}
           <div style={{
@@ -491,6 +498,17 @@ export default function Sidebar() {
               id="draft-quality-sidebar"
               checked={draftQuality}
               onCheckedChange={setDraftQuality}
+            />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
+              Ocultar sin imagen
+            </span>
+            <Switch
+              id="hide-no-image-sidebar"
+              checked={hideNoImage}
+              onCheckedChange={setHideNoImage}
             />
           </div>
 
@@ -588,5 +606,41 @@ export default function Sidebar() {
       )}
 
     </aside>
+  )
+}
+
+function SaveErrorBanner({ message, onClose }) {
+  return (
+    <div style={{
+      margin: 12,
+      marginBottom: 0,
+      padding: "8px 10px",
+      borderRadius: 6,
+      background: "#fef2f2",
+      border: "1px solid #fecaca",
+      color: "#991b1b",
+      fontSize: 11,
+      lineHeight: 1.4,
+      display: "flex",
+      gap: 8,
+      alignItems: "flex-start",
+    }}>
+      <span style={{ flex: 1 }}>{message}</span>
+      <button
+        onClick={onClose}
+        style={{
+          border: "none",
+          background: "transparent",
+          color: "#991b1b",
+          cursor: "pointer",
+          fontSize: 13,
+          lineHeight: 1,
+          padding: 0,
+        }}
+        aria-label="Cerrar aviso"
+      >
+        ×
+      </button>
+    </div>
   )
 }

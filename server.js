@@ -701,7 +701,17 @@ app.post("/api/auto-fit-images-bulk", async (req, res) => {
 // ── POST /api/generate-pdf ────────────────────────────────
 // Body: { marks, size } — marks: bool, size: "A4" | "A5"
 app.post("/api/generate-pdf", async (req, res) => {
-  const { marks = false, size = "A4", draft = false, grid = "4x4" } = req.body ?? {}
+  const {
+    marks = false,
+    size = "A4",
+    draft = false,
+    grid = "4x4",
+  } = req.body ?? {}
+  const hideNoImage = req.body?.hideNoImage === true
+    || req.body?.hideNoImage === "true"
+    || req.body?.hideNoImage === "1"
+    || req.query.hideNoImage === "1"
+    || req.query.hideNoImage === "true"
   const outputName = "catalogo-impormed-2025.pdf"
 
   // Tamaño de página para Puppeteer:
@@ -711,8 +721,9 @@ app.post("/api/generate-pdf", async (req, res) => {
   // Puppeteer apunta directamente al servidor Vite dev que ya está corriendo
   const marksParam = marks ? "1" : "0"
   const draftParam = draft ? "1" : "0"
+  const hideNoImageParam = hideNoImage ? "1" : "0"
   const gridParam = ["3x3", "4x3", "4x4"].includes(grid) ? grid : "4x4"
-  const viteUrl = `http://localhost:5173?marks=${marksParam}&size=${size}&draft=${draftParam}&grid=${gridParam}`
+  const viteUrl = `http://localhost:5173?marks=${marksParam}&size=${size}&draft=${draftParam}&grid=${gridParam}&hideNoImage=${hideNoImageParam}`
 
   const browser = await puppeteer.launch({
     headless: true,
