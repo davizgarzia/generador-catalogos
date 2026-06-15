@@ -1,13 +1,37 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { BookOpen, FileDown, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { usePrint } from "../context/PrintContext"
 
-export default function Topbar({ totalProducts, totalPages, hiddenProducts = 0 }) {
+export default function Topbar({ totalProducts, totalPages, hiddenProducts = 0, hiddenProductsList = [] }) {
   const { printMode, printSize, draftQuality, productGrid, hideNoImage } = usePrint()
   const [generating, setGenerating] = useState(false)
+  const [hiddenOpen, setHiddenOpen] = useState(false)
+  const hiddenWrapRef = useRef(null)
+
+  useEffect(() => {
+    if (!hiddenOpen) return
+    function onDocClick(e) {
+      if (hiddenWrapRef.current && !hiddenWrapRef.current.contains(e.target)) {
+        setHiddenOpen(false)
+      }
+    }
+    function onKey(e) {
+      if (e.key === "Escape") setHiddenOpen(false)
+    }
+    document.addEventListener("mousedown", onDocClick)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDocClick)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [hiddenOpen])
+
+  useEffect(() => {
+    if (hiddenProducts === 0) setHiddenOpen(false)
+  }, [hiddenProducts])
 
   async function handleGeneratePdf() {
     setGenerating(true)
@@ -82,9 +106,89 @@ export default function Topbar({ totalProducts, totalPages, hiddenProducts = 0 }
           <span style={{ fontWeight: 600, color: "#111827" }}>{totalProducts}</span> productos
         </span>
         {hiddenProducts > 0 && (
-          <span style={{ fontSize: 12, color: "#9ca3af" }}>
-            {hiddenProducts} ocultos
-          </span>
+          <div ref={hiddenWrapRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setHiddenOpen(o => !o)}
+              style={{
+                fontSize: 12,
+                color: "#9ca3af",
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                textDecoration: "underline",
+                textDecorationStyle: "dotted",
+                textUnderlineOffset: 2,
+              }}
+              title="Ver productos ocultos"
+            >
+              {hiddenProducts} ocultos
+            </button>
+            {hiddenOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 6px)",
+                  left: 0,
+                  width: 360,
+                  maxHeight: 360,
+                  overflowY: "auto",
+                  background: "#ffffff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 8,
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+                  zIndex: 60,
+                  padding: 8,
+                }}
+              >
+                <div style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#6b7280",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  padding: "6px 8px 8px",
+                  borderBottom: "1px solid #f3f4f6",
+                  marginBottom: 4,
+                }}>
+                  Productos sin imagen ({hiddenProductsList.length})
+                </div>
+                {hiddenProductsList.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "#9ca3af", padding: 8 }}>
+                    No hay productos ocultos.
+                  </div>
+                ) : (
+                  <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                    {hiddenProductsList.map(p => (
+                      <li
+                        key={p.id}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "baseline",
+                          padding: "6px 8px",
+                          borderRadius: 4,
+                          fontSize: 12,
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        <span style={{
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                          color: "#6b7280",
+                          fontSize: 11,
+                          flexShrink: 0,
+                        }}>
+                          {p.id}
+                        </span>
+                        <span style={{ color: "#111827" }}>{p.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         )}
         <span style={{ fontSize: 12, color: "#6b7280" }}>
           <span style={{ fontWeight: 600, color: "#111827" }}>{totalPages}</span> páginas

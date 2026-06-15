@@ -20,6 +20,10 @@ export default function App() {
     () => hideNoImage ? products.filter(product => Boolean(product.image)) : products,
     [hideNoImage]
   )
+  const hiddenProductsList = useMemo(
+    () => hideNoImage ? products.filter(product => !product.image) : [],
+    [hideNoImage]
+  )
 
   // Inyectar @page dinámicamente según modo y tamaño:
   // - sin marcas:            A4 exacto 210×297mm
@@ -91,6 +95,7 @@ export default function App() {
         totalProducts={visibleProducts.length}
         totalPages={pages.length}
         hiddenProducts={products.length - visibleProducts.length}
+        hiddenProductsList={hiddenProductsList}
       />
       <PageNavigator pages={pages} />
       <Sidebar />
