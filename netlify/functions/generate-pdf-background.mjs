@@ -50,6 +50,18 @@ export default async function handler(request) {
     })
 
     const page = await browser.newPage()
+    const t0 = Date.now()
+    const stamp = label => console.log(`[pdf] ${label}: ${Date.now() - t0}ms`)
+
+    await page.setRequestInterception(true)
+    page.on("request", req => {
+      const url = req.url()
+      if (/google-analytics|googletagmanager|hotjar|intercom|sentry|segment|amplitude/i.test(url)) {
+        return req.abort()
+      }
+      req.continue()
+    })
+
     const baseUrl = process.env.DEPLOY_PRIME_URL || process.env.URL
     const params = new URLSearchParams({
       marks: job.options.marks ? "1" : "0",
@@ -63,28 +75,33 @@ export default async function handler(request) {
     console.log("PDF gen target:", targetUrl)
 
     await page.goto(targetUrl, {
-      waitUntil: "load",
+      waitUntil: "domcontentloaded",
       timeout: 60000,
     })
+    stamp("domcontentloaded")
     await page.waitForSelector("#catalog", { timeout: 60000 })
+    stamp("#catalog mounted")
     await page.emulateMediaType("print")
     await page.evaluate(async () => {
       await document.fonts.ready
       await Promise.all([...document.images].map(image => {
         if (image.complete) return Promise.resolve()
         return new Promise(resolve => {
-          image.onload = resolve
-          image.onerror = resolve
+          const done = () => resolve()
+          image.addEventListener("load", done, { once: true })
+          image.addEventListener("error", done, { once: true })
+          setTimeout(done, 8000)
         })
       }))
     })
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    stamp("fonts+images ready")
 
     const pdf = await page.pdf({
       printBackground: true,
       preferCSSPageSize: true,
       timeout: 120000,
     })
+    stamp("pdf generated")
     const storagePath = `${userData.user.id}/${exportId}.pdf`
     const { error: uploadError } = await supabase.storage
       .from("catalog-pdfs")
