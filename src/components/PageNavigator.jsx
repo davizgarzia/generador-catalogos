@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 // Dimensiones fijas del área imprimible sin sangre (innerNormal: 210×297mm a 96dpi)
 const MM = 3.7795275591
@@ -21,7 +23,6 @@ function PageThumb({ pageRef, isActive }) {
 
     function render() {
       const clone = inner.cloneNode(true)
-      // Forzar siempre las dimensiones del innerNormal, independiente del printMode
       clone.style.cssText = `
         position: absolute;
         top: 0; left: 0;
@@ -37,8 +38,6 @@ function PageThumb({ pageRef, isActive }) {
     }
 
     const raf = requestAnimationFrame(render)
-
-    // Solo observar cambios de contenido (childList/subtree), no atributos de tamaño
     const observer = new MutationObserver(render)
     observer.observe(inner, { childList: true, subtree: true })
 
@@ -50,18 +49,14 @@ function PageThumb({ pageRef, isActive }) {
   }, [pageRef])
 
   return (
-    <div style={{
-      width: THUMB_W,
-      height: THUMB_H,
-      position: "relative",
-      overflow: "hidden",
-      borderRadius: 4,
-      border: isActive ? "2px solid #111827" : "1px solid #e5e7eb",
-      background: "#fff",
-      flexShrink: 0,
-      transition: "border-color 0.1s",
-    }}>
-      <div ref={containerRef} style={{ position: "absolute", inset: 0, overflow: "hidden" }} />
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-sm bg-background shrink-0 transition-colors",
+        isActive ? "border-2 border-primary" : "border border-border"
+      )}
+      style={{ width: THUMB_W, height: THUMB_H }}
+    >
+      <div ref={containerRef} className="absolute inset-0 overflow-hidden" />
     </div>
   )
 }
@@ -89,73 +84,34 @@ export default function PageNavigator({ pages }) {
   }
 
   return (
-    <nav style={{
-      position: "fixed",
-      left: 0, top: 44, bottom: 0,
-      width: 220,
-      background: "#ffffff",
-      borderRight: "1px solid #e5e7eb",
-      display: "flex",
-      flexDirection: "column",
-      zIndex: 40,
-    }} className="app-chrome">
-      <div style={{
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-        }}>
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          padding: "10px 12px",
-        }}>
+    <nav className="app-chrome w-[220px] shrink-0 bg-background border-r border-border flex flex-col min-h-0 h-full">
+      <ScrollArea type="always" className="flex-1 min-h-0">
+        <div className="flex flex-col gap-1.5 px-3 py-2.5">
           {pages.map((page, i) => (
             <Tooltip key={i} delayDuration={150}>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => goTo(i)}
-                  style={{
-                    all: "unset",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "6px",
-                    borderRadius: 6,
-                    background: active === i ? "#f3f4f6" : "transparent",
-                    transition: "background 0.1s",
-                    width: "100%",
-                    boxSizing: "border-box",
-                  }}
-                  onMouseEnter={e => { if (active !== i) e.currentTarget.style.background = "#f9fafb" }}
-                  onMouseLeave={e => { if (active !== i) e.currentTarget.style.background = "transparent" }}
+                  className="flex flex-col items-center gap-1 p-1.5 rounded-md w-full cursor-pointer text-left"
                 >
                   <PageThumb pageRef={page.ref} isActive={active === i} />
-
-                  <span style={{
-                    fontSize: 10,
-                    lineHeight: 1.3,
-                    textAlign: "center",
-                    color: active === i ? "#111827" : "#9ca3af",
-                    fontWeight: active === i ? 600 : 400,
-                    width: "100%",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}>
+                  <span
+                    className={cn(
+                      "text-[10px] leading-snug w-full overflow-hidden text-ellipsis whitespace-nowrap text-center",
+                      active === i ? "text-foreground font-semibold" : "text-muted-foreground"
+                    )}
+                  >
                     {i + 1}. {page.label}
                   </span>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" style={{ fontSize: 12 }}>
+              <TooltipContent side="right">
                 <strong>{i + 1}.</strong> {page.label}
               </TooltipContent>
             </Tooltip>
           ))}
         </div>
-      </div>
+      </ScrollArea>
     </nav>
   )
 }

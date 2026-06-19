@@ -2,16 +2,24 @@ import { supabase } from "./supabase"
 
 export const CATALOG_SLUG = import.meta.env.VITE_CATALOG_SLUG ?? "catalogo-principal"
 
-export function getStorageUrl(bucket, path) {
+export function getStorageUrl(bucket, path, transform = null) {
   if (!path) return null
   if (/^https?:\/\//.test(path)) return path
-  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
+  const options = transform ? { transform } : undefined
+  return supabase.storage.from(bucket).getPublicUrl(path, options).data.publicUrl
 }
+
+const THUMB_TRANSFORM = { width: 160, height: 160, resize: "contain", quality: 75 }
+const PREVIEW_TRANSFORM = { width: 600, height: 600, resize: "contain", quality: 80 }
 
 function mapCatalogProduct(row) {
   const product = row.product
   const originalImage = getStorageUrl("catalog-images", row.original_image_path)
   const processedImage = getStorageUrl("catalog-images", row.processed_image_path)
+  const thumb = getStorageUrl("catalog-images", row.original_image_path, THUMB_TRANSFORM)
+  const processedThumb = getStorageUrl("catalog-images", row.processed_image_path, THUMB_TRANSFORM)
+  const preview = getStorageUrl("catalog-images", row.original_image_path, PREVIEW_TRANSFORM)
+  const processedPreview = getStorageUrl("catalog-images", row.processed_image_path, PREVIEW_TRANSFORM)
 
   return {
     id: row.product_id,
@@ -27,6 +35,10 @@ function mapCatalogProduct(row) {
     image: originalImage,
     originalImage,
     processedImage,
+    thumb,
+    processedThumb,
+    preview,
+    processedPreview,
     sortOrder: row.sort_order,
     active: row.active,
     imgHidden: row.img_hidden,
@@ -70,7 +82,6 @@ export async function loadCatalogBundle() {
         )
       `)
       .eq("catalog_id", catalog.id)
-      .eq("active", true)
       .order("sort_order"),
     supabase
       .from("catalog_cover_products")

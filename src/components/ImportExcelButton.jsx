@@ -2,6 +2,14 @@ import { useRef, useState } from "react"
 import readXlsxFile from "read-excel-file/browser"
 import { Upload, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { importCatalogProducts } from "../lib/catalog"
 import { useCatalog } from "../context/CatalogContext"
 
@@ -95,35 +103,49 @@ export default function ImportExcelButton() {
   return (
     <>
       <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={selectFile} />
-      <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={state === "loading" || state === "saving"}>
-        {state === "loading" || state === "saving" ? <Loader2 size={13} /> : <Upload size={13} />}
+      <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={state === "loading" || state === "saving"}>
+        {state === "loading" || state === "saving" ? <Loader2 className="animate-spin" /> : <Upload />}
         {state === "saving" ? "Importando…" : "Importar Excel"}
       </Button>
-      {(state === "preview" || state === "error") && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 1500, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center" }}>
-          <div style={{ width: 420, background: "#fff", borderRadius: 12, padding: 24 }}>
-            {state === "error" ? (
-              <>
-                <h3>Error de importación</h3>
-                <p style={{ fontSize: 13, color: "#b91c1c" }}>{error}</p>
+      <Dialog
+        open={state === "preview" || state === "error"}
+        onOpenChange={value => !value && setState("idle")}
+      >
+        <DialogContent className="sm:max-w-md">
+          {state === "error" && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Error de importación</DialogTitle>
+                <DialogDescription className="text-destructive">{error}</DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
                 <Button onClick={() => setState("idle")}>Cerrar</Button>
-              </>
-            ) : (
-              <>
-                <h3 style={{ marginTop: 0 }}>Confirmar importación</h3>
-                <p>{pending.products.length} productos · {pending.added} nuevos · {pending.discontinued} bajas</p>
-                <p style={{ fontSize: 12, color: "#6b7280" }}>
-                  La operación es transaccional. Las familias desconocidas bloquearán toda la importación.
-                </p>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Button variant="outline" onClick={() => setState("idle")} style={{ flex: 1 }}>Cancelar</Button>
-                  <Button onClick={confirm} style={{ flex: 1 }}>Confirmar</Button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+              </DialogFooter>
+            </>
+          )}
+          {state === "preview" && pending && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Confirmar importación</DialogTitle>
+                <DialogDescription>
+                  {pending.products.length} productos · {pending.added} nuevos · {pending.discontinued} bajas
+                </DialogDescription>
+              </DialogHeader>
+              <p className="text-muted-foreground text-xs">
+                La operación es transaccional. Las familias desconocidas bloquearán toda la importación.
+              </p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setState("idle")} className="sm:flex-1">
+                  Cancelar
+                </Button>
+                <Button onClick={confirm} className="sm:flex-1">
+                  Confirmar
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

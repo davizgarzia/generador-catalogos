@@ -14,3 +14,9 @@ data/*.xlsx
 
 # Local Netlify folder
 .netlify
+
+# Claude Code / agent tooling (local only)
+.agents/
+.claude/
+.mcp.json
+skills-lock.json

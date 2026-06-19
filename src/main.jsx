@@ -1,5 +1,6 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
+import { BrowserRouter } from "react-router-dom"
 import "./index.css"
 import App from "./App"
 import { PrintProvider } from "./context/PrintContext"
@@ -10,16 +11,18 @@ import { CatalogProvider } from "./context/CatalogContext"
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AuthProvider>
-      <CatalogProvider>
-        <PrintProvider>
-          <OverridesProvider>
-            <EditProvider>
-              <App />
-            </EditProvider>
-          </OverridesProvider>
-        </PrintProvider>
-      </CatalogProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <CatalogProvider>
+          <PrintProvider>
+            <OverridesProvider>
+              <EditProvider>
+                <App />
+              </EditProvider>
+            </OverridesProvider>
+          </PrintProvider>
+        </CatalogProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>
 )

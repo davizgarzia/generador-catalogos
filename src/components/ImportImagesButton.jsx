@@ -36,12 +36,14 @@ export default function ImportImagesButton() {
   return (
     <>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={upload} />
-      <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={state === "loading"}>
-        {state === "loading" ? <Loader2 size={13} /> : <FolderOpen size={13} />}
+      <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={state === "loading"}>
+        {state === "loading" ? <Loader2 className="animate-spin" /> : <FolderOpen />}
         Importar imágenes {state === "loading" && progress}
       </Button>
       {(state === "done" || state === "error") && (
-        <span style={{ fontSize: 10, color: state === "error" ? "#b91c1c" : "#15803d" }}>{progress}</span>
+        <span className={state === "error" ? "text-destructive text-[10px]" : "text-emerald-600 text-[10px]"}>
+          {progress}
+        </span>
       )}
     </>
   )
