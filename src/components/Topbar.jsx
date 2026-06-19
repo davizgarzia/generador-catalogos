@@ -31,7 +31,7 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
     setClientExport({ active: true, page: 0, total: 0 })
     try {
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import("html2canvas"),
+        import("html2canvas-pro"),
         import("jspdf"),
       ])
       const pages = Array.from(document.querySelectorAll("#catalog > div, #catalog section > div"))
