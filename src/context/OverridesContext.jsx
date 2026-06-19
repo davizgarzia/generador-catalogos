@@ -1,19 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import bundledOverrides from "../data/overrides.json"
+import { isSupabaseConfigured } from "../lib/supabase"
+import { loadProductOverrides, saveProductOverride } from "../lib/catalog"
 
-const API = "http://localhost:3001/api"
+const LOCAL_API = "http://localhost:3001/api"
 
 const OverridesContext = createContext(null)
 
 export function OverridesProvider({ children }) {
-  const [overrides, setOverrides] = useState({})
+  const [overrides, setOverrides] = useState(bundledOverrides)
   const [saveError, setSaveError] = useState("")
 
   // Carga inicial
   useEffect(() => {
-    fetch(`${API}/overrides`)
-      .then(r => r.json())
+    loadProductOverrides()
       .then(setOverrides)
-      .catch(() => setSaveError("No se pudieron cargar los ajustes. ¿Está corriendo npm run dev:all?"))
+      .catch(() => setSaveError("No se pudieron cargar los ajustes desde Supabase."))
   }, [])
 
   // Actualiza un campo de un producto y persiste en el servidor
@@ -29,15 +31,19 @@ export function OverridesProvider({ children }) {
     })
     try {
       setSaveError("")
-      const res = await fetch(`${API}/overrides/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fields),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (isSupabaseConfigured) {
+        await saveProductOverride(id, fields)
+      } else {
+        const res = await fetch(`${LOCAL_API}/overrides/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(fields),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      }
     } catch (error) {
       if (previous) setOverrides(previous)
-      setSaveError(`No se ha guardado el ajuste de ${id}. ¿Está corriendo npm run dev:all?`)
+      setSaveError(`No se ha guardado el ajuste de ${id}.`)
       console.error("Error guardando override", id, fields, error)
     }
   }, [])

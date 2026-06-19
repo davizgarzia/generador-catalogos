@@ -1,7 +1,8 @@
-import { useMemo, createRef, useEffect } from "react"
+import { useMemo, createRef, useEffect, useState } from "react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { usePrint } from "./context/PrintContext"
-import products from "./data/products"
+import bundledProducts from "./data/products"
+import { loadCatalogProducts } from "./lib/catalog"
 import { CATEGORY_ORDER, CATEGORY_CONFIG } from "./config/categories"
 import Cover from "./components/Cover"
 import InfoPage from "./components/InfoPage"
@@ -14,6 +15,7 @@ import PageNavigator from "./components/PageNavigator"
 import { paginateBalanced } from "./lib/pagination"
 
 export default function App() {
+  const [products, setProducts] = useState(bundledProducts)
   const { printMode, printSize, productGrid, hideNoImage } = usePrint()
   const perPage = productGrid === "3x3" ? 9 : productGrid === "4x3" ? 12 : 16
   const visibleProducts = useMemo(
@@ -24,6 +26,12 @@ export default function App() {
     () => hideNoImage ? products.filter(product => !product.image) : [],
     [hideNoImage]
   )
+
+  useEffect(() => {
+    loadCatalogProducts()
+      .then(setProducts)
+      .catch(error => console.error("No se pudo cargar el catálogo desde Supabase", error))
+  }, [])
 
   // Inyectar @page dinámicamente según modo y tamaño:
   // - sin marcas:            A4 exacto 210×297mm

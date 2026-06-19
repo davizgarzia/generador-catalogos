@@ -11,6 +11,56 @@ npm install
 npm run dev:all
 ```
 
+## Supabase + Netlify
+
+El proyecto Supabase de producción es `impormed`
+(`bwfluudjcrbhchxjpwyd`). La aplicación usa estas variables:
+
+```bash
+VITE_SUPABASE_URL=https://bwfluudjcrbhchxjpwyd.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+```
+
+En Netlify deben configurarse como variables de entorno del sitio. La clave
+publicable puede estar en el frontend. La clave `service_role` nunca debe usar
+el prefijo `VITE_` ni configurarse como variable accesible al navegador.
+
+La estructura de base de datos está versionada en `supabase/migrations/`:
+
+- `catalog_categories`: normaliza las familias del Excel y su nombre visible.
+- `products`: eje maestro alineado con el Excel. Guarda referencia, nombre
+  original, nombre corto, stock (`numeric(12,3)`), unidades por caja, categoría
+  y fecha de última importación (`imported_at`).
+- `catalogs`: representa cada edición o catálogo publicable.
+- `catalog_products`: relación entre catálogo y producto. Solo guarda inclusión,
+  orden, imagen y ajustes visuales; no duplica nombre, categoría ni unidades.
+
+Esta separación permite volver a importar el Excel sin sobrescribir la
+configuración editorial del catálogo. Para
+la migración inicial de productos, ajustes e imágenes, crear `.env.supabase`:
+
+```bash
+SUPABASE_URL=https://bwfluudjcrbhchxjpwyd.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+Y ejecutar:
+
+```bash
+npm run migrate:supabase
+```
+
+La migración es idempotente: actualiza productos/ajustes por referencia y
+sobrescribe los objetos de Storage con la misma ruta.
+
+Las tablas y el bucket permiten lectura pública, pero las escrituras exigen un
+usuario autenticado incluido en `catalog_admins`. Antes de publicar las
+herramientas de edición hay que añadir el flujo de Supabase Auth y registrar el
+usuario administrador en esa tabla. Las operaciones locales pesadas (quitar fondo,
+importar Excel y generar PDF con Puppeteer) siguen dependiendo de `server.js`;
+deben migrarse a funciones/backend separado antes de estar disponibles en
+Netlify.
+
 Esto levanta:
 
 - Vite en `http://localhost:5173`

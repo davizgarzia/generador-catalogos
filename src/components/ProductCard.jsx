@@ -23,7 +23,12 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
 
   function getImgSrc() {
     if (!rawProduct.image) return null
-    if (mode === "nobg" && !nobgFailed) return `/images-nobg/${rawProduct.id}.png?v=${nobgVersion}`
+    if (mode === "nobg" && !nobgFailed) {
+      if (/^https?:\/\//.test(rawProduct.image)) {
+        return rawProduct.image.replace(/\/original\//, "/nobg/").replace(/\.[^.?#]+(?=([?#]|$))/, ".png")
+      }
+      return `/images-nobg/${rawProduct.id}.png?v=${nobgVersion}`
+    }
     return rawProduct.image
   }
 
