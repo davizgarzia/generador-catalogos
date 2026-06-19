@@ -9,6 +9,17 @@
   background: #fff;
 }
 
+:global(body.mode-print) .page {
+  margin: -3mm;
+  width: 216mm;
+  min-height: 303mm;
+  height: 303mm;
+}
+
+:global(body.mode-print) .imageArea {
+  height: 187mm;
+}
+
 .header {
   height: 116mm;
   background: var(--category-bg);

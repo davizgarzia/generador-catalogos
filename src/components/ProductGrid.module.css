@@ -8,6 +8,31 @@
   overflow: hidden;
 }
 
+/* Modo con marcas: la página sangra 3mm en cada lado de la zona de corte.
+   Los fondos llegan al borde del papel; el contenido legible se mantiene
+   en el A4 interior gracias al padding compensado en header/footer/grid. */
+:global(body.mode-print) .page {
+  margin: -3mm;
+  width: 216mm;
+  height: 303mm;
+}
+
+:global(body.mode-print) .header {
+  height: 21mm;
+  min-height: 21mm;
+  padding: 3mm 11mm 0 11mm;
+}
+
+:global(body.mode-print) .footer {
+  height: 21mm;
+  min-height: 21mm;
+  padding: 0 11mm 3mm 11mm;
+}
+
+:global(body.mode-print) .grid {
+  padding: 4mm 11mm;
+}
+
 /* ── Header de categoría ── */
 .header {
   display: flex;

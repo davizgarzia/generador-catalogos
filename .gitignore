@@ -11,3 +11,6 @@ public/images/
 public/images-nobg/
 data/PRODUCTOS/
 data/*.xlsx
+
+# Local Netlify folder
+.netlify
