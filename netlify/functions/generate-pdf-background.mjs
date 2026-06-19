@@ -59,11 +59,14 @@ export default async function handler(request) {
       hideNoImage: job.options.hideNoImage ? "1" : "0",
       render: "pdf",
     })
+    const targetUrl = `${baseUrl}/?${params}`
+    console.log("PDF gen target:", targetUrl)
 
-    await page.goto(`${baseUrl}/?${params}`, {
-      waitUntil: "networkidle0",
-      timeout: 120000,
+    await page.goto(targetUrl, {
+      waitUntil: "load",
+      timeout: 60000,
     })
+    await page.waitForSelector("#catalog", { timeout: 60000 })
     await page.emulateMediaType("print")
     await page.evaluate(async () => {
       await document.fonts.ready
@@ -75,6 +78,7 @@ export default async function handler(request) {
         })
       }))
     })
+    await new Promise(resolve => setTimeout(resolve, 1500))
 
     const pdf = await page.pdf({
       printBackground: true,
