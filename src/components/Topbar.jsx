@@ -9,9 +9,9 @@ import { useAuth } from "../context/AuthContext"
 import LoginDialog from "./LoginDialog"
 
 const QUALITY_PRESETS = {
-  low:    { label: "Rápida", scale: 1.25, jpegQuality: 0.75 },
-  medium: { label: "Media",  scale: 2,    jpegQuality: 0.9  },
-  high:   { label: "Alta",   scale: 3,    jpegQuality: 0.95 },
+  low:    { label: "Rápida", scale: 1,    jpegQuality: 0.6  },
+  medium: { label: "Media",  scale: 1.5,  jpegQuality: 0.85 },
+  high:   { label: "Alta",   scale: 2.5,  jpegQuality: 0.95 },
 }
 
 export default function Topbar({ catalog, totalProducts, totalPages, hiddenProducts = 0, hiddenProductsList = [] }) {
@@ -37,8 +37,8 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
     setClientExport({ active: true, page: 0, total: 0 })
     try {
       const preset = QUALITY_PRESETS[quality]
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import("html2canvas-pro"),
+      const [{ domToJpeg }, { jsPDF }] = await Promise.all([
+        import("modern-screenshot"),
         import("jspdf"),
       ])
       const pages = Array.from(document.querySelectorAll("#catalog > div, #catalog section > div"))
@@ -55,14 +55,11 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
 
       for (let i = 0; i < pages.length; i++) {
         setClientExport({ active: true, page: i + 1, total: pages.length })
-        const canvas = await html2canvas(pages[i], {
+        const imgData = await domToJpeg(pages[i], {
           scale: preset.scale,
-          useCORS: true,
+          quality: preset.jpegQuality,
           backgroundColor: "#ffffff",
-          logging: false,
-          imageTimeout: 15000,
         })
-        const imgData = canvas.toDataURL("image/jpeg", preset.jpegQuality)
         if (i > 0) pdf.addPage(printMode ? [widthMm, heightMm] : "a4", "portrait")
         pdf.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm, undefined, "FAST")
       }
