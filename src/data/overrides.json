@@ -322,7 +322,8 @@
     "imgMode": "nobg",
     "imgScale": 1.02,
     "imgX": 0.2,
-    "imgY": 1.1
+    "imgY": 1.1,
+    "nobgVersion": 0
   },
   "18044": {
     "imgMode": "original",
@@ -2315,14 +2316,14 @@
   },
   "IP14033": {
     "imgMode": "nobg",
-    "imgScale": 1,
+    "imgScale": 0.9,
     "imgX": -0.1,
     "imgY": -1.6,
     "nobgVersion": 1781251424987
   },
   "IP14034": {
     "imgMode": "nobg",
-    "imgScale": 0.97,
+    "imgScale": 0.8,
     "imgX": 0.6,
     "imgY": -1.2,
     "nobgVersion": 1781251424987
@@ -2335,7 +2336,7 @@
   },
   "IP14036": {
     "imgMode": "nobg",
-    "imgScale": 0.93,
+    "imgScale": 0.8,
     "imgX": 1.9,
     "imgY": 0.8,
     "nobgVersion": 1781251424987
@@ -2348,14 +2349,14 @@
   },
   "IP14039": {
     "imgMode": "nobg",
-    "imgScale": 0.93,
+    "imgScale": 0.85,
     "imgX": 1.3,
     "imgY": -0.2,
     "nobgVersion": 1781251424987
   },
   "IP14038": {
     "imgMode": "nobg",
-    "imgScale": 0.93,
+    "imgScale": 0.85,
     "imgX": 0.9,
     "imgY": -1,
     "nobgVersion": 1781251424987
@@ -2387,7 +2388,7 @@
   "IP14045": {
     "imgMode": "nobg",
     "nobgVersion": 0,
-    "imgScale": 1.14,
+    "imgScale": 1.05,
     "imgX": 0.3,
     "imgY": 0.6
   },
