@@ -25,10 +25,12 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
 
   function getImgSrc() {
     if (!rawProduct.image) return null
-    if (mode === "nobg" && !nobgFailed && rawProduct.processedImage) {
-      return `${rawProduct.processedImage}?v=${rawProduct.imageVersion || nobgVersion}`
+    if (mode === "nobg" && !nobgFailed && rawProduct.catalogProcessed) {
+      return `${rawProduct.catalogProcessed}&v=${rawProduct.imageVersion || nobgVersion}`
     }
-    return `${rawProduct.originalImage || rawProduct.image}?v=${rawProduct.imageVersion || 0}`
+    const base = rawProduct.catalogImage || rawProduct.originalImage || rawProduct.image
+    const sep = base.includes("?") ? "&" : "?"
+    return `${base}${sep}v=${rawProduct.imageVersion || 0}`
   }
 
   function handleImgError() {
@@ -58,6 +60,8 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
             alt={product.name}
             className={isBlend ? styles.blend : undefined}
             style={imgStyle}
+            loading="lazy"
+            decoding="async"
             onError={handleImgError}
           />
         ) : (

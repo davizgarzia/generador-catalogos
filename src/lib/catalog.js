@@ -11,6 +11,7 @@ export function getStorageUrl(bucket, path, transform = null) {
 
 const THUMB_TRANSFORM = { width: 160, height: 160, resize: "contain", quality: 75 }
 const PREVIEW_TRANSFORM = { width: 600, height: 600, resize: "contain", quality: 80 }
+const CATALOG_TRANSFORM = { width: 1000, height: 1000, resize: "contain", quality: 85 }
 
 function mapCatalogProduct(row) {
   const product = row.product
@@ -20,6 +21,8 @@ function mapCatalogProduct(row) {
   const processedThumb = getStorageUrl("catalog-images", row.processed_image_path, THUMB_TRANSFORM)
   const preview = getStorageUrl("catalog-images", row.original_image_path, PREVIEW_TRANSFORM)
   const processedPreview = getStorageUrl("catalog-images", row.processed_image_path, PREVIEW_TRANSFORM)
+  const catalogImage = getStorageUrl("catalog-images", row.original_image_path, CATALOG_TRANSFORM)
+  const catalogProcessed = getStorageUrl("catalog-images", row.processed_image_path, CATALOG_TRANSFORM)
 
   return {
     id: row.product_id,
@@ -39,6 +42,8 @@ function mapCatalogProduct(row) {
     processedThumb,
     preview,
     processedPreview,
+    catalogImage,
+    catalogProcessed,
     sortOrder: row.sort_order,
     active: row.active,
     imgHidden: row.img_hidden,

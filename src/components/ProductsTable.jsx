@@ -7,7 +7,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ChevronsUpDown,
-  ImageIcon,
 } from "lucide-react"
 import {
   Table,
@@ -37,7 +36,6 @@ function statusOf(product) {
 }
 
 const ALL_COLUMNS = [
-  { key: "image", label: "", sortable: false, className: "w-[60px]" },
   { key: "id", label: "Ref", sortable: true, className: "w-[110px]" },
   { key: "name", label: "Nombre", sortable: true },
   { key: "category", label: "Categoría", sortable: true, className: "w-[200px]" },
@@ -46,10 +44,6 @@ const ALL_COLUMNS = [
   { key: "sourceType", label: "Fuente", sortable: true, className: "w-[120px]" },
   { key: "status", label: "Estado", sortable: false, className: "w-[120px]" },
 ]
-
-export const PRODUCT_COLUMN_OPTIONS = ALL_COLUMNS
-  .filter(column => column.key !== "image")
-  .map(column => ({ key: column.key, label: column.label || column.key }))
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
@@ -280,23 +274,6 @@ export default function ProductsTable({
 
 function renderCell(key, product, status) {
   switch (key) {
-    case "image": {
-      const displayImage = product.processedThumb || product.thumb
-      return displayImage ? (
-        <div className="size-10 rounded-md bg-muted overflow-hidden flex items-center justify-center">
-          <img
-            src={displayImage}
-            alt=""
-            className="w-full h-full object-contain"
-            loading="lazy"
-          />
-        </div>
-      ) : (
-        <div className="size-10 rounded-md bg-muted flex items-center justify-center text-muted-foreground">
-          <ImageIcon className="size-4" />
-        </div>
-      )
-    }
     case "id":
       return <span className="font-mono text-xs text-muted-foreground">{product.id}</span>
     case "name":

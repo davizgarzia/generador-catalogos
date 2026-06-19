@@ -33,6 +33,22 @@ function PageThumb({ pageRef, isActive }) {
         pointer-events: none;
         overflow: hidden;
       `
+      for (const img of clone.querySelectorAll("img")) {
+        img.removeAttribute("srcset")
+        const src = img.getAttribute("src")
+        if (!src) continue
+        if (/[?&]width=/.test(src)) {
+          img.setAttribute(
+            "src",
+            src
+              .replace(/([?&])width=\d+/g, "$1width=140")
+              .replace(/([?&])height=\d+/g, "$1height=140")
+              .replace(/([?&])quality=\d+/g, "$1quality=55")
+          )
+          img.loading = "lazy"
+          img.decoding = "async"
+        }
+      }
       container.innerHTML = ""
       container.appendChild(clone)
     }

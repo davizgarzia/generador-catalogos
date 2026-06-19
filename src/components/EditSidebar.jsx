@@ -77,8 +77,8 @@ export default function EditSidebar() {
   }
 
   const imgSrc = imgMode === "nobg"
-    ? editingProduct.processedImage
-    : editingProduct.originalImage
+    ? (editingProduct.processedPreview || editingProduct.processedImage)
+    : (editingProduct.preview || editingProduct.originalImage)
   const imgPreviewStyle = {
     width: "100%", height: "100%", objectFit: "contain",
     transform: `translate(${imgX}%, ${imgY}%) scale(${imgScale})`,
