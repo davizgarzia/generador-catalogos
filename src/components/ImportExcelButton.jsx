@@ -1,166 +1,123 @@
-import { useRef, useState, forwardRef, useImperativeHandle } from "react"
-import { Upload, FileSpreadsheet, Loader2, CheckCircle, AlertTriangle } from "lucide-react"
+import { useRef, useState } from "react"
+import readXlsxFile from "read-excel-file/browser"
+import { Upload, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { importCatalogProducts } from "../lib/catalog"
+import { useCatalog } from "../context/CatalogContext"
 
-const API = "http://localhost:3001"
+function cleanName(fullName) {
+  return fullName
+    .replace(/\s*\([^)]*(?:U\s*x\s*C|UXC|UDS?|UNI(?:D(?:AD(?:ES)?)?)?|CAJA|PACKS?|DISPLAY)[^)]*\)/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
 
-const ImportExcelButton = forwardRef(function ImportExcelButton({ onImported, hideButton }, ref) {
+function unitsPerCase(fullName) {
+  const patterns = [
+    /\((?:[^)]*?\b)?(\d+)\s*(?:U\s*x\s*C|UXC|UDS?\s*\/?\s*C(?:AJA)?|UNI(?:D(?:AD(?:ES)?)?)?(?:\s*X\s*CAJA)?|PACKS?|DISP(?:L|LAY)?)[^)]*\)/i,
+    /\b(?:CAJA|DISPLAY)\s*(?:X\s*)?(\d+)\s*(?:UNI(?:D(?:AD(?:ES)?)?)?|UDS?)\b/i,
+  ]
+  for (const pattern of patterns) {
+    const match = fullName.match(pattern)
+    if (match) return Number.parseInt(match[1], 10)
+  }
+  return null
+}
+
+async function parseWorkbook(file) {
+  const rows = await readXlsxFile(file, { sheet: "Valoración de stocks" })
+  const headers = rows[0].map(value => String(value ?? "").trim())
+  const indexOf = name => headers.indexOf(name)
+  const idIndex = indexOf("Artículo")
+  const nameIndex = indexOf("Nombre artículo")
+  const familyIndex = indexOf("Nombre de familia")
+  const stockIndex = indexOf("Unidades")
+  if ([idIndex, nameIndex, familyIndex, stockIndex].some(index => index === -1)) {
+    throw new Error("El Excel no contiene las columnas esperadas.")
+  }
+
+  return rows.slice(1).map((row, index) => {
+      const articleName = String(row[nameIndex] ?? "").replace(/\s+/g, " ").trim()
+      return {
+        id: String(row[idIndex] ?? "").trim(),
+        article_name: articleName,
+        display_name: cleanName(articleName),
+        family_name: String(row[familyIndex] ?? "").trim(),
+        stock_units: Number(row[stockIndex] ?? 0),
+        units_per_case: unitsPerCase(articleName),
+        sort_order: index,
+      }
+    }).filter(product => product.id && product.article_name && product.family_name)
+}
+
+export default function ImportExcelButton() {
   const inputRef = useRef(null)
+  const { products: currentProducts, reload } = useCatalog()
+  const [pending, setPending] = useState(null)
+  const [state, setState] = useState("idle")
+  const [error, setError] = useState("")
 
-  useImperativeHandle(ref, () => ({
-    trigger: () => inputRef.current?.click(),
-  }))
-  const [state, setState] = useState("idle") // idle | loading | preview | confirming | done | error
-  const [summary, setSummary] = useState(null)
-  const [pendingFile, setPendingFile] = useState(null)
-  const [errorMsg, setErrorMsg] = useState("")
-
-  function handleClick() {
-    inputRef.current?.click()
-  }
-
-  async function handleFile(e) {
-    const file = e.target.files?.[0]
+  async function selectFile(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
     if (!file) return
-    e.target.value = ""
-
     setState("loading")
-    setErrorMsg("")
-    setPendingFile(file)
-
+    setError("")
     try {
-      const fd = new FormData()
-      fd.append("excel", file)
-      const res = await fetch(`${API}/api/import-excel`, { method: "POST", body: fd })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Error desconocido")
-      setSummary(data.summary)
+      const products = await parseWorkbook(file)
+      const currentIds = new Set(currentProducts.map(product => product.id))
+      const nextIds = new Set(products.map(product => product.id))
+      setPending({
+        products,
+        added: products.filter(product => !currentIds.has(product.id)).length,
+        discontinued: currentProducts.filter(product => !nextIds.has(product.id) && product.sourceType === "excel").length,
+      })
       setState("preview")
-    } catch (e) {
-      setErrorMsg(e.message)
+    } catch (parseError) {
+      setError(parseError.message)
       setState("error")
     }
   }
 
-  async function handleConfirm() {
-    if (!pendingFile) return
-    setState("confirming")
+  async function confirm() {
+    setState("saving")
     try {
-      const fd = new FormData()
-      fd.append("excel", pendingFile)
-      const res = await fetch(`${API}/api/import-excel?confirm=1`, { method: "POST", body: fd })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Error desconocido")
+      await importCatalogProducts(pending.products)
+      await reload()
+      setPending(null)
       setState("done")
-      onImported?.()
-      // Forzar recarga de la página tras breve pausa para que Vite actualice products.js
-      setTimeout(() => window.location.reload(), 1200)
-    } catch (e) {
-      setErrorMsg(e.message)
+    } catch (importError) {
+      setError(importError.message)
       setState("error")
     }
-  }
-
-  function handleCancel() {
-    setState("idle")
-    setSummary(null)
-    setPendingFile(null)
   }
 
   return (
     <>
-      {/* Input oculto */}
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".xlsx,.xls"
-        style={{ display: "none" }}
-        onChange={handleFile}
-      />
-
-      {/* Botón principal (oculto cuando lo gestiona el dropdown del Topbar) */}
-      {!hideButton && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleClick}
-          disabled={state === "loading" || state === "confirming" || state === "done"}
-          style={{ padding: "0 10px", height: 28, gap: 5 }}
-        >
-          {state === "loading" || state === "confirming"
-            ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />
-            : state === "done"
-            ? <CheckCircle size={13} color="#16a34a" />
-            : <Upload size={13} />
-          }
-          <span style={{ fontSize: 12 }}>
-            {state === "loading"   ? "Leyendo…"
-            : state === "confirming" ? "Importando…"
-            : state === "done"       ? "Importado"
-            : "Actualizar catálogo"}
-          </span>
-        </Button>
-      )}
-
-      {/* Modal de preview */}
+      <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={selectFile} />
+      <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={state === "loading" || state === "saving"}>
+        {state === "loading" || state === "saving" ? <Loader2 size={13} /> : <Upload size={13} />}
+        {state === "saving" ? "Importando…" : "Importar Excel"}
+      </Button>
       {(state === "preview" || state === "error") && (
-        <div style={{
-          position: "fixed", inset: 0,
-          background: "rgba(0,0,0,0.45)",
-          zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <div style={{
-            background: "#fff",
-            borderRadius: 12,
-            padding: 28,
-            width: 420,
-            boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-          }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 1500, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center" }}>
+          <div style={{ width: 420, background: "#fff", borderRadius: 12, padding: 24 }}>
             {state === "error" ? (
               <>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                  <AlertTriangle size={20} color="#dc2626" />
-                  <span style={{ fontWeight: 600, fontSize: 15 }}>Error al leer el Excel</span>
-                </div>
-                <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>{errorMsg}</p>
-                <Button size="sm" variant="outline" onClick={handleCancel} style={{ width: "100%" }}>
-                  Cerrar
-                </Button>
+                <h3>Error de importación</h3>
+                <p style={{ fontSize: 13, color: "#b91c1c" }}>{error}</p>
+                <Button onClick={() => setState("idle")}>Cerrar</Button>
               </>
             ) : (
               <>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                  <FileSpreadsheet size={20} color="#2563eb" />
-                  <span style={{ fontWeight: 600, fontSize: 15 }}>Resumen de cambios</span>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-                  <Row label="Total productos en Excel" value={summary.total} />
-                  <Row label="Nuevos (se añaden)" value={summary.added} color="#16a34a" />
-                  <Row label="Eliminados (ya no están)" value={summary.removed} color="#dc2626" />
-                  <Row label="Sin cambios" value={summary.kept} />
-                </div>
-
-                {summary.addedIds?.length > 0 && (
-                  <Detail label="Nuevos IDs" ids={summary.addedIds} color="#16a34a" />
-                )}
-                {summary.removedIds?.length > 0 && (
-                  <Detail label="IDs eliminados" ids={summary.removedIds} color="#dc2626" />
-                )}
-
-                <p style={{ fontSize: 11, color: "#9ca3af", marginBottom: 20 }}>
-                  Al confirmar se sobreescribirá <code>products.js</code> y la página se recargará.
-                  Los overrides (imágenes, escala, posición) se conservan.
+                <h3 style={{ marginTop: 0 }}>Confirmar importación</h3>
+                <p>{pending.products.length} productos · {pending.added} nuevos · {pending.discontinued} bajas</p>
+                <p style={{ fontSize: 12, color: "#6b7280" }}>
+                  La operación es transaccional. Las familias desconocidas bloquearán toda la importación.
                 </p>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <Button size="sm" variant="outline" onClick={handleCancel} style={{ flex: 1 }}>
-                    Cancelar
-                  </Button>
-                  <Button size="sm" onClick={handleConfirm} style={{ flex: 1 }}>
-                    Confirmar importación
-                  </Button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button variant="outline" onClick={() => setState("idle")} style={{ flex: 1 }}>Cancelar</Button>
+                  <Button onClick={confirm} style={{ flex: 1 }}>Confirmar</Button>
                 </div>
               </>
             )}
@@ -168,27 +125,5 @@ const ImportExcelButton = forwardRef(function ImportExcelButton({ onImported, hi
         </div>
       )}
     </>
-  )
-})
-
-export default ImportExcelButton
-
-function Row({ label, value, color }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-      <span style={{ color: "#374151" }}>{label}</span>
-      <span style={{ fontWeight: 700, color: color ?? "#111827" }}>{value}</span>
-    </div>
-  )
-}
-
-function Detail({ label, ids, color }) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <p style={{ fontSize: 11, fontWeight: 600, color, marginBottom: 4 }}>{label}:</p>
-      <p style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace", lineHeight: 1.6 }}>
-        {ids.join(", ")}{ids.length === 20 ? "…" : ""}
-      </p>
-    </div>
   )
 }

@@ -1,11 +1,17 @@
 import ProductCard from "./ProductCard"
-import { CATEGORY_CONFIG } from "../config/categories"
 import styles from "./ProductGrid.module.css"
 import PageWrapper from "./PageWrapper"
 import { paginateBalanced } from "../lib/pagination"
+import { useCatalog } from "../context/CatalogContext"
 
 export default function ProductGrid({ products, category, perPage = 16, pageRefs = [], pageMeta = [] }) {
-  const config = CATEGORY_CONFIG[category] ?? { accent: "#4A6CF7", bg: "#1F2937", icon: "📦", subtitle: "" }
+  const { categories, catalog } = useCatalog()
+  const categoryConfig = categories.find(item => item.display_name === category)
+  const config = {
+    accent: categoryConfig?.accent_color ?? "#4A6CF7",
+    bg: categoryConfig?.background_color ?? "#1F2937",
+    coverImage: categoryConfig?.coverImage,
+  }
   const pages = paginateBalanced(products, perPage)
 
   function gridPositions(count) {
@@ -120,15 +126,14 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
           <div className={styles.page}>
             {/* Header de categoría */}
             <div className={styles.header} style={{ background: config.bg, "--header-bg": config.bg }}>
-              {config.coverImages?.[0] && (
+              {config.coverImage && (
                 <img
                   className={styles.headerCover}
-                  src={config.coverImages[0]}
+                  src={config.coverImage}
                   alt=""
                   aria-hidden="true"
                 />
               )}
-              <span className={styles.headerIcon}>{config.icon}</span>
               <div className={styles.headerText}>
                 <span className={styles.headerTitle}>{category}</span>
               </div>
@@ -157,8 +162,8 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
                   <span className={styles.footerBrand}>
                     <img
                       className={styles.footerLogo}
-                      src="/logo-white.png"
-                      alt="IMPORMED"
+                      src={catalog.logoWhite}
+                      alt={catalog.name}
                     />
                     <span className={styles.footerDivider} />
                     <span>CATÁLOGO DE PRODUCTOS</span>

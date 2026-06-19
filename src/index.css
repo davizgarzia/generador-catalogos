@@ -5,32 +5,6 @@
 
 @import "tailwindcss";
 
-/* ── Geist Sans para el chrome de la UI ───────────────── */
-@font-face {
-  font-family: "Geist";
-  src: url("/node_modules/geist/dist/fonts/geist-sans/Geist-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-}
-@font-face {
-  font-family: "Geist";
-  src: url("/node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-}
-@font-face {
-  font-family: "Geist";
-  src: url("/node_modules/geist/dist/fonts/geist-sans/Geist-SemiBold.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-}
-@font-face {
-  font-family: "Geist";
-  src: url("/node_modules/geist/dist/fonts/geist-sans/Geist-Bold.woff2") format("woff2");
-  font-weight: 700;
-  font-style: normal;
-}
-
 /* ── shadcn/ui theme (zinc, New York style, Tailwind v4) ── */
 @theme inline {
   --color-background: hsl(0 0% 100%);
@@ -152,5 +126,4 @@ body {
     display: contents !important;
   }
 }
-
 

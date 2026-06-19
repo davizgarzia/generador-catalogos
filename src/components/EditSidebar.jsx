@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from "react"
 import { useEdit } from "../context/EditContext"
 import { useOverrides } from "../context/OverridesContext"
-
-const API = "http://localhost:3001/api"
+import { useCatalog } from "../context/CatalogContext"
+import { uploadProductImage } from "../lib/catalog"
 
 function Label({ children }) {
   return (
@@ -107,6 +107,7 @@ function SliderRow({ label, value, min, max, step = 1, unit = "", onChange, onRe
 export default function EditSidebar() {
   const { editingProduct, setEditingProduct } = useEdit()
   const { overrides, patchOverride }          = useOverrides()
+  const { catalog, reload }                   = useCatalog()
   const fileRef   = useRef(null)
   const [imgUploadStatus, setImgUploadStatus] = useState(null)
   const [hovering, setHovering]               = useState(false)
@@ -124,7 +125,6 @@ export default function EditSidebar() {
   const imgY       = o.imgY       ?? 0
   const imgScale   = o.imgScale   ?? 1
   const imgMode    = o.imgMode    ?? "original"  // sync con applyOverride default
-  const [removingBg, setRemovingBg] = useState(false)
   const [imgKey, setImgKey] = useState(() => Date.now())
 
   function patch(fields) {
@@ -133,45 +133,17 @@ export default function EditSidebar() {
 
   async function handleToggleNobg() {
     if (imgMode === "nobg") {
-      // Desactivar: volver a original
       patch({ imgMode: "original" })
-    } else {
-      // Comprobar si ya existe el PNG sin fondo (via API, no Vite que devuelve 200 siempre)
-      const nobgVersion = o.nobgVersion ?? 0
-      const existsRes = await fetch(`${API}/nobg-exists/${id}`)
-      const { exists } = await existsRes.json()
-      if (exists) {
-        // Ya procesada — activar directamente sin reprocesar
-        patch({ imgMode: "nobg", nobgVersion })
-        setImgKey(Date.now())
-        return
-      }
-      // No existe — llamar al endpoint para quitar fondo
-      setRemovingBg(true)
-      try {
-        const r = await fetch(`${API}/remove-bg/${id}`, { method: "POST" })
-        const data = await r.json()
-        if (r.ok) {
-          patch({ imgMode: "nobg", nobgVersion: Date.now() })
-          setImgKey(Date.now())
-        } else {
-          alert(`Error quitando fondo: ${data.error}`)
-        }
-      } catch (e) {
-        alert(`Error de red: ${e.message}`)
-      } finally {
-        setRemovingBg(false)
-      }
+    } else if (editingProduct.processedImage) {
+      patch({ imgMode: "nobg", nobgVersion: Date.now() })
+      setImgKey(Date.now())
     }
   }
 
   // Preview de imagen en el sidebar: nobg si modo nobg, original en otro caso
-  const origExt = editingProduct.image?.match(/\.(\w+)$/)?.[1] ?? "jpg"
-  const imgSrc = editingProduct.image
-    ? (imgMode === "nobg"
-        ? `/images-nobg/${id}.png?v=${imgKey}`
-        : `/images/${id}.${origExt}?v=${imgKey}`)
-    : null
+  const imgSrc = imgMode === "nobg"
+    ? editingProduct.processedImage
+    : editingProduct.originalImage
   const imgPreviewStyle = {
     width: "100%", height: "100%", objectFit: "contain",
     transform: `translate(${imgX}%, ${imgY}%) scale(${imgScale})`,
@@ -182,21 +154,12 @@ export default function EditSidebar() {
     const file = e.target.files?.[0]
     if (!file) return
     setImgUploadStatus("loading")
-    const form = new FormData()
-    form.append("image", file)
     try {
-      const res  = await fetch(`${API}/upload/${id}`, { method: "POST", body: form })
-      const data = await res.json()
-      if (data.ok) {
-        const key = Date.now()
-        setImgKey(key)
-        editingProduct._refreshImg?.(key)
-        setImgUploadStatus("ok")
-        setTimeout(() => setImgUploadStatus(null), 2000)
-      } else {
-        setImgUploadStatus("error")
-        setTimeout(() => setImgUploadStatus(null), 2000)
-      }
+      await uploadProductImage(catalog.id, id, file, "original")
+      await reload()
+      setImgKey(Date.now())
+      setImgUploadStatus("ok")
+      setTimeout(() => setImgUploadStatus(null), 2000)
     } catch {
       setImgUploadStatus("error")
       setTimeout(() => setImgUploadStatus(null), 2000)
@@ -292,17 +255,17 @@ export default function EditSidebar() {
           {/* Toggle sin fondo */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
             <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 500 }}>
-              Sin fondo{removingBg ? " (procesando…)" : ""}
+              Sin fondo
             </span>
             <button
               onClick={handleToggleNobg}
-              disabled={removingBg}
+              disabled={!editingProduct.processedImage}
               style={{
                 width: 36, height: 20, borderRadius: 10, border: "none",
-                cursor: removingBg ? "wait" : "pointer",
+                cursor: editingProduct.processedImage ? "pointer" : "not-allowed",
                 background: imgMode === "nobg" ? "#111827" : "#e5e7eb",
                 position: "relative", transition: "background 0.2s", flexShrink: 0,
-                opacity: removingBg ? 0.6 : 1,
+                opacity: editingProduct.processedImage ? 1 : 0.45,
               }}
             >
               <span style={{

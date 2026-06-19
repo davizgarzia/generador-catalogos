@@ -1,9 +1,7 @@
-import { useMemo, createRef, useEffect, useState } from "react"
+import { useMemo, createRef, useEffect } from "react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { usePrint } from "./context/PrintContext"
-import bundledProducts from "./data/products"
-import { loadCatalogProducts } from "./lib/catalog"
-import { CATEGORY_ORDER, CATEGORY_CONFIG } from "./config/categories"
+import { useCatalog } from "./context/CatalogContext"
 import Cover from "./components/Cover"
 import InfoPage from "./components/InfoPage"
 import CategoryDivider from "./components/CategoryDivider"
@@ -15,23 +13,22 @@ import PageNavigator from "./components/PageNavigator"
 import { paginateBalanced } from "./lib/pagination"
 
 export default function App() {
-  const [products, setProducts] = useState(bundledProducts)
+  const { catalog, categories, products, loading, error, reload } = useCatalog()
   const { printMode, printSize, productGrid, hideNoImage } = usePrint()
+  const categoryOrder = useMemo(() => categories.map(category => category.display_name), [categories])
+  const categoryByName = useMemo(
+    () => Object.fromEntries(categories.map(category => [category.display_name, category])),
+    [categories]
+  )
   const perPage = productGrid === "3x3" ? 9 : productGrid === "4x3" ? 12 : 16
   const visibleProducts = useMemo(
     () => hideNoImage ? products.filter(product => Boolean(product.image)) : products,
-    [hideNoImage]
+    [hideNoImage, products]
   )
   const hiddenProductsList = useMemo(
     () => hideNoImage ? products.filter(product => !product.image) : [],
-    [hideNoImage]
+    [hideNoImage, products]
   )
-
-  useEffect(() => {
-    loadCatalogProducts()
-      .then(setProducts)
-      .catch(error => console.error("No se pudo cargar el catálogo desde Supabase", error))
-  }, [])
 
   // Inyectar @page dinámicamente según modo y tamaño:
   // - sin marcas:            A4 exacto 210×297mm
@@ -68,11 +65,11 @@ export default function App() {
     const list = []
     list.push({ label: "Portada",     color: "#1b3da6", icon: "📘", paginated: false })
     list.push({ label: "Información", color: null,                   paginated: true  })
-    for (const category of CATEGORY_ORDER) {
+    for (const category of categoryOrder) {
       const cat = grouped[category]
       if (!cat?.length) continue
-      const cfg = CATEGORY_CONFIG[category]
-      list.push({ label: category, color: cfg.bg, icon: cfg.icon, paginated: false })
+      const cfg = categoryByName[category]
+      list.push({ label: category, color: cfg.background_color, paginated: false })
       const n = paginateBalanced(cat, perPage).length
       for (let i = 0; i < n; i++) {
         list.push({ label: `${category} ${i + 1}/${n}`, color: null, paginated: true })
@@ -86,7 +83,7 @@ export default function App() {
       pageNum: pageNum++,
       total,
     }))
-  }, [grouped, perPage])
+  }, [categoryByName, categoryOrder, grouped, perPage])
 
   const pageRefs = useMemo(() => pageMeta.map(() => createRef()), [pageMeta])
   const pages = useMemo(
@@ -94,12 +91,26 @@ export default function App() {
     [pageMeta, pageRefs]
   )
 
+  if (loading) {
+    return <div style={{ padding: 40, fontFamily: "Geist, sans-serif" }}>Cargando catálogo…</div>
+  }
+
+  if (error || !catalog) {
+    return (
+      <div style={{ padding: 40, fontFamily: "Geist, sans-serif" }}>
+        <p>{error || "No existe un catálogo activo."}</p>
+        <button onClick={reload}>Reintentar</button>
+      </div>
+    )
+  }
+
   let ri = 0
 
   return (
     <TooltipProvider>
       {/* Fixed chrome — hidden on print */}
       <Topbar
+        catalog={catalog}
         totalProducts={visibleProducts.length}
         totalPages={pages.length}
         hiddenProducts={products.length - visibleProducts.length}
@@ -124,7 +135,7 @@ export default function App() {
             </PageWrapper>
           )})()}
 
-          {CATEGORY_ORDER.map((category) => {
+          {categoryOrder.map((category) => {
             const categoryProducts = grouped[category]
             if (!categoryProducts?.length) return null
             const numPages = paginateBalanced(categoryProducts, perPage).length

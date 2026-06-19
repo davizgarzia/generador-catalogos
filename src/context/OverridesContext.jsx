@@ -1,67 +1,51 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
-import bundledOverrides from "../data/overrides.json"
-import { isSupabaseConfigured } from "../lib/supabase"
 import { loadProductOverrides, saveProductOverride } from "../lib/catalog"
-
-const LOCAL_API = "http://localhost:3001/api"
+import { useCatalog } from "./CatalogContext"
+import { useAuth } from "./AuthContext"
 
 const OverridesContext = createContext(null)
 
 export function OverridesProvider({ children }) {
-  const [overrides, setOverrides] = useState(bundledOverrides)
+  const { catalog } = useCatalog()
+  const { isAdmin } = useAuth()
+  const [overrides, setOverrides] = useState({})
   const [saveError, setSaveError] = useState("")
 
-  // Carga inicial
   useEffect(() => {
-    loadProductOverrides()
+    if (!catalog?.id) return
+    loadProductOverrides(catalog.id)
       .then(setOverrides)
       .catch(() => setSaveError("No se pudieron cargar los ajustes desde Supabase."))
-  }, [])
+  }, [catalog?.id])
 
-  // Actualiza un campo de un producto y persiste en el servidor
   const patchOverride = useCallback(async (id, fields) => {
+    if (!isAdmin || !catalog?.id) {
+      setSaveError("Debes iniciar sesión como administrador para editar.")
+      return
+    }
+
     let previous
-    // Optimistic update
-    setOverrides(prev => {
-      previous = prev
+    setOverrides(current => {
+      previous = current
       return {
-        ...prev,
-        [id]: { ...(prev[id] ?? {}), ...fields },
+        ...current,
+        [id]: { ...(current[id] ?? {}), ...fields },
       }
     })
+
     try {
       setSaveError("")
-      if (isSupabaseConfigured) {
-        await saveProductOverride(id, fields)
-      } else {
-        const res = await fetch(`${LOCAL_API}/overrides/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(fields),
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      }
+      await saveProductOverride(catalog.id, id, fields)
     } catch (error) {
       if (previous) setOverrides(previous)
       setSaveError(`No se ha guardado el ajuste de ${id}.`)
-      console.error("Error guardando override", id, fields, error)
+      console.error("Error guardando ajuste", id, fields, error)
     }
-  }, [])
+  }, [catalog?.id, isAdmin])
 
-  // Devuelve el producto con sus overrides mergeados
-  const applyOverride = useCallback((product) => {
-    const o = overrides[product.id]
-    if (!o) return product
-    return {
-      ...product,
-      name:        o.name        ?? product.name,
-      unitsLabel:  o.unitsLabel  ?? product.unitsLabel,
-      imgHidden:   o.imgHidden   ?? false,
-      imgX:        o.imgX        ?? 0,
-      imgY:        o.imgY        ?? 0,
-      imgScale:    o.imgScale    ?? 1,
-      imgMode:     o.imgMode     ?? "original",
-    }
+  const applyOverride = useCallback(product => {
+    const override = overrides[product.id]
+    return override ? { ...product, ...override } : product
   }, [overrides])
 
   return (

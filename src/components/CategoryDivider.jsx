@@ -1,22 +1,17 @@
-import { CATEGORY_CONFIG } from "../config/categories"
 import styles from "./CategoryDivider.module.css"
+import { useCatalog } from "../context/CatalogContext"
 
 export default function CategoryDivider({ category }) {
-  const config = CATEGORY_CONFIG[category] ?? {
-    bg: "#1b4f72",
-    accent: "#2e86ab",
-    subtitle: "",
-    coverImages: [],
-  }
-  const coverImages = config.coverImages?.slice(0, 3) ?? []
-  const mainImage = coverImages[0]
+  const { categories } = useCatalog()
+  const config = categories.find(item => item.display_name === category)
+  const mainImage = config?.coverImage
 
   return (
     <div
       className={styles.page}
       style={{
-        "--category-bg": config.bg,
-        "--category-accent": config.accent,
+        "--category-bg": config?.background_color ?? "#1b4f72",
+        "--category-accent": config?.accent_color ?? "#2e86ab",
       }}
     >
       <div className={styles.header}>
