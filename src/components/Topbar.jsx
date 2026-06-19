@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from "react"
-import { BookOpen, Download, FileDown, Loader2, LogIn, LogOut, Printer } from "lucide-react"
+import { BookOpen, Download, Loader2, LogIn, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePrint } from "../context/PrintContext"
 import { useAuth } from "../context/AuthContext"
-import { supabase } from "../lib/supabase"
 import LoginDialog from "./LoginDialog"
 
+const QUALITY_PRESETS = {
+  low:    { label: "Rápida", scale: 1.25, jpegQuality: 0.75 },
+  medium: { label: "Media",  scale: 2,    jpegQuality: 0.9  },
+  high:   { label: "Alta",   scale: 3,    jpegQuality: 0.95 },
+}
+
 export default function Topbar({ catalog, totalProducts, totalPages, hiddenProducts = 0, hiddenProductsList = [] }) {
-  const { printMode, printSize, draftQuality, productGrid, hideNoImage } = usePrint()
-  const { user, isAdmin, signOut } = useAuth()
-  const [generating, setGenerating] = useState(false)
+  const { printMode } = usePrint()
+  const { user, signOut } = useAuth()
+  const [quality, setQuality] = useState("medium")
   const [clientExport, setClientExport] = useState({ active: false, page: 0, total: 0 })
   const [loginOpen, setLoginOpen] = useState(false)
   const [hiddenOpen, setHiddenOpen] = useState(false)
@@ -30,6 +36,7 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
     if (clientExport.active) return
     setClientExport({ active: true, page: 0, total: 0 })
     try {
+      const preset = QUALITY_PRESETS[quality]
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
         import("html2canvas-pro"),
         import("jspdf"),
@@ -49,13 +56,13 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
       for (let i = 0; i < pages.length; i++) {
         setClientExport({ active: true, page: i + 1, total: pages.length })
         const canvas = await html2canvas(pages[i], {
-          scale: 2,
+          scale: preset.scale,
           useCORS: true,
           backgroundColor: "#ffffff",
           logging: false,
           imageTimeout: 15000,
         })
-        const imgData = canvas.toDataURL("image/jpeg", 0.9)
+        const imgData = canvas.toDataURL("image/jpeg", preset.jpegQuality)
         if (i > 0) pdf.addPage(printMode ? [widthMm, heightMm] : "a4", "portrait")
         pdf.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm, undefined, "FAST")
       }
@@ -65,65 +72,6 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
       alert(`Error generando PDF: ${error.message}`)
     } finally {
       setClientExport({ active: false, page: 0, total: 0 })
-    }
-  }
-
-  async function handleGeneratePdf() {
-    if (!isAdmin || !user) {
-      setLoginOpen(true)
-      return
-    }
-
-    setGenerating(true)
-    try {
-      const options = { marks: printMode, size: printSize, draft: draftQuality, grid: productGrid, hideNoImage }
-      const { data: exportJob, error: createError } = await supabase
-        .from("pdf_exports")
-        .insert({ catalog_id: catalog.id, requested_by: user.id, options })
-        .select()
-        .single()
-      if (createError) throw createError
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const response = await fetch("/.netlify/functions/generate-pdf-background", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
-        body: JSON.stringify({ exportId: exportJob.id }),
-      })
-      if (!response.ok) throw new Error("No se pudo iniciar la generación.")
-
-      let completed
-      for (let attempt = 0; attempt < 150; attempt++) {
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        const { data, error } = await supabase
-          .from("pdf_exports")
-          .select("status,storage_path,error_message")
-          .eq("id", exportJob.id)
-          .single()
-        if (error) throw error
-        if (data.status === "failed") throw new Error(data.error_message || "Falló la generación.")
-        if (data.status === "completed") {
-          completed = data
-          break
-        }
-      }
-      if (!completed) throw new Error("La generación superó el tiempo de espera.")
-
-      const { data: signed, error: signedError } = await supabase.storage
-        .from("catalog-pdfs")
-        .createSignedUrl(completed.storage_path, 60)
-      if (signedError) throw signedError
-      const link = document.createElement("a")
-      link.href = signed.signedUrl
-      link.download = `catalogo-${catalog.slug}-${catalog.edition}.pdf`
-      link.click()
-    } catch (error) {
-      alert(`Error generando PDF: ${error.message}`)
-    } finally {
-      setGenerating(false)
     }
   }
 
@@ -176,25 +124,26 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
           <LogIn size={13} /> Administrar
         </Button>
       )}
-      <Button size="sm" variant="outline" onClick={() => window.print()} title="Imprimir o guardar como PDF desde el navegador">
-        <Printer size={13} /> Imprimir
-      </Button>
+      <Select value={quality} onValueChange={setQuality} disabled={clientExport.active}>
+        <SelectTrigger size="sm" style={{ width: 110 }} title="Calidad del PDF: más alta = más detalle y más tiempo">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {Object.entries(QUALITY_PRESETS).map(([key, preset]) => (
+            <SelectItem key={key} value={key}>{preset.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Button
         size="sm"
-        variant="outline"
         onClick={handleClientPdf}
         disabled={clientExport.active}
-        style={{ minWidth: 130 }}
+        style={{ minWidth: 140 }}
         title="Descarga el catálogo como PDF directamente desde el navegador"
       >
         {clientExport.active
           ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> {clientExport.total ? `${clientExport.page}/${clientExport.total}` : "Preparando…"}</>
-          : <><Download size={13} /> PDF rápido</>}
-      </Button>
-      <Button size="sm" onClick={handleGeneratePdf} disabled={generating} style={{ minWidth: 110 }}>
-        {generating
-          ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> Generando…</>
-          : <><FileDown size={13} /> Guardar PDF</>}
+          : <><Download size={13} /> Descargar PDF</>}
       </Button>
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
     </header>
