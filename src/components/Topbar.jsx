@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { BookOpen, FileDown, Loader2, LogIn, LogOut } from "lucide-react"
+import { BookOpen, FileDown, Loader2, LogIn, LogOut, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -133,6 +133,9 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
           <LogIn size={13} /> Administrar
         </Button>
       )}
+      <Button size="sm" variant="outline" onClick={() => window.print()} title="Imprimir o guardar como PDF desde el navegador">
+        <Printer size={13} /> Imprimir
+      </Button>
       <Button size="sm" onClick={handleGeneratePdf} disabled={generating} style={{ minWidth: 110 }}>
         {generating
           ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> Generando…</>
