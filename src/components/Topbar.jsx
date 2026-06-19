@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { BookOpen, FileDown, Loader2, LogIn, LogOut, Printer } from "lucide-react"
+import { BookOpen, Download, FileDown, Loader2, LogIn, LogOut, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -12,6 +12,7 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
   const { printMode, printSize, draftQuality, productGrid, hideNoImage } = usePrint()
   const { user, isAdmin, signOut } = useAuth()
   const [generating, setGenerating] = useState(false)
+  const [clientExport, setClientExport] = useState({ active: false, page: 0, total: 0 })
   const [loginOpen, setLoginOpen] = useState(false)
   const [hiddenOpen, setHiddenOpen] = useState(false)
   const hiddenWrapRef = useRef(null)
@@ -24,6 +25,48 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
     document.addEventListener("mousedown", close)
     return () => document.removeEventListener("mousedown", close)
   }, [hiddenOpen])
+
+  async function handleClientPdf() {
+    if (clientExport.active) return
+    setClientExport({ active: true, page: 0, total: 0 })
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ])
+      const pages = Array.from(document.querySelectorAll("#catalog > div, #catalog section > div"))
+      if (!pages.length) throw new Error("No se encontraron páginas para exportar.")
+
+      setClientExport({ active: true, page: 0, total: pages.length })
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true })
+      const widthMm = printMode ? 216 : 210
+      const heightMm = printMode ? 303 : 297
+      if (printMode) {
+        pdf.deletePage(1)
+        pdf.addPage([widthMm, heightMm], "portrait")
+      }
+
+      for (let i = 0; i < pages.length; i++) {
+        setClientExport({ active: true, page: i + 1, total: pages.length })
+        const canvas = await html2canvas(pages[i], {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          imageTimeout: 15000,
+        })
+        const imgData = canvas.toDataURL("image/jpeg", 0.9)
+        if (i > 0) pdf.addPage(printMode ? [widthMm, heightMm] : "a4", "portrait")
+        pdf.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm, undefined, "FAST")
+      }
+
+      pdf.save(`catalogo-${catalog.slug}-${catalog.edition}.pdf`)
+    } catch (error) {
+      alert(`Error generando PDF: ${error.message}`)
+    } finally {
+      setClientExport({ active: false, page: 0, total: 0 })
+    }
+  }
 
   async function handleGeneratePdf() {
     if (!isAdmin || !user) {
@@ -135,6 +178,18 @@ export default function Topbar({ catalog, totalProducts, totalPages, hiddenProdu
       )}
       <Button size="sm" variant="outline" onClick={() => window.print()} title="Imprimir o guardar como PDF desde el navegador">
         <Printer size={13} /> Imprimir
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleClientPdf}
+        disabled={clientExport.active}
+        style={{ minWidth: 130 }}
+        title="Descarga el catálogo como PDF directamente desde el navegador"
+      >
+        {clientExport.active
+          ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> {clientExport.total ? `${clientExport.page}/${clientExport.total}` : "Preparando…"}</>
+          : <><Download size={13} /> PDF rápido</>}
       </Button>
       <Button size="sm" onClick={handleGeneratePdf} disabled={generating} style={{ minWidth: 110 }}>
         {generating
