@@ -102,16 +102,19 @@ body {
     padding: 0;
   }
 
-  #catalog > *,
+  /* Page break after each printable page wrapper. Sections are transparent
+     containers — they must NOT add their own break or a blank page appears
+     between categories. */
+  #catalog > div,
   #catalog section > * {
     box-shadow: none;
     page-break-after: always;
     break-after: page;
   }
 
-  /* Last element: no forced page break after */
-  #catalog > *:last-child,
-  #catalog section:last-child > *:last-child {
+  /* Last printed page: avoid a trailing blank page */
+  #catalog section:last-child > *:last-child,
+  #catalog > div:last-child {
     page-break-after: auto;
     break-after: auto;
   }
