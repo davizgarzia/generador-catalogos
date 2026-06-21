@@ -14,7 +14,6 @@ export function CatalogProvider({ children }) {
   const [error, setError] = useState("")
 
   const reload = useCallback(async () => {
-    setLoading(true)
     setError("")
     try {
       setData(await loadCatalogBundle())

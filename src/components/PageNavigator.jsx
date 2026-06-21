@@ -79,6 +79,8 @@ function PageThumb({ pageRef, isActive }) {
 
 export default function PageNavigator({ pages }) {
   const [active, setActive] = useState(0)
+  const thumbRefs = useRef([])
+  const hasScrolledOnceRef = useRef(false)
 
   useEffect(() => {
     const observers = []
@@ -94,6 +96,16 @@ export default function PageNavigator({ pages }) {
     return () => observers.forEach(o => o.disconnect())
   }, [pages])
 
+  useEffect(() => {
+    const el = thumbRefs.current[active]
+    if (!el) return
+    el.scrollIntoView({
+      block: "nearest",
+      behavior: hasScrolledOnceRef.current ? "smooth" : "instant",
+    })
+    hasScrolledOnceRef.current = true
+  }, [active])
+
   function goTo(i) {
     pages[i].ref?.current?.scrollIntoView({ behavior: "smooth", block: "center" })
     setActive(i)
@@ -107,6 +119,10 @@ export default function PageNavigator({ pages }) {
             <Tooltip key={i} delayDuration={150}>
               <TooltipTrigger asChild>
                 <button
+                  ref={el => {
+                    if (el) thumbRefs.current[i] = el
+                    else delete thumbRefs.current[i]
+                  }}
                   onClick={() => goTo(i)}
                   className="flex flex-col items-center gap-1 p-1.5 rounded-md w-full cursor-pointer text-left"
                 >

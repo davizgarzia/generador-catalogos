@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react"
-import { ImageIcon, Loader2, Upload } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Download, ImageIcon, Loader2, Upload } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -40,8 +40,12 @@ const EMPTY_FORM = {
 }
 
 export default function ProductFormSheet({ open, onOpenChange, product = null }) {
-  const { catalog, categories, reload } = useCatalog()
+  const { catalog, categories, products, reload } = useCatalog()
   const isEdit = Boolean(product)
+  const liveProduct = useMemo(() => {
+    if (!product?.id) return product
+    return products.find(item => item.id === product.id) ?? product
+  }, [products, product])
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
@@ -82,6 +86,27 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
     } catch (uploadError) {
       setUploadStatus("error")
       setError(uploadError.message)
+    }
+  }
+
+  async function handleDownloadOriginal() {
+    if (!liveProduct?.originalImage) return
+    setError("")
+    try {
+      const response = await fetch(liveProduct.originalImage)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+      const filename = new URL(liveProduct.originalImage).pathname.split("/").pop() || `${liveProduct.id}.jpg`
+      const objectUrl = URL.createObjectURL(blob)
+      const anchor = document.createElement("a")
+      anchor.href = objectUrl
+      anchor.download = filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(objectUrl)
+    } catch (downloadError) {
+      setError(`No se pudo descargar la imagen: ${downloadError.message}`)
     }
   }
 
@@ -143,10 +168,10 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
                 disabled={uploadStatus === "loading"}
                 className="group relative aspect-square w-full overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center transition-opacity disabled:opacity-60"
               >
-                {product?.processedPreview || product?.preview ? (
+                {liveProduct?.processedPreview || liveProduct?.preview ? (
                   <img
-                    src={withCacheBust(product.processedPreview || product.preview, product.imageVersion || product.nobgVersion)}
-                    alt={product.name}
+                    src={withCacheBust(liveProduct.processedPreview || liveProduct.preview, liveProduct.imageVersion || liveProduct.nobgVersion)}
+                    alt={liveProduct.name}
                     className="size-full object-contain"
                   />
                 ) : (
@@ -162,7 +187,7 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
                     <>
                       <Upload className="size-5" />
                       <span className="text-xs font-medium">
-                        {product?.image ? "Reemplazar" : "Subir imagen"}
+                        {liveProduct?.image ? "Reemplazar" : "Subir imagen"}
                       </span>
                     </>
                   )}
@@ -180,6 +205,17 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
               )}
               {uploadStatus === "error" && (
                 <p className="text-xs text-destructive">No se pudo subir la imagen.</p>
+              )}
+              {liveProduct?.originalImage && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadOriginal}
+                  className="w-full"
+                >
+                  <Download /> Descargar imagen original
+                </Button>
               )}
             </div>
           )}

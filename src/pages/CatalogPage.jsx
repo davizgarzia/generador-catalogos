@@ -1,4 +1,4 @@
-import { createRef, useEffect, useMemo } from "react"
+import { createRef, useEffect, useMemo, useRef } from "react"
 import { useCatalog } from "../context/CatalogContext"
 import { usePrint } from "../context/PrintContext"
 import { useEdit } from "../context/EditContext"
@@ -102,6 +102,50 @@ export default function CatalogPage() {
     [pageMeta, pageRefs]
   )
 
+  const catalogAreaRef = useRef(null)
+  const scrollRestoredRef = useRef(false)
+
+  useEffect(() => {
+    const el = catalogAreaRef.current
+    if (!el) return
+    let timeoutId
+    function handleScroll() {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        try {
+          window.localStorage.setItem("impormed.catalogScroll", String(el.scrollTop))
+        } catch {
+          // ignore quota / disabled storage
+        }
+      }, 200)
+    }
+    el.addEventListener("scroll", handleScroll, { passive: true })
+    return () => {
+      el.removeEventListener("scroll", handleScroll)
+      clearTimeout(timeoutId)
+    }
+  }, [pages.length])
+
+  useEffect(() => {
+    if (scrollRestoredRef.current || !pages.length) return
+    const el = catalogAreaRef.current
+    if (!el) return
+    try {
+      const saved = window.localStorage.getItem("impormed.catalogScroll")
+      if (saved !== null) {
+        const value = Number(saved)
+        if (Number.isFinite(value) && value > 0) {
+          requestAnimationFrame(() => {
+            if (catalogAreaRef.current) catalogAreaRef.current.scrollTop = value
+          })
+        }
+      }
+    } catch {
+      // ignore
+    }
+    scrollRestoredRef.current = true
+  }, [pages.length])
+
   if (loading) {
     return (
       <div className="p-10 text-sm text-muted-foreground">Cargando catálogo…</div>
@@ -135,7 +179,7 @@ export default function CatalogPage() {
       <div className="flex-1 flex min-h-0">
         <PageNavigator pages={pages} />
 
-        <div id="catalog-area" className="flex-1 overflow-auto">
+        <div ref={catalogAreaRef} id="catalog-area" className="flex-1 overflow-auto">
           <div id="catalog">
             <PageWrapper ref={pageRefs[ri++]}>
               <Cover />

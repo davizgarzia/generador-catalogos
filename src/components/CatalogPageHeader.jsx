@@ -25,13 +25,38 @@ export default function CatalogPageHeader({ catalog, totalProducts, totalPages, 
   const { printMode } = usePrint()
   const [quality, setQuality] = useState("medium")
   const [viewOpen, setViewOpen] = useState(false)
-  const [clientExport, setClientExport] = useState({ active: false, page: 0, total: 0 })
+  const [clientExport, setClientExport] = useState({ active: false, phase: null, page: 0, total: 0 })
+
+  async function preloadCatalogImages(onProgress) {
+    const imgs = Array.from(document.querySelectorAll("#catalog img"))
+    const total = imgs.length
+    if (!total) return
+    onProgress(0, total)
+    let loaded = 0
+    await Promise.all(imgs.map(async img => {
+      try {
+        img.loading = "eager"
+        if (!img.complete || img.naturalHeight === 0) {
+          await img.decode()
+        }
+      } catch {
+        // ignoramos fallos puntuales, seguimos
+      }
+      loaded += 1
+      onProgress(loaded, total)
+    }))
+  }
 
   async function handleClientPdf() {
     if (clientExport.active) return
-    setClientExport({ active: true, page: 0, total: 0 })
+    setClientExport({ active: true, phase: "preparing", page: 0, total: 0 })
     try {
       const preset = QUALITY_PRESETS[quality]
+
+      await preloadCatalogImages((page, total) => {
+        setClientExport({ active: true, phase: "preparing", page, total })
+      })
+
       const [{ domToJpeg }, { jsPDF }] = await Promise.all([
         import("modern-screenshot"),
         import("jspdf"),
@@ -39,7 +64,7 @@ export default function CatalogPageHeader({ catalog, totalProducts, totalPages, 
       const pages = Array.from(document.querySelectorAll("#catalog > div, #catalog section > div"))
       if (!pages.length) throw new Error("No se encontraron páginas para exportar.")
 
-      setClientExport({ active: true, page: 0, total: pages.length })
+      setClientExport({ active: true, phase: "capturing", page: 0, total: pages.length })
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true })
       const widthMm = printMode ? 216 : 210
       const heightMm = printMode ? 303 : 297
@@ -49,7 +74,7 @@ export default function CatalogPageHeader({ catalog, totalProducts, totalPages, 
       }
 
       for (let i = 0; i < pages.length; i++) {
-        setClientExport({ active: true, page: i + 1, total: pages.length })
+        setClientExport({ active: true, phase: "capturing", page: i + 1, total: pages.length })
         const imgData = await domToJpeg(pages[i], {
           scale: preset.scale,
           quality: preset.jpegQuality,
@@ -63,7 +88,7 @@ export default function CatalogPageHeader({ catalog, totalProducts, totalPages, 
     } catch (error) {
       alert(`Error generando PDF: ${error.message}`)
     } finally {
-      setClientExport({ active: false, page: 0, total: 0 })
+      setClientExport({ active: false, phase: null, page: 0, total: 0 })
     }
   }
 
@@ -111,7 +136,13 @@ export default function CatalogPageHeader({ catalog, totalProducts, totalPages, 
               {clientExport.active ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  {clientExport.total ? `${clientExport.page}/${clientExport.total}` : "Preparando…"}
+                  {clientExport.phase === "preparing"
+                    ? clientExport.total
+                      ? `Preparando ${clientExport.page}/${clientExport.total}`
+                      : "Preparando…"
+                    : clientExport.total
+                      ? `${clientExport.page}/${clientExport.total}`
+                      : "Generando…"}
                 </>
               ) : (
                 <>

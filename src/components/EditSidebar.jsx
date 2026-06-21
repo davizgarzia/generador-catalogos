@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Pencil, RotateCcw, X } from "lucide-react"
 import { useEdit } from "../context/EditContext"
 import { useOverrides } from "../context/OverridesContext"
+import { useCatalog } from "../context/CatalogContext"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -50,14 +51,20 @@ function SliderRow({ label, value, min, max, step = 1, unit = "", onChange, onRe
 export default function EditSidebar() {
   const { editingProduct, setEditingProduct } = useEdit()
   const { overrides, patchOverride } = useOverrides()
+  const { products } = useCatalog()
   const [editFormOpen, setEditFormOpen] = useState(false)
 
-  if (!editingProduct) return null
+  const liveProduct = useMemo(() => {
+    if (!editingProduct?.id) return editingProduct
+    return products.find(item => item.id === editingProduct.id) ?? editingProduct
+  }, [products, editingProduct])
 
-  const id = editingProduct.id
+  if (!liveProduct) return null
+
+  const id = liveProduct.id
   const o = overrides[id] ?? {}
 
-  const name = o.name ?? editingProduct.name
+  const name = o.name ?? liveProduct.name
   const imgHidden = o.imgHidden ?? false
   const imgX = o.imgX ?? 0
   const imgY = o.imgY ?? 0
@@ -69,7 +76,7 @@ export default function EditSidebar() {
   }
 
   function handleToggleNobg(checked) {
-    if (checked && editingProduct.processedImage) {
+    if (checked && liveProduct.processedImage) {
       patch({ imgMode: "nobg", nobgVersion: Date.now() })
     } else {
       patch({ imgMode: "original" })
@@ -77,8 +84,8 @@ export default function EditSidebar() {
   }
 
   const imgSrc = imgMode === "nobg"
-    ? (editingProduct.processedPreview || editingProduct.processedImage)
-    : (editingProduct.preview || editingProduct.originalImage)
+    ? (liveProduct.processedPreview || liveProduct.processedImage)
+    : (liveProduct.preview || liveProduct.originalImage)
   const imgPreviewStyle = {
     width: "100%", height: "100%", objectFit: "contain",
     transform: `translate(${imgX}%, ${imgY}%) scale(${imgScale})`,
@@ -128,7 +135,7 @@ export default function EditSidebar() {
             <Switch
               id="es-nobg"
               checked={imgMode === "nobg"}
-              disabled={!editingProduct.processedImage}
+              disabled={!liveProduct.processedImage}
               onCheckedChange={handleToggleNobg}
             />
           </div>

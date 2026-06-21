@@ -1,35 +1,72 @@
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 
 const PrintContext = createContext(null)
+const STORAGE_KEY = "impormed.viewSettings"
+const VALID_GRIDS = ["3x3", "4x3", "4x4"]
+const VALID_SIZES = ["A4", "A5"]
+
+const DEFAULTS = {
+  printMode: false,
+  printSize: "A4",
+  productGrid: "4x4",
+  hideNoImage: false,
+}
+
+function readStoredSettings() {
+  if (typeof window === "undefined") return DEFAULTS
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return DEFAULTS
+    const parsed = JSON.parse(raw)
+    return {
+      printMode: typeof parsed.printMode === "boolean" ? parsed.printMode : DEFAULTS.printMode,
+      printSize: VALID_SIZES.includes(parsed.printSize) ? parsed.printSize : DEFAULTS.printSize,
+      productGrid: VALID_GRIDS.includes(parsed.productGrid) ? parsed.productGrid : DEFAULTS.productGrid,
+      hideNoImage: typeof parsed.hideNoImage === "boolean" ? parsed.hideNoImage : DEFAULTS.hideNoImage,
+    }
+  } catch {
+    return DEFAULTS
+  }
+}
+
+function readQueryOverrides() {
+  if (typeof window === "undefined") return {}
+  const params = new URLSearchParams(window.location.search)
+  const overrides = {}
+  if (params.has("marks")) overrides.printMode = params.get("marks") === "1"
+  if (params.has("size")) overrides.printSize = params.get("size")
+  if (params.has("grid")) overrides.productGrid = params.get("grid")
+  if (params.has("hideNoImage")) overrides.hideNoImage = params.get("hideNoImage") === "1"
+  return overrides
+}
 
 export function PrintProvider({ children }) {
-  // Leer estado inicial desde query params (usado por Puppeteer al generar PDF)
-  // ?marks=1&size=A5&draft=1&grid=4x3&hideNoImage=1
-  const params = new URLSearchParams(window.location.search)
-  const initMarks = params.has("marks") ? params.get("marks") === "1" : false
-  const initSize  = params.has("size")  ? params.get("size")          : "A4"
-  const initDraft = params.has("draft") ? params.get("draft") === "1" : false
-  const initGrid  = params.has("grid")  ? params.get("grid")          : "4x4"
-  const initHideNoImage = params.has("hideNoImage") ? params.get("hideNoImage") === "1" : false
+  const [settings, setSettings] = useState(() => ({
+    ...readStoredSettings(),
+    ...readQueryOverrides(),
+  }))
 
-  const [printMode, setPrintMode] = useState(initMarks)
-  const [printSize, setPrintSize] = useState(initSize)
-  const [draftQuality, setDraftQuality] = useState(initDraft)
-  const [productGrid, setProductGrid] = useState(["3x3", "4x3", "4x4"].includes(initGrid) ? initGrid : "4x4")
-  const [hideNoImage, setHideNoImage] = useState(initHideNoImage)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    } catch {
+      // ignore quota / disabled storage
+    }
+  }, [settings])
+
+  const update = key => value => setSettings(current => ({ ...current, [key]: value }))
 
   return (
     <PrintContext.Provider value={{
-      printMode,
-      setPrintMode,
-      printSize,
-      setPrintSize,
-      draftQuality,
-      setDraftQuality,
-      productGrid,
-      setProductGrid,
-      hideNoImage,
-      setHideNoImage,
+      printMode: settings.printMode,
+      setPrintMode: update("printMode"),
+      printSize: settings.printSize,
+      setPrintSize: update("printSize"),
+      productGrid: settings.productGrid,
+      setProductGrid: update("productGrid"),
+      hideNoImage: settings.hideNoImage,
+      setHideNoImage: update("hideNoImage"),
     }}>
       {children}
     </PrintContext.Provider>
