@@ -25,6 +25,7 @@ import {
   setProductActive,
   updateProduct,
   uploadProductImage,
+  withCacheBust,
 } from "../lib/catalog"
 
 const EMPTY_FORM = {
@@ -144,7 +145,7 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
               >
                 {product?.processedPreview || product?.preview ? (
                   <img
-                    src={`${product.processedPreview || product.preview}&v=${product.imageVersion || product.nobgVersion || 0}`}
+                    src={withCacheBust(product.processedPreview || product.preview, product.imageVersion || product.nobgVersion)}
                     alt={product.name}
                     className="size-full object-contain"
                   />

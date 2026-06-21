@@ -3,6 +3,7 @@ import styles from "./ProductCard.module.css"
 import { useEdit } from "../context/EditContext"
 import { useOverrides } from "../context/OverridesContext"
 import { useAuth } from "../context/AuthContext"
+import { withCacheBust } from "../lib/catalog"
 
 export default function ProductCard({ product: rawProduct, accentColor }) {
   const { setEditingProduct }        = useEdit()
@@ -26,11 +27,10 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
   function getImgSrc() {
     if (!rawProduct.image) return null
     if (mode === "nobg" && !nobgFailed && rawProduct.catalogProcessed) {
-      return `${rawProduct.catalogProcessed}&v=${rawProduct.imageVersion || nobgVersion}`
+      return withCacheBust(rawProduct.catalogProcessed, rawProduct.imageVersion || nobgVersion)
     }
     const base = rawProduct.catalogImage || rawProduct.originalImage || rawProduct.image
-    const sep = base.includes("?") ? "&" : "?"
-    return `${base}${sep}v=${rawProduct.imageVersion || 0}`
+    return withCacheBust(base, rawProduct.imageVersion)
   }
 
   function handleImgError() {

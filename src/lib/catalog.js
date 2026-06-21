@@ -9,6 +9,15 @@ export function getStorageUrl(bucket, path, transform = null) {
   return supabase.storage.from(bucket).getPublicUrl(path, options).data.publicUrl
 }
 
+const CACHE_BUST_WINDOW_MS = 5 * 60 * 1000
+
+export function withCacheBust(url, version) {
+  if (!url) return url
+  if (!version || Date.now() - version > CACHE_BUST_WINDOW_MS) return url
+  const sep = url.includes("?") ? "&" : "?"
+  return `${url}${sep}v=${version}`
+}
+
 const THUMB_TRANSFORM = { width: 160, height: 160, resize: "contain", quality: 75 }
 const PREVIEW_TRANSFORM = { width: 600, height: 600, resize: "contain", quality: 80 }
 const CATALOG_TRANSFORM = { width: 1000, height: 1000, resize: "contain", quality: 85 }
@@ -216,7 +225,7 @@ export async function uploadProductImage(catalogId, productId, file, variant = "
   const path = `${folder}/${productId}.${variant === "processed" ? "png" : extension}`
   const { error: uploadError } = await supabase.storage
     .from("catalog-images")
-    .upload(path, file, { upsert: true, contentType: file.type })
+    .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "31536000" })
   if (uploadError) throw uploadError
 
   const field = variant === "processed" ? "processed_image_path" : "original_image_path"
@@ -263,7 +272,7 @@ export async function updateCategory(categoryId, fields) {
 export async function uploadCatalogAsset(file, path) {
   const { error } = await supabase.storage
     .from("catalog-assets")
-    .upload(path, file, { upsert: true, contentType: file.type })
+    .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "31536000" })
   if (error) throw error
   return path
 }
