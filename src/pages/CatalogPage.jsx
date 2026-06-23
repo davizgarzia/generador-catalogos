@@ -5,6 +5,7 @@ import { useEdit } from "../context/EditContext"
 import { useAuth } from "../context/AuthContext"
 import { paginateBalanced } from "../lib/pagination"
 import Cover from "../components/Cover"
+import BackCover from "../components/BackCover"
 import InfoPage from "../components/InfoPage"
 import CategoryDivider from "../components/CategoryDivider"
 import ProductGrid from "../components/ProductGrid"
@@ -90,6 +91,7 @@ export default function CatalogPage() {
         list.push({ label: `${category} ${i + 1}/${n}`, color: null, paginated: true })
       }
     }
+    list.push({ label: "Contraportada", color: "#1a3f66", icon: "📘", paginated: false })
 
     const total = list.length
     let pageNum = 1
@@ -215,6 +217,10 @@ export default function CatalogPage() {
                 </section>
               )
             })}
+
+            <PageWrapper ref={pageRefs[ri++]}>
+              <BackCover />
+            </PageWrapper>
           </div>
         </div>
 
