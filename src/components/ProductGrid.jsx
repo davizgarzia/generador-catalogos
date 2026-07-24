@@ -1,10 +1,18 @@
 import ProductCard from "./ProductCard"
 import styles from "./ProductGrid.module.css"
-import PageWrapper from "./PageWrapper"
+import LazyPageWrapper from "./LazyPageWrapper"
 import { paginateBalanced } from "../lib/pagination"
 import { useCatalog } from "../context/CatalogContext"
 
-export default function ProductGrid({ products, category, perPage = 16, pageRefs = [], pageMeta = [] }) {
+export default function ProductGrid({
+  products,
+  category,
+  perPage = 16,
+  pageRefs = [],
+  pageMeta = [],
+  rootRef = null,
+  forceRenderPages = false,
+}) {
   const { categories, catalog } = useCatalog()
   const categoryConfig = categories.find(item => item.display_name === category)
   const config = {
@@ -114,11 +122,13 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
   return (
     <>
       {pages.map((pageProducts, pageIndex) => (
-        <PageWrapper
+        <LazyPageWrapper
           key={pageIndex}
           ref={pageRefs[pageIndex]}
           accentColor={config.accent}
           bgColor={config.bg}
+          rootRef={rootRef}
+          forceRender={forceRenderPages}
         >
           {(() => {
             const positions = gridPositions(pageProducts.length)
@@ -197,7 +207,7 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
           </div>
             )
           })()}
-        </PageWrapper>
+        </LazyPageWrapper>
       ))}
     </>
   )

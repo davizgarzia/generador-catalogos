@@ -21,7 +21,13 @@ const QUALITY_PRESETS = {
   high:   { label: "Alta",   scale: 2.5,  jpegQuality: 0.95 },
 }
 
-export default function CatalogPageHeader({ catalog, totalProducts, totalPages, hiddenProductsList = [] }) {
+export default function CatalogPageHeader({
+  catalog,
+  totalProducts,
+  totalPages,
+  hiddenProductsList = [],
+  onExportingChange,
+}) {
   const { printMode } = usePrint()
   const [quality, setQuality] = useState("medium")
   const [viewOpen, setViewOpen] = useState(false)
@@ -35,6 +41,8 @@ export default function CatalogPageHeader({ catalog, totalProducts, totalPages, 
     let loaded = 0
     await Promise.all(imgs.map(async img => {
       try {
+        const printSrc = img.dataset.printSrc
+        if (printSrc && img.src !== printSrc) img.src = printSrc
         img.loading = "eager"
         if (!img.complete || img.naturalHeight === 0) {
           await img.decode()
@@ -50,8 +58,10 @@ export default function CatalogPageHeader({ catalog, totalProducts, totalPages, 
   async function handleClientPdf() {
     if (clientExport.active) return
     setClientExport({ active: true, phase: "preparing", page: 0, total: 0 })
+    onExportingChange?.(true)
     try {
       const preset = QUALITY_PRESETS[quality]
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 
       await preloadCatalogImages((page, total) => {
         setClientExport({ active: true, phase: "preparing", page, total })
@@ -88,6 +98,7 @@ export default function CatalogPageHeader({ catalog, totalProducts, totalPages, 
     } catch (error) {
       alert(`Error generando PDF: ${error.message}`)
     } finally {
+      onExportingChange?.(false)
       setClientExport({ active: false, phase: null, page: 0, total: 0 })
     }
   }

@@ -3,12 +3,14 @@ import styles from "./ProductCard.module.css"
 import { useEdit } from "../context/EditContext"
 import { useOverrides } from "../context/OverridesContext"
 import { useAuth } from "../context/AuthContext"
+import { usePrint } from "../context/PrintContext"
 import { withCacheBust } from "../lib/catalog"
 
 export default function ProductCard({ product: rawProduct, accentColor }) {
   const { setEditingProduct }        = useEdit()
   const { applyOverride }            = useOverrides()
   const { isAdmin }                  = useAuth()
+  const { isPdfRender }              = usePrint()
   const product                      = applyOverride(rawProduct)
 
   const [imgError, setImgError]       = useState(false)
@@ -29,21 +31,25 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
     setFallbackIndex(0)
   }, [rawProduct.id, mode, nobgVersion])
 
-  function getImgCandidates() {
+  function getImgCandidates(size = isPdfRender ? "catalog" : "preview") {
     if (!rawProduct.image) return null
-    if (mode === "nobg" && !nobgFailed && rawProduct.catalogProcessed) {
+    const originalOptimized = size === "catalog" ? rawProduct.catalogImage : rawProduct.preview
+    const originalFallback = size === "catalog" ? rawProduct.catalogImageFallback : rawProduct.previewFallback
+    const processedOptimized = size === "catalog" ? rawProduct.catalogProcessed : rawProduct.processedPreview
+    const processedFallback = size === "catalog" ? rawProduct.catalogProcessedFallback : rawProduct.processedPreviewFallback
+    if (mode === "nobg" && !nobgFailed && (processedOptimized || processedFallback || rawProduct.processedImage)) {
       return [
-        rawProduct.catalogProcessed,
-        rawProduct.catalogProcessedFallback,
-        rawProduct.catalogImage,
-        rawProduct.catalogImageFallback,
+        processedOptimized,
+        processedFallback,
+        originalOptimized,
+        originalFallback,
         rawProduct.originalImage,
         rawProduct.image,
       ].filter(Boolean)
     }
     return [
-      rawProduct.catalogImage,
-      rawProduct.catalogImageFallback,
+      originalOptimized,
+      originalFallback,
       rawProduct.originalImage,
       rawProduct.image,
     ].filter(Boolean)
@@ -63,6 +69,7 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
 
   const imgCandidates = getImgCandidates() ?? []
   const imgSrc = withCacheBust(imgCandidates[fallbackIndex], rawProduct.imageVersion || nobgVersion)
+  const printSrc = withCacheBust((getImgCandidates("catalog") ?? [])[0], rawProduct.imageVersion || nobgVersion)
   const thumbSrc = rawProduct.processedThumb || rawProduct.thumb || rawProduct.processedThumbFallback || rawProduct.originalImage
   const isBlend = mode === "blend"  // multiply solo si fondo blanco detectado
 
@@ -79,6 +86,7 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
           <img
             src={imgSrc}
             data-thumb-src={withCacheBust(thumbSrc, rawProduct.imageVersion || nobgVersion)}
+            data-print-src={printSrc}
             alt={product.name}
             className={isBlend ? styles.blend : undefined}
             style={imgStyle}

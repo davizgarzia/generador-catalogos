@@ -1,4 +1,4 @@
-import { createRef, useEffect, useMemo, useRef } from "react"
+import { createRef, useEffect, useMemo, useRef, useState } from "react"
 import { useCatalog } from "../context/CatalogContext"
 import { usePrint } from "../context/PrintContext"
 import { useEdit } from "../context/EditContext"
@@ -9,16 +9,17 @@ import BackCover from "../components/BackCover"
 import InfoPage from "../components/InfoPage"
 import CategoryDivider from "../components/CategoryDivider"
 import ProductGrid from "../components/ProductGrid"
-import PageWrapper from "../components/PageWrapper"
+import LazyPageWrapper from "../components/LazyPageWrapper"
 import PageNavigator from "../components/PageNavigator"
 import EditSidebar from "../components/EditSidebar"
 import CatalogPageHeader from "../components/CatalogPageHeader"
 
 export default function CatalogPage() {
   const { catalog, categories, products, loading, error, reload } = useCatalog()
-  const { printMode, printSize, productGrid, hideNoImage } = usePrint()
+  const { printMode, printSize, productGrid, hideNoImage, isPdfRender } = usePrint()
   const { editingProduct } = useEdit()
   const { isAdmin } = useAuth()
+  const [exporting, setExporting] = useState(false)
 
   const categoryOrder = useMemo(
     () => categories.map(category => category.display_name),
@@ -168,6 +169,7 @@ export default function CatalogPage() {
   }
 
   let ri = 0
+  const forceRenderPages = isPdfRender || exporting
 
   return (
     <div className="flex flex-col h-full">
@@ -176,6 +178,7 @@ export default function CatalogPage() {
         totalProducts={visibleProducts.length}
         totalPages={pages.length}
         hiddenProductsList={hiddenProductsList}
+        onExportingChange={setExporting}
       />
 
       <div className="flex-1 flex min-h-0">
@@ -183,14 +186,14 @@ export default function CatalogPage() {
 
         <div ref={catalogAreaRef} id="catalog-area" className="flex-1 overflow-auto">
           <div id="catalog">
-            <PageWrapper ref={pageRefs[ri++]}>
+            <LazyPageWrapper ref={pageRefs[ri++]} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
               <Cover />
-            </PageWrapper>
+            </LazyPageWrapper>
 
             {(() => { const i = ri++; return (
-              <PageWrapper ref={pageRefs[i]} page={pageMeta[i].pageNum} total={pageMeta[i].total}>
+              <LazyPageWrapper ref={pageRefs[i]} page={pageMeta[i].pageNum} total={pageMeta[i].total} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
                 <InfoPage />
-              </PageWrapper>
+              </LazyPageWrapper>
             )})()}
 
             {categoryOrder.map((category) => {
@@ -204,23 +207,25 @@ export default function CatalogPage() {
 
               return (
                 <section key={category}>
-                  <PageWrapper ref={dividerRef}>
+                  <LazyPageWrapper ref={dividerRef} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
                     <CategoryDivider category={category} />
-                  </PageWrapper>
+                  </LazyPageWrapper>
                   <ProductGrid
                     products={categoryProducts}
                     category={category}
                     perPage={perPage}
                     pageRefs={gridRefs}
                     pageMeta={gridMeta}
+                    rootRef={catalogAreaRef}
+                    forceRenderPages={forceRenderPages}
                   />
                 </section>
               )
             })}
 
-            <PageWrapper ref={pageRefs[ri++]}>
+            <LazyPageWrapper ref={pageRefs[ri++]} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
               <BackCover />
-            </PageWrapper>
+            </LazyPageWrapper>
           </div>
         </div>
 
