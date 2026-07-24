@@ -13,6 +13,7 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
 
   const [imgError, setImgError]       = useState(false)
   const [nobgFailed, setNobgFailed]   = useState(false)
+  const [fallbackIndex, setFallbackIndex] = useState(0)
   // imgMode viene del override:
   //   "original" → imagen tal cual, sin multiply (fondo no blanco detectado o sin detectar)
   //   "blend"    → mix-blend-mode multiply (fondo blanco detectado automáticamente)
@@ -22,27 +23,47 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
   const nobgVersion = product.nobgVersion ?? 0
 
   // Reset de errores cuando cambia el producto, modo, o versión nobg
-  useEffect(() => { setImgError(false); setNobgFailed(false) }, [rawProduct.id, mode, nobgVersion])
+  useEffect(() => {
+    setImgError(false)
+    setNobgFailed(false)
+    setFallbackIndex(0)
+  }, [rawProduct.id, mode, nobgVersion])
 
-  function getImgSrc() {
+  function getImgCandidates() {
     if (!rawProduct.image) return null
     if (mode === "nobg" && !nobgFailed && rawProduct.catalogProcessed) {
-      return withCacheBust(rawProduct.catalogProcessed, rawProduct.imageVersion || nobgVersion)
+      return [
+        rawProduct.catalogProcessed,
+        rawProduct.catalogProcessedFallback,
+        rawProduct.catalogImage,
+        rawProduct.catalogImageFallback,
+        rawProduct.originalImage,
+        rawProduct.image,
+      ].filter(Boolean)
     }
-    const base = rawProduct.catalogImage || rawProduct.originalImage || rawProduct.image
-    return withCacheBust(base, rawProduct.imageVersion)
+    return [
+      rawProduct.catalogImage,
+      rawProduct.catalogImageFallback,
+      rawProduct.originalImage,
+      rawProduct.image,
+    ].filter(Boolean)
   }
 
   function handleImgError() {
-    if (mode === "nobg" && !nobgFailed) {
+    if (fallbackIndex < imgCandidates.length - 1) {
+      setFallbackIndex(value => value + 1)
+    } else if (mode === "nobg" && !nobgFailed) {
       // nobg no existe → caer a original
       setNobgFailed(true)
+      setFallbackIndex(0)
     } else {
       setImgError(true)
     }
   }
 
-  const imgSrc  = getImgSrc()
+  const imgCandidates = getImgCandidates() ?? []
+  const imgSrc = withCacheBust(imgCandidates[fallbackIndex], rawProduct.imageVersion || nobgVersion)
+  const thumbSrc = rawProduct.processedThumb || rawProduct.thumb || rawProduct.processedThumbFallback || rawProduct.originalImage
   const isBlend = mode === "blend"  // multiply solo si fondo blanco detectado
 
   // Transform de posición y escala desde overrides
@@ -57,6 +78,7 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
         {!product.imgHidden && imgSrc && !imgError ? (
           <img
             src={imgSrc}
+            data-thumb-src={withCacheBust(thumbSrc, rawProduct.imageVersion || nobgVersion)}
             alt={product.name}
             className={isBlend ? styles.blend : undefined}
             style={imgStyle}

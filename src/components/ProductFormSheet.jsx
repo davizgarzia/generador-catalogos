@@ -50,12 +50,14 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
+  const [imageFallbackIndex, setImageFallbackIndex] = useState(0)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (!open) return
     setError("")
     setUploadStatus(null)
+    setImageFallbackIndex(0)
     if (isEdit) {
       setForm({
         id: product.id,
@@ -146,6 +148,16 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
     }
   }
 
+  const imageCandidates = [
+    liveProduct?.processedPreview,
+    liveProduct?.processedPreviewFallback,
+    liveProduct?.preview,
+    liveProduct?.previewFallback,
+    liveProduct?.processedImage,
+    liveProduct?.originalImage,
+  ].filter(Boolean)
+  const imagePreviewSrc = imageCandidates[imageFallbackIndex]
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[440px] sm:max-w-[440px] flex flex-col p-0">
@@ -168,11 +180,17 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
                 disabled={uploadStatus === "loading"}
                 className="group relative aspect-square w-full overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center transition-opacity disabled:opacity-60"
               >
-                {liveProduct?.processedPreview || liveProduct?.preview ? (
+                {imagePreviewSrc ? (
                   <img
-                    src={withCacheBust(liveProduct.processedPreview || liveProduct.preview, liveProduct.imageVersion || liveProduct.nobgVersion)}
+                    src={withCacheBust(imagePreviewSrc, liveProduct.imageVersion || liveProduct.nobgVersion)}
+                    data-thumb-src={liveProduct.processedThumb || liveProduct.thumb || undefined}
                     alt={liveProduct.name}
                     className="size-full object-contain"
+                    onError={() => {
+                      if (imageFallbackIndex < imageCandidates.length - 1) {
+                        setImageFallbackIndex(value => value + 1)
+                      }
+                    }}
                   />
                 ) : (
                   <div className="flex flex-col items-center gap-1 text-muted-foreground">

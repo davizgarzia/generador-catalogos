@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Pencil, RotateCcw, X } from "lucide-react"
 import { useEdit } from "../context/EditContext"
 import { useOverrides } from "../context/OverridesContext"
@@ -53,11 +53,21 @@ export default function EditSidebar() {
   const { overrides, patchOverride } = useOverrides()
   const { products } = useCatalog()
   const [editFormOpen, setEditFormOpen] = useState(false)
+  const [imageFallbackIndex, setImageFallbackIndex] = useState(0)
 
   const liveProduct = useMemo(() => {
     if (!editingProduct?.id) return editingProduct
     return products.find(item => item.id === editingProduct.id) ?? editingProduct
   }, [products, editingProduct])
+
+  useEffect(() => {
+    setImageFallbackIndex(0)
+  }, [
+    liveProduct?.id,
+    liveProduct?.imageVersion,
+    liveProduct?.nobgVersion,
+    overrides[liveProduct?.id]?.imgMode,
+  ])
 
   if (!liveProduct) return null
 
@@ -83,9 +93,10 @@ export default function EditSidebar() {
     }
   }
 
-  const imgSrc = imgMode === "nobg"
-    ? (liveProduct.processedPreview || liveProduct.processedImage)
-    : (liveProduct.preview || liveProduct.originalImage)
+  const imgCandidates = imgMode === "nobg"
+    ? [liveProduct.processedPreview, liveProduct.processedPreviewFallback, liveProduct.processedImage].filter(Boolean)
+    : [liveProduct.preview, liveProduct.previewFallback, liveProduct.originalImage].filter(Boolean)
+  const imgSrc = imgCandidates[imageFallbackIndex]
   const imgPreviewStyle = {
     width: "100%", height: "100%", objectFit: "contain",
     transform: `translate(${imgX}%, ${imgY}%) scale(${imgScale})`,
@@ -112,9 +123,16 @@ export default function EditSidebar() {
             {imgSrc ? (
               <img
                 src={imgSrc}
+                data-thumb-src={liveProduct.processedThumb || liveProduct.thumb || undefined}
                 alt={name}
                 style={imgPreviewStyle}
-                onError={event => { event.target.style.display = "none" }}
+                onError={event => {
+                  if (imageFallbackIndex < imgCandidates.length - 1) {
+                    setImageFallbackIndex(value => value + 1)
+                  } else {
+                    event.target.style.display = "none"
+                  }
+                }}
               />
             ) : (
               <span className="text-xs text-muted-foreground font-bold tracking-wider">SIN IMAGEN</span>

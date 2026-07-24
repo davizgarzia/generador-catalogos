@@ -6,7 +6,19 @@ export default function Cover() {
   return (
     <div className={styles.page}>
       {catalog.coverImage && (
-        <img className={styles.coverImage} src={catalog.coverImage} alt={`Catálogo ${catalog.name}`} />
+        <img
+          className={styles.coverImage}
+          src={catalog.coverImage}
+          data-thumb-src={catalog.coverThumb || catalog.coverImage}
+          data-fallback-src={catalog.coverImageFallback || undefined}
+          alt={`Catálogo ${catalog.name}`}
+          onError={(event) => {
+            const fallback = event.currentTarget.dataset.fallbackSrc
+            if (fallback && event.currentTarget.src !== fallback) {
+              event.currentTarget.src = fallback
+            }
+          }}
+        />
       )}
     </div>
   )

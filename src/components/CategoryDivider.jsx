@@ -5,6 +5,7 @@ export default function CategoryDivider({ category }) {
   const { categories } = useCatalog()
   const config = categories.find(item => item.display_name === category)
   const mainImage = config?.coverImage
+  const fallbackImage = config?.coverImageFallback
 
   return (
     <div
@@ -28,9 +29,16 @@ export default function CategoryDivider({ category }) {
         {mainImage && (
           <img
             src={mainImage}
+            data-thumb-src={config?.coverThumb || mainImage}
+            data-fallback-src={fallbackImage || undefined}
             alt=""
             onError={(event) => {
-              event.currentTarget.style.display = "none"
+              const fallback = event.currentTarget.dataset.fallbackSrc
+              if (fallback && event.currentTarget.src !== fallback) {
+                event.currentTarget.src = fallback
+              } else {
+                event.currentTarget.style.display = "none"
+              }
             }}
           />
         )}

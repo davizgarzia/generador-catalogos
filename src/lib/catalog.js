@@ -1,11 +1,13 @@
 import { supabase } from "./supabase"
 
 export const CATALOG_SLUG = import.meta.env.VITE_CATALOG_SLUG ?? "catalogo-principal"
+const SUPABASE_IMAGE_TRANSFORMS_ENABLED =
+  import.meta.env.VITE_SUPABASE_IMAGE_TRANSFORMS === "true"
 
 export function getStorageUrl(bucket, path, transform = null) {
   if (!path) return null
   if (/^https?:\/\//.test(path)) return path
-  const options = transform ? { transform } : undefined
+  const options = transform && SUPABASE_IMAGE_TRANSFORMS_ENABLED ? { transform } : undefined
   return supabase.storage.from(bucket).getPublicUrl(path, options).data.publicUrl
 }
 
@@ -22,16 +24,111 @@ const THUMB_TRANSFORM = { width: 160, height: 160, resize: "contain", quality: 7
 const PREVIEW_TRANSFORM = { width: 600, height: 600, resize: "contain", quality: 80 }
 const CATALOG_TRANSFORM = { width: 1000, height: 1000, resize: "contain", quality: 85 }
 
+const PRODUCT_VARIANTS = {
+  original: {
+    thumb: { folder: "thumb", width: 160, height: 160, quality: 0.7 },
+    preview: { folder: "preview", width: 600, height: 600, quality: 0.78 },
+    catalog: { folder: "catalog", width: 1000, height: 1000, quality: 0.84 },
+  },
+  processed: {
+    thumb: { folder: "nobg-thumb", width: 160, height: 160, quality: 0.7 },
+    preview: { folder: "nobg-preview", width: 600, height: 600, quality: 0.78 },
+    catalog: { folder: "nobg-catalog", width: 1000, height: 1000, quality: 0.84 },
+  },
+}
+
+const ASSET_VARIANTS = {
+  large: { folder: "asset-large", width: 2400, height: 2400, quality: 0.86 },
+  thumb: { folder: "asset-thumb", width: 320, height: 320, quality: 0.72 },
+}
+
+function extensionlessName(path) {
+  return path.split("/").pop()?.replace(/\.[^.]+$/, "") || null
+}
+
+function productVariantPath(path, size, variant = "original") {
+  if (!path || /^https?:\/\//.test(path)) return null
+  const name = extensionlessName(path)
+  const config = PRODUCT_VARIANTS[variant]?.[size]
+  if (!name || !config) return null
+  return `${config.folder}/${name}.webp`
+}
+
+function assetVariantPath(path, size) {
+  if (!path || /^https?:\/\//.test(path)) return null
+  const config = ASSET_VARIANTS[size]
+  const withoutExtension = path.replace(/\.[^.]+$/, "")
+  if (!config || !withoutExtension) return null
+  return `${config.folder}/${withoutExtension}.webp`
+}
+
+function getProductVariantUrl(path, size, variant = "original", transform = null) {
+  if (SUPABASE_IMAGE_TRANSFORMS_ENABLED) return getStorageUrl("catalog-images", path, transform)
+  return getStorageUrl("catalog-images", productVariantPath(path, size, variant))
+}
+
+function getAssetVariantUrl(path, size) {
+  return getStorageUrl("catalog-assets", assetVariantPath(path, size))
+}
+
+async function imageBlobToVariant(source, { width, height, quality }) {
+  const bitmap = await createImageBitmap(source)
+  const scale = Math.min(width / bitmap.width, height / bitmap.height, 1)
+  const targetWidth = Math.max(1, Math.round(bitmap.width * scale))
+  const targetHeight = Math.max(1, Math.round(bitmap.height * scale))
+  const canvas = document.createElement("canvas")
+  canvas.width = targetWidth
+  canvas.height = targetHeight
+  const context = canvas.getContext("2d")
+  context.drawImage(bitmap, 0, 0, targetWidth, targetHeight)
+  bitmap.close?.()
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      blob => blob ? resolve(blob) : reject(new Error("No se pudo optimizar la imagen.")),
+      "image/webp",
+      quality
+    )
+  })
+}
+
+async function uploadStorageObject(bucket, path, body, contentType) {
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, body, { upsert: true, contentType, cacheControl: "31536000" })
+  if (error) throw error
+}
+
+async function uploadProductImageVariants(file, productId, variant) {
+  const sizes = PRODUCT_VARIANTS[variant]
+  await Promise.all(Object.entries(sizes).map(async ([size, config]) => {
+    const blob = await imageBlobToVariant(file, config)
+    await uploadStorageObject(
+      "catalog-images",
+      productVariantPath(`${variant === "processed" ? "nobg" : "original"}/${productId}.png`, size, variant),
+      blob,
+      "image/webp"
+    )
+  }))
+}
+
+async function uploadCatalogAssetVariants(file, path) {
+  await Promise.all(Object.values(ASSET_VARIANTS).map(async config => {
+    const blob = await imageBlobToVariant(file, config)
+    await uploadStorageObject("catalog-assets", `${config.folder}/${path.replace(/\.[^.]+$/, "")}.webp`, blob, "image/webp")
+  }))
+}
+
 function mapCatalogProduct(row) {
   const product = row.product
   const originalImage = getStorageUrl("catalog-images", row.original_image_path)
   const processedImage = getStorageUrl("catalog-images", row.processed_image_path)
-  const thumb = getStorageUrl("catalog-images", row.original_image_path, THUMB_TRANSFORM)
-  const processedThumb = getStorageUrl("catalog-images", row.processed_image_path, THUMB_TRANSFORM)
-  const preview = getStorageUrl("catalog-images", row.original_image_path, PREVIEW_TRANSFORM)
-  const processedPreview = getStorageUrl("catalog-images", row.processed_image_path, PREVIEW_TRANSFORM)
-  const catalogImage = getStorageUrl("catalog-images", row.original_image_path, CATALOG_TRANSFORM)
-  const catalogProcessed = getStorageUrl("catalog-images", row.processed_image_path, CATALOG_TRANSFORM)
+  const thumb = getProductVariantUrl(row.original_image_path, "thumb", "original", THUMB_TRANSFORM)
+  const processedThumb = getProductVariantUrl(row.processed_image_path, "thumb", "processed", THUMB_TRANSFORM)
+  const preview = getProductVariantUrl(row.original_image_path, "preview", "original", PREVIEW_TRANSFORM)
+  const processedPreview = getProductVariantUrl(row.processed_image_path, "preview", "processed", PREVIEW_TRANSFORM)
+  const catalogImage = getProductVariantUrl(row.original_image_path, "catalog", "original", CATALOG_TRANSFORM)
+  const catalogProcessed = getProductVariantUrl(row.processed_image_path, "catalog", "processed", CATALOG_TRANSFORM)
 
   return {
     id: row.product_id,
@@ -47,6 +144,12 @@ function mapCatalogProduct(row) {
     image: originalImage,
     originalImage,
     processedImage,
+    originalThumb: originalImage,
+    processedThumbFallback: processedImage,
+    previewFallback: originalImage,
+    processedPreviewFallback: processedImage,
+    catalogImageFallback: originalImage,
+    catalogProcessedFallback: processedImage,
     thumb,
     processedThumb,
     preview,
@@ -110,7 +213,9 @@ export async function loadCatalogBundle() {
 
   const categories = categoriesResult.data.map(category => ({
     ...category,
-    coverImage: getStorageUrl("catalog-assets", category.cover_image_path),
+    coverImage: getAssetVariantUrl(category.cover_image_path, "large") || getStorageUrl("catalog-assets", category.cover_image_path),
+    coverImageFallback: getStorageUrl("catalog-assets", category.cover_image_path),
+    coverThumb: getAssetVariantUrl(category.cover_image_path, "thumb"),
   }))
   const products = productsResult.data.map(mapCatalogProduct)
   const byId = new Map(products.map(product => [product.id, product]))
@@ -118,9 +223,13 @@ export async function loadCatalogBundle() {
   return {
     catalog: {
       ...catalog,
-      coverImage: getStorageUrl("catalog-assets", catalog.cover_image_path),
-      logo: getStorageUrl("catalog-assets", catalog.logo_path),
-      logoWhite: getStorageUrl("catalog-assets", catalog.logo_white_path),
+      coverImage: getAssetVariantUrl(catalog.cover_image_path, "large") || getStorageUrl("catalog-assets", catalog.cover_image_path),
+      coverImageFallback: getStorageUrl("catalog-assets", catalog.cover_image_path),
+      coverThumb: getAssetVariantUrl(catalog.cover_image_path, "thumb"),
+      logo: getAssetVariantUrl(catalog.logo_path, "large") || getStorageUrl("catalog-assets", catalog.logo_path),
+      logoFallback: getStorageUrl("catalog-assets", catalog.logo_path),
+      logoWhite: getAssetVariantUrl(catalog.logo_white_path, "large") || getStorageUrl("catalog-assets", catalog.logo_white_path),
+      logoWhiteFallback: getStorageUrl("catalog-assets", catalog.logo_white_path),
     },
     categories,
     products,
@@ -227,6 +336,7 @@ export async function uploadProductImage(catalogId, productId, file, variant = "
     .from("catalog-images")
     .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "31536000" })
   if (uploadError) throw uploadError
+  await uploadProductImageVariants(file, productId, variant)
 
   const field = variant === "processed" ? "processed_image_path" : "original_image_path"
   const { error } = await supabase
@@ -274,6 +384,7 @@ export async function uploadCatalogAsset(file, path) {
     .from("catalog-assets")
     .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "31536000" })
   if (error) throw error
+  await uploadCatalogAssetVariants(file, path)
   return path
 }
 

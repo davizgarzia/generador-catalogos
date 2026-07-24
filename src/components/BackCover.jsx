@@ -11,7 +11,15 @@ export default function BackCover() {
         <img
           className={styles.logo}
           src={logo}
+          data-thumb-src={logo}
+          data-fallback-src={catalog.logoWhiteFallback || catalog.logoFallback || undefined}
           alt={catalog.name}
+          onError={(event) => {
+            const fallback = event.currentTarget.dataset.fallbackSrc
+            if (fallback && event.currentTarget.src !== fallback) {
+              event.currentTarget.src = fallback
+            }
+          }}
         />
       )}
     </div>

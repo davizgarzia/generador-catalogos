@@ -130,8 +130,18 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
                 <img
                   className={styles.headerCover}
                   src={config.coverImage}
+                  data-thumb-src={categoryConfig?.coverThumb || config.coverImage}
+                  data-fallback-src={categoryConfig?.coverImageFallback || undefined}
                   alt=""
                   aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(event) => {
+                    const fallback = event.currentTarget.dataset.fallbackSrc
+                    if (fallback && event.currentTarget.src !== fallback) {
+                      event.currentTarget.src = fallback
+                    }
+                  }}
                 />
               )}
               <div className={styles.headerText}>
@@ -163,7 +173,17 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
                     <img
                       className={styles.footerLogo}
                       src={catalog.logoWhite}
+                      data-thumb-src={catalog.logoWhite}
+                      data-fallback-src={catalog.logoWhiteFallback || catalog.logoFallback || undefined}
                       alt={catalog.name}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        const fallback = event.currentTarget.dataset.fallbackSrc
+                        if (fallback && event.currentTarget.src !== fallback) {
+                          event.currentTarget.src = fallback
+                        }
+                      }}
                     />
                     <span className={styles.footerDivider} />
                     <span>CATÁLOGO DE PRODUCTOS</span>

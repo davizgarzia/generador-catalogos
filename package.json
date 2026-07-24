@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "images:variants": "node scripts/generate-storage-image-variants.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
