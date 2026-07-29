@@ -66,6 +66,10 @@ VITE_SUPABASE_PUBLISHABLE_KEY=...
 VITE_CATALOG_SLUG=catalogo-principal
 SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
+R2_BUCKET_NAME=impormed-catalog
+R2_ENDPOINT=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` solo está disponible para la función Netlify y nunca
@@ -73,6 +77,12 @@ debe usar prefijo `VITE_`.
 
 `generate-pdf-background` valida el JWT y `catalog_admins`, renderiza el catálogo
 con Chromium y guarda el resultado en `catalog-pdfs`.
+
+Las imágenes de producto se sirven desde Cloudflare R2 cuando
+`VITE_R2_PUBLIC_URL` está configurado. La subida de imágenes usa funciones
+Netlify: primero firma una URL de subida directa a R2 y después genera las
+variantes WebP (`thumb`, `preview`, `catalog` y `nobg-*`) con `sharp`, antes de
+actualizar `catalog_products`.
 
 La eliminación de fondos y el autoajuste masivo están fuera de esta fase y no
 aparecen como acciones operativas.

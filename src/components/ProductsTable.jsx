@@ -7,6 +7,9 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ChevronsUpDown,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react"
 import {
   Table,
@@ -26,6 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
@@ -38,21 +47,30 @@ function statusOf(product) {
 const ALL_COLUMNS = [
   { key: "id", label: "Ref", sortable: true, className: "w-[110px]" },
   { key: "name", label: "Nombre", sortable: true },
+  { key: "status", label: "Estado", sortable: false, className: "w-[120px]" },
   { key: "category", label: "Categoría", sortable: true, className: "w-[200px]" },
   { key: "stockUnits", label: "Stock", sortable: true, className: "w-[100px] text-right" },
   { key: "unitsPerCase", label: "Uds./caja", sortable: true, className: "w-[110px] text-right" },
-  { key: "sourceType", label: "Fuente", sortable: true, className: "w-[120px]" },
-  { key: "status", label: "Estado", sortable: false, className: "w-[120px]" },
+  { key: "addedAt", label: "Añadido", sortable: true, className: "w-[140px]" },
+  { key: "updatedAt", label: "Modificado", sortable: true, className: "w-[150px]" },
 ]
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+const DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+})
 
 export default function ProductsTable({
   products,
   onRowClick,
+  onDeleteClick,
   columnVisibility = {},
 }) {
-  const [sort, setSort] = useState({ key: "id", direction: "asc" })
+  const [sort, setSort] = useState({ key: "addedAt", direction: "desc" })
   const [selection, setSelection] = useState(() => new Set())
   const [pageSize, setPageSize] = useState(10)
   const [pageIndex, setPageIndex] = useState(0)
@@ -159,6 +177,7 @@ export default function ProductsTable({
                   )}
                 </TableHead>
               ))}
+              <TableHead className="w-[64px] px-6 text-right" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -184,12 +203,39 @@ export default function ProductsTable({
                       {renderCell(column.key, product, status)}
                     </TableCell>
                   ))}
+                  <TableCell className="px-6 py-4 text-right" onClick={event => event.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        type="button"
+                        aria-label={`Acciones de ${product.id}`}
+                        className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:size-4 [&_svg]:shrink-0"
+                      >
+                        <MoreHorizontal />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="cursor-pointer" onSelect={() => onRowClick(product)}>
+                          <Pencil />
+                          Editar
+                        </DropdownMenuItem>
+                        {onDeleteClick && (
+                          <DropdownMenuItem
+                            variant="destructive"
+                            className="cursor-pointer"
+                            onSelect={() => onDeleteClick(product)}
+                          >
+                            <Trash2 />
+                            Eliminar
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               )
             })}
             {!paged.length && (
               <TableRow>
-                <TableCell colSpan={columns.length + 1} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length + 2} className="h-32 text-center text-muted-foreground">
                   No hay productos que coincidan con los filtros.
                 </TableCell>
               </TableRow>
@@ -292,6 +338,10 @@ function renderCell(key, product, status) {
       return <span className="block text-right tabular-nums">{product.stockUnits ?? 0}</span>
     case "unitsPerCase":
       return <span className="block text-right tabular-nums">{product.unitsPerCase ?? "—"}</span>
+    case "addedAt":
+      return <DateCell value={product.addedAt} />
+    case "updatedAt":
+      return <DateCell value={product.updatedAt} />
     case "sourceType":
       return (
         <Badge variant={product.sourceType === "manual" ? "secondary" : "outline"} className="font-normal capitalize">
@@ -303,6 +353,17 @@ function renderCell(key, product, status) {
     default:
       return null
   }
+}
+
+function DateCell({ value }) {
+  if (!value) return <span className="text-muted-foreground">—</span>
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return <span className="text-muted-foreground">—</span>
+  return (
+    <span className="block whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+      {DATE_FORMATTER.format(date)}
+    </span>
+  )
 }
 
 function SortButton({ label, active, direction, onClick }) {

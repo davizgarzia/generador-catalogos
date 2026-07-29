@@ -17,12 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useCatalog } from "../context/CatalogContext"
 import { useAuth } from "../context/AuthContext"
 import ProductsTable from "../components/ProductsTable"
 import ProductFormSheet from "../components/ProductFormSheet"
 import ImportExcelButton from "../components/ImportExcelButton"
 import ImportImagesButton from "../components/ImportImagesButton"
+import { deleteProduct } from "../lib/catalog"
 
 const ANY = "all"
 
@@ -40,7 +49,7 @@ const SOURCE_OPTIONS = [
 ]
 
 export default function ProductsPage() {
-  const { categories, products, loading } = useCatalog()
+  const { catalog, categories, products, loading, reload } = useCatalog()
   const { isAdmin } = useAuth()
   const [query, setQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState(ANY)
@@ -49,6 +58,9 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState(null)
   const [creating, setCreating] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [deleting, setDeleting] = useState(null)
+  const [deleteError, setDeleteError] = useState("")
+  const [deletePending, setDeletePending] = useState(false)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -72,6 +84,21 @@ export default function ProductsPage() {
     setStatusFilter(ANY)
     setCategoryFilter(ANY)
     setSourceFilter(ANY)
+  }
+
+  async function handleDeleteProduct() {
+    if (!catalog?.id || !deleting?.id) return
+    setDeletePending(true)
+    setDeleteError("")
+    try {
+      await deleteProduct(catalog.id, deleting.id)
+      await reload()
+      setDeleting(null)
+    } catch (error) {
+      setDeleteError(error.message)
+    } finally {
+      setDeletePending(false)
+    }
   }
 
   return (
@@ -171,7 +198,16 @@ export default function ProductsPage() {
         </Card>
       ) : (
         <Card className="gap-0 py-0 overflow-hidden">
-          <ProductsTable products={filtered} onRowClick={setEditing} />
+          <ProductsTable
+            products={filtered}
+            onRowClick={setEditing}
+            onDeleteClick={isAdmin
+              ? product => {
+                setDeleteError("")
+                setDeleting(product)
+              }
+              : undefined}
+          />
         </Card>
       )}
 
@@ -184,6 +220,35 @@ export default function ProductsPage() {
         open={creating}
         onOpenChange={setCreating}
       />
+      <Dialog open={Boolean(deleting)} onOpenChange={open => !open && !deletePending && setDeleting(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar producto</DialogTitle>
+            <DialogDescription>
+              Esta acción quitará {deleting?.name || deleting?.id} del catálogo. No se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deletePending}
+              onClick={() => setDeleting(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deletePending}
+              onClick={handleDeleteProduct}
+            >
+              {deletePending ? "Eliminando…" : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

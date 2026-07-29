@@ -101,13 +101,13 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
-            <Route index element={<Navigate to="/catalog" replace />} />
+            <Route index element={<Navigate to="/products" replace />} />
             <Route path="/catalog" element={<CatalogPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/catalog" replace />} />
+        <Route path="*" element={<Navigate to="/products" replace />} />
       </Routes>
     </TooltipProvider>
   )

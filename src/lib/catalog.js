@@ -3,12 +3,26 @@ import { supabase } from "./supabase"
 export const CATALOG_SLUG = import.meta.env.VITE_CATALOG_SLUG ?? "catalogo-principal"
 const SUPABASE_IMAGE_TRANSFORMS_ENABLED =
   import.meta.env.VITE_SUPABASE_IMAGE_TRANSFORMS === "true"
+const R2_PUBLIC_URL = import.meta.env.VITE_R2_PUBLIC_URL?.replace(/\/+$/, "")
+const PRODUCT_IMAGE_UPLOADS_USE_R2 = Boolean(R2_PUBLIC_URL)
+
+function getSupabaseStorageUrl(bucket, path, transform = null) {
+  const options = transform && SUPABASE_IMAGE_TRANSFORMS_ENABLED ? { transform } : undefined
+  return supabase.storage.from(bucket).getPublicUrl(path, options).data.publicUrl
+}
+
+function getR2CatalogImageUrl(path) {
+  if (!R2_PUBLIC_URL || !path) return null
+  return `${R2_PUBLIC_URL}/${path.replace(/^\/+/, "")}`
+}
 
 export function getStorageUrl(bucket, path, transform = null) {
   if (!path) return null
   if (/^https?:\/\//.test(path)) return path
-  const options = transform && SUPABASE_IMAGE_TRANSFORMS_ENABLED ? { transform } : undefined
-  return supabase.storage.from(bucket).getPublicUrl(path, options).data.publicUrl
+  if (bucket === "catalog-images" && !SUPABASE_IMAGE_TRANSFORMS_ENABLED) {
+    return getR2CatalogImageUrl(path) || getSupabaseStorageUrl(bucket, path, transform)
+  }
+  return getSupabaseStorageUrl(bucket, path, transform)
 }
 
 const CACHE_BUST_WINDOW_MS = 5 * 60 * 1000
@@ -158,6 +172,8 @@ function mapCatalogProduct(row) {
     catalogProcessed,
     sortOrder: row.sort_order,
     active: row.active,
+    addedAt: row.created_at,
+    updatedAt: row.updated_at,
     imgHidden: row.img_hidden,
     imgX: Number(row.img_x),
     imgY: Number(row.img_y),
@@ -329,6 +345,59 @@ export async function setProductActive(catalogId, productId, active) {
 }
 
 export async function uploadProductImage(catalogId, productId, file, variant = "original") {
+  if (PRODUCT_IMAGE_UPLOADS_USE_R2) {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw sessionError
+    const token = sessionData.session?.access_token
+    if (!token) throw new Error("Debes iniciar sesión para subir imágenes.")
+
+    const presignResponse = await fetch("/.netlify/functions/r2-presign-product-image", {
+      method: "POST",
+      headers: {
+        "authorization": `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        productId,
+        variant,
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
+      }),
+    })
+    const presign = await presignResponse.json().catch(() => ({}))
+    if (!presignResponse.ok) {
+      throw new Error(presign.error || "No se pudo preparar la subida a R2.")
+    }
+
+    const uploadResponse = await fetch(presign.uploadUrl, {
+      method: "PUT",
+      headers: presign.headers || { "content-type": file.type || "application/octet-stream" },
+      body: file,
+    })
+    if (!uploadResponse.ok) {
+      throw new Error(`No se pudo subir la imagen a R2: HTTP ${uploadResponse.status}`)
+    }
+
+    const processResponse = await fetch("/.netlify/functions/r2-process-product-image", {
+      method: "POST",
+      headers: {
+        "authorization": `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        catalogId,
+        productId,
+        variant,
+        path: presign.path,
+      }),
+    })
+    const processed = await processResponse.json().catch(() => ({}))
+    if (!processResponse.ok) {
+      throw new Error(processed.error || "No se pudieron generar las variantes de imagen.")
+    }
+    return processed.path
+  }
+
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg"
   const folder = variant === "processed" ? "nobg" : "original"
   const path = `${folder}/${productId}.${variant === "processed" ? "png" : extension}`
@@ -352,6 +421,27 @@ export async function uploadProductImage(catalogId, productId, file, variant = "
     .eq("product_id", productId)
   if (error) throw error
   return path
+}
+
+export async function deleteProduct(catalogId, productId) {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw sessionError
+  const token = sessionData.session?.access_token
+  if (!token) throw new Error("Debes iniciar sesión para eliminar productos.")
+
+  const response = await fetch("/.netlify/functions/r2-delete-product", {
+    method: "POST",
+    headers: {
+      "authorization": `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ catalogId, productId }),
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(result.error || "No se pudo eliminar el producto.")
+  }
+  return result
 }
 
 export async function importCatalogProducts(products) {
