@@ -1,22 +1,14 @@
-import { useState } from "react"
-import { Check, ChevronDown, Download, Loader2, Settings } from "lucide-react"
+import { useRef, useState } from "react"
+import { Download, Loader2, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { usePrint } from "../context/PrintContext"
 import ViewControlsSheet from "./ViewControlsSheet"
 
-const QUALITY_PRESETS = {
-  low:    { label: "Rápida", scale: 1,    jpegQuality: 0.6  },
+const SHOW_LEGACY_PDF_EXPORT = false
+const LEGACY_QUALITY_PRESETS = {
+  low:    { label: "Rápida", scale: 1,    jpegQuality: 0.6 },
   medium: { label: "Media",  scale: 1.5,  jpegQuality: 0.85 },
   high:   { label: "Alta",   scale: 2.5,  jpegQuality: 0.95 },
 }
@@ -29,9 +21,24 @@ export default function CatalogPageHeader({
   onExportingChange,
 }) {
   const { printMode } = usePrint()
-  const [quality, setQuality] = useState("medium")
   const [viewOpen, setViewOpen] = useState(false)
+  const [legacyQuality] = useState("medium")
   const [clientExport, setClientExport] = useState({ active: false, phase: null, page: 0, total: 0 })
+  const cancelExportRef = useRef(false)
+
+  async function waitForCatalogPages() {
+    const startedAt = Date.now()
+    while (Date.now() - startedAt < 6000) {
+      if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
+      const wrappers = Array.from(document.querySelectorAll("#catalog > div, #catalog section > div"))
+      const rendered = wrappers.filter(wrapper =>
+        Array.from(wrapper.children).some(child => child.childElementCount > 0)
+      ).length
+      if (wrappers.length >= totalPages && rendered >= totalPages) return
+      setClientExport({ active: true, phase: "rendering", page: 0, total: 0 })
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  }
 
   async function preloadCatalogImages(onProgress) {
     const imgs = Array.from(document.querySelectorAll("#catalog img"))
@@ -39,10 +46,9 @@ export default function CatalogPageHeader({
     if (!total) return
     onProgress(0, total)
     let loaded = 0
-    await Promise.all(imgs.map(async img => {
+    for (const img of imgs) {
+      if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
       try {
-        const printSrc = img.dataset.printSrc
-        if (printSrc && img.src !== printSrc) img.src = printSrc
         img.loading = "eager"
         if (!img.complete || img.naturalHeight === 0) {
           await img.decode()
@@ -52,20 +58,63 @@ export default function CatalogPageHeader({
       }
       loaded += 1
       onProgress(loaded, total)
-    }))
+    }
   }
 
-  async function handleClientPdf() {
+  function cancelClientPdf() {
+    cancelExportRef.current = true
+    setClientExport(prev => ({ ...prev, phase: "canceling" }))
+  }
+
+  async function handleBrowserPrint() {
     if (clientExport.active) return
+    cancelExportRef.current = false
     setClientExport({ active: true, phase: "preparing", page: 0, total: 0 })
     onExportingChange?.(true)
+
+    let cleanupTimer
+    const cleanup = () => {
+      window.removeEventListener("afterprint", cleanup)
+      window.clearTimeout(cleanupTimer)
+      onExportingChange?.(false)
+      setClientExport({ active: false, phase: null, page: 0, total: 0 })
+      cancelExportRef.current = false
+    }
+
     try {
-      const preset = QUALITY_PRESETS[quality]
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
+      await waitForCatalogPages()
 
       await preloadCatalogImages((page, total) => {
         setClientExport({ active: true, phase: "preparing", page, total })
       })
+      if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
+
+      setClientExport({ active: true, phase: "printing", page: 0, total: 0 })
+      window.addEventListener("afterprint", cleanup, { once: true })
+      window.print()
+      cleanupTimer = window.setTimeout(cleanup, 1000)
+    } catch (error) {
+      if (error.message !== "EXPORT_CANCELLED") {
+        alert(`Error preparando impresión: ${error.message}`)
+      }
+      cleanup()
+    }
+  }
+
+  async function handleLegacyPdfExport() {
+    if (clientExport.active) return
+    cancelExportRef.current = false
+    setClientExport({ active: true, phase: "preparing", page: 0, total: 0 })
+    onExportingChange?.(true)
+    try {
+      const preset = LEGACY_QUALITY_PRESETS[legacyQuality]
+      await waitForCatalogPages()
+      await preloadCatalogImages((page, total) => {
+        setClientExport({ active: true, phase: "preparing", page, total })
+      })
+      if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
 
       const [{ domToJpeg }, { jsPDF }] = await Promise.all([
         import("modern-screenshot"),
@@ -84,28 +133,33 @@ export default function CatalogPageHeader({
       }
 
       for (let i = 0; i < pages.length; i++) {
+        if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
         setClientExport({ active: true, phase: "capturing", page: i + 1, total: pages.length })
         const imgData = await domToJpeg(pages[i], {
           scale: preset.scale,
           quality: preset.jpegQuality,
           backgroundColor: "#ffffff",
         })
+        if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
         if (i > 0) pdf.addPage(printMode ? [widthMm, heightMm] : "a4", "portrait")
         pdf.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm, undefined, "FAST")
       }
 
       pdf.save(`catalogo-${catalog.slug}-${catalog.edition}.pdf`)
     } catch (error) {
-      alert(`Error generando PDF: ${error.message}`)
+      if (error.message !== "EXPORT_CANCELLED") {
+        alert(`Error generando PDF: ${error.message}`)
+      }
     } finally {
       onExportingChange?.(false)
       setClientExport({ active: false, phase: null, page: 0, total: 0 })
+      cancelExportRef.current = false
     }
   }
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4 px-4 py-4 md:py-6 lg:px-6 border-b border-border bg-background">
+      <div className="app-chrome flex items-start justify-between gap-4 px-4 py-4 md:py-6 lg:px-6 border-b border-border bg-background">
         <div className="space-y-1 min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">Catálogo</h1>
           <p className="text-sm text-muted-foreground">
@@ -138,55 +192,52 @@ export default function CatalogPageHeader({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <div className="inline-flex items-stretch">
+          <Button
+            onClick={handleBrowserPrint}
+            disabled={clientExport.active}
+            className="min-w-[190px]"
+          >
+            {clientExport.active ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {clientExport.phase === "preparing"
+                  ? clientExport.total
+                    ? `Preparando ${clientExport.page}/${clientExport.total}`
+                    : "Preparando…"
+                  : clientExport.phase === "rendering"
+                    ? "Preparando impresión…"
+                  : clientExport.phase === "canceling"
+                    ? "Cancelando…"
+                  : "Preparando impresión…"}
+              </>
+            ) : (
+              <>
+                <Download /> Guardar PDF
+              </>
+            )}
+          </Button>
+
+          {SHOW_LEGACY_PDF_EXPORT && (
             <Button
-              onClick={handleClientPdf}
+              type="button"
+              variant="outline"
+              onClick={handleLegacyPdfExport}
               disabled={clientExport.active}
-              className="min-w-[160px] rounded-r-none border-r border-r-primary-foreground/20"
             >
-              {clientExport.active ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {clientExport.phase === "preparing"
-                    ? clientExport.total
-                      ? `Preparando ${clientExport.page}/${clientExport.total}`
-                      : "Preparando…"
-                    : clientExport.total
-                      ? `${clientExport.page}/${clientExport.total}`
-                      : "Generando…"}
-                </>
-              ) : (
-                <>
-                  <Download /> Descargar PDF
-                </>
-              )}
+              Generar PDF
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                type="button"
-                disabled={clientExport.active}
-                title="Calidad del PDF"
-                aria-label="Calidad del PDF"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md rounded-l-none bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:size-4 [&_svg]:shrink-0"
-              >
-                <ChevronDown />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuLabel>Calidad del PDF</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {Object.entries(QUALITY_PRESETS).map(([key, preset]) => (
-                  <DropdownMenuItem
-                    key={key}
-                    onSelect={() => setQuality(key)}
-                    className="gap-2"
-                  >
-                    <Check className={cn("size-4", quality === key ? "opacity-100" : "opacity-0")} />
-                    <span>{preset.label}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          )}
+
+          {clientExport.active && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={cancelClientPdf}
+              disabled={clientExport.phase === "canceling"}
+            >
+              Cancelar
+            </Button>
+          )}
 
           <Button
             variant="outline"

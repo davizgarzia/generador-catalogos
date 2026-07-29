@@ -106,47 +106,12 @@ export default function CatalogPage() {
   )
 
   const catalogAreaRef = useRef(null)
-  const scrollRestoredRef = useRef(false)
 
   useEffect(() => {
-    const el = catalogAreaRef.current
-    if (!el) return
-    let timeoutId
-    function handleScroll() {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => {
-        try {
-          window.localStorage.setItem("impormed.catalogScroll", String(el.scrollTop))
-        } catch {
-          // ignore quota / disabled storage
-        }
-      }, 200)
-    }
-    el.addEventListener("scroll", handleScroll, { passive: true })
-    return () => {
-      el.removeEventListener("scroll", handleScroll)
-      clearTimeout(timeoutId)
-    }
-  }, [pages.length])
-
-  useEffect(() => {
-    if (scrollRestoredRef.current || !pages.length) return
-    const el = catalogAreaRef.current
-    if (!el) return
-    try {
-      const saved = window.localStorage.getItem("impormed.catalogScroll")
-      if (saved !== null) {
-        const value = Number(saved)
-        if (Number.isFinite(value) && value > 0) {
-          requestAnimationFrame(() => {
-            if (catalogAreaRef.current) catalogAreaRef.current.scrollTop = value
-          })
-        }
-      }
-    } catch {
-      // ignore
-    }
-    scrollRestoredRef.current = true
+    if (!pages.length) return
+    requestAnimationFrame(() => {
+      if (catalogAreaRef.current) catalogAreaRef.current.scrollTop = 0
+    })
   }, [pages.length])
 
   if (loading) {

@@ -25,7 +25,7 @@ export default function ViewControlsSheet({ open, onOpenChange }) {
         <SheetHeader className="p-0">
           <SheetTitle>Opciones de vista</SheetTitle>
           <SheetDescription>
-            Cambia cómo se previsualiza y se exporta el catálogo.
+            Cambia cómo se previsualiza y se imprime el catálogo.
           </SheetDescription>
         </SheetHeader>
 

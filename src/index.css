@@ -81,6 +81,20 @@
     height: auto;
     overflow: visible;
   }
+
+  [data-slot="sidebar-wrapper"],
+  [data-slot="sidebar-inset"],
+  .app-main,
+  .app-scroll,
+  #catalog-area {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    inset: auto !important;
+  }
 }
 
 /* ── Catálogo impreso conserva su voz (Montserrat) ──── */
@@ -123,26 +137,59 @@
   }
 
   /* Ocultar chrome de la app */
-  .app-chrome {
+  .app-chrome,
+  [data-slot="sidebar"],
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"] {
     display: none !important;
   }
 
   /* Anular los márgenes del área de catálogo */
   #catalog-area {
     margin: 0 !important;
+    background: #fff !important;
   }
 
   #catalog {
+    display: block;
     gap: 0;
     padding: 0;
+    width: 100%;
+  }
+
+  #catalog section {
+    display: contents !important;
   }
 
   /* Page break after each printable page wrapper. Sections are transparent
      containers — they must NOT add their own break or a blank page appears
      between categories. */
-  #catalog > div,
-  #catalog section > * {
+  body.mode-normal #catalog > div,
+  body.mode-normal #catalog section > * {
+    display: flex !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    overflow: hidden !important;
     box-shadow: none;
+    break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  body.mode-print #catalog > div,
+  body.mode-print #catalog section > * {
+    display: flex !important;
+    width: 216mm !important;
+    height: 303mm !important;
+    min-height: 303mm !important;
+    overflow: hidden !important;
+    box-shadow: none;
+    break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
     page-break-after: always;
     break-after: page;
   }
@@ -161,7 +208,6 @@
   /* Modo sin marcas: el wrapper exterior (sheetNormal) no debe añadir
      espacio — display:contents lo colapsa y el inner queda como raíz */
   body.mode-normal [class*="sheetNormal"] {
-    display: contents !important;
+    display: flex !important;
   }
 }
-
