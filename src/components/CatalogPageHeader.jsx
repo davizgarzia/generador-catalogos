@@ -201,11 +201,9 @@ export default function CatalogPageHeader({
               <>
                 <Loader2 className="animate-spin" />
                 {clientExport.phase === "preparing"
-                  ? clientExport.total
-                    ? `Preparando ${clientExport.page}/${clientExport.total}`
-                    : "Preparando…"
+                  ? "Preparando…"
                   : clientExport.phase === "rendering"
-                    ? "Preparando impresión…"
+                    ? "Preparando…"
                   : clientExport.phase === "canceling"
                     ? "Cancelando…"
                   : "Preparando impresión…"}
