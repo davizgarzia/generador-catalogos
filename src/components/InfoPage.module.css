@@ -11,6 +11,13 @@
   print-color-adjust: exact;
 }
 
+:global(body.mode-print) .page {
+  margin: -3mm;
+  width: 216mm;
+  height: 303mm;
+  padding: 28mm 25mm 25mm;
+}
+
 .header {
   max-width: 144mm;
   padding-bottom: 14mm;

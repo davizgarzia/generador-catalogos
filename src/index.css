@@ -4,32 +4,7 @@
 }
 
 @import "tailwindcss";
-
-/* ── Geist Sans para el chrome de la UI ───────────────── */
-@font-face {
-  font-family: "Geist";
-  src: url("/node_modules/geist/dist/fonts/geist-sans/Geist-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-}
-@font-face {
-  font-family: "Geist";
-  src: url("/node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-}
-@font-face {
-  font-family: "Geist";
-  src: url("/node_modules/geist/dist/fonts/geist-sans/Geist-SemiBold.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-}
-@font-face {
-  font-family: "Geist";
-  src: url("/node_modules/geist/dist/fonts/geist-sans/Geist-Bold.woff2") format("woff2");
-  font-weight: 700;
-  font-style: normal;
-}
+@import "tw-animate-css";
 
 /* ── shadcn/ui theme (zinc, New York style, Tailwind v4) ── */
 @theme inline {
@@ -52,6 +27,16 @@
   --color-border: hsl(240 5.9% 90%);
   --color-input: hsl(240 5.9% 90%);
   --color-ring: hsl(240 5.9% 10%);
+  --color-sidebar: hsl(0 0% 98%);
+  --color-sidebar-foreground: hsl(240 5.3% 26.1%);
+  --color-sidebar-primary: hsl(240 5.9% 10%);
+  --color-sidebar-primary-foreground: hsl(0 0% 98%);
+  --color-sidebar-accent: hsl(240 4.8% 95.9%);
+  --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --color-sidebar-border: hsl(220 13% 91%);
+  --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
   --radius: 0.5rem;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -59,30 +44,68 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ── Global reset & base ───────────────────────────────── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* ── Global base layer ─────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-size: 16px;
+    height: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color: var(--color-foreground);
+    background: var(--color-background);
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
 }
 
-html {
-  font-size: 16px;
+@media print {
+  html,
+  body,
+  #root {
+    height: auto;
+    overflow: visible;
+  }
+
+  [data-slot="sidebar-wrapper"],
+  [data-slot="sidebar-inset"],
+  .app-main,
+  .app-scroll,
+  #catalog-area {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    inset: auto !important;
+  }
 }
 
-body {
+/* ── Catálogo impreso conserva su voz (Montserrat) ──── */
+#catalog,
+#catalog * {
   font-family: "Montserrat", Arial, sans-serif;
-  background: #f0f0f0;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  color: #1a1a2e;
 }
 
-/* ── Chrome de la app usa Geist ───────────────────────── */
-.app-chrome {
-  font-family: "Geist", system-ui, sans-serif;
+/* ── Área donde flotan las hojas (gris sutil) ─────────── */
+#catalog-area {
+  background: hsl(220 14% 96%);
 }
 
 /* ── Page wrapper (A4 simulation in browser) ──────────── */
@@ -114,30 +137,66 @@ body {
   }
 
   /* Ocultar chrome de la app */
-  .app-chrome {
+  .app-chrome,
+  [data-slot="sidebar"],
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"] {
     display: none !important;
   }
 
   /* Anular los márgenes del área de catálogo */
   #catalog-area {
     margin: 0 !important;
+    background: #fff !important;
   }
 
   #catalog {
+    display: block;
     gap: 0;
     padding: 0;
+    width: 100%;
   }
 
-  #catalog > *,
-  #catalog section > * {
+  #catalog section {
+    display: contents !important;
+  }
+
+  /* Page break after each printable page wrapper. Sections are transparent
+     containers — they must NOT add their own break or a blank page appears
+     between categories. */
+  body.mode-normal #catalog > div,
+  body.mode-normal #catalog section > * {
+    display: flex !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    overflow: hidden !important;
     box-shadow: none;
+    break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
     page-break-after: always;
     break-after: page;
   }
 
-  /* Last element: no forced page break after */
-  #catalog > *:last-child,
-  #catalog section:last-child > *:last-child {
+  body.mode-print #catalog > div,
+  body.mode-print #catalog section > * {
+    display: flex !important;
+    width: 216mm !important;
+    height: 303mm !important;
+    min-height: 303mm !important;
+    overflow: hidden !important;
+    box-shadow: none;
+    break-before: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* Last printed page: avoid a trailing blank page */
+  #catalog section:last-child > *:last-child,
+  #catalog > div:last-child {
     page-break-after: auto;
     break-after: auto;
   }
@@ -149,8 +208,6 @@ body {
   /* Modo sin marcas: el wrapper exterior (sheetNormal) no debe añadir
      espacio — display:contents lo colapsa y el inner queda como raíz */
   body.mode-normal [class*="sheetNormal"] {
-    display: contents !important;
+    display: flex !important;
   }
 }
-
-

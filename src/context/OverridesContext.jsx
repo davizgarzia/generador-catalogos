@@ -1,61 +1,82 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react"
-
-const API = "http://localhost:3001/api"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
+import { loadProductOverrides, saveProductOverride } from "../lib/catalog"
+import { useCatalog } from "./CatalogContext"
+import { useAuth } from "./AuthContext"
 
 const OverridesContext = createContext(null)
+const SAVE_DEBOUNCE_MS = 400
 
 export function OverridesProvider({ children }) {
+  const { catalog } = useCatalog()
+  const { isAdmin } = useAuth()
   const [overrides, setOverrides] = useState({})
   const [saveError, setSaveError] = useState("")
+  const pendingFieldsRef = useRef(new Map())
+  const pendingTimersRef = useRef(new Map())
 
-  // Carga inicial
   useEffect(() => {
-    fetch(`${API}/overrides`)
-      .then(r => r.json())
+    if (!catalog?.id) return
+    loadProductOverrides(catalog.id)
       .then(setOverrides)
-      .catch(() => setSaveError("No se pudieron cargar los ajustes. ¿Está corriendo npm run dev:all?"))
-  }, [])
+      .catch(() => setSaveError("No se pudieron cargar los ajustes desde Supabase."))
+  }, [catalog?.id])
 
-  // Actualiza un campo de un producto y persiste en el servidor
-  const patchOverride = useCallback(async (id, fields) => {
-    let previous
-    // Optimistic update
-    setOverrides(prev => {
-      previous = prev
-      return {
-        ...prev,
-        [id]: { ...(prev[id] ?? {}), ...fields },
-      }
-    })
+  const flushPending = useCallback(async id => {
+    const fields = pendingFieldsRef.current.get(id)
+    pendingFieldsRef.current.delete(id)
+    pendingTimersRef.current.delete(id)
+    if (!fields || !catalog?.id) return
     try {
       setSaveError("")
-      const res = await fetch(`${API}/overrides/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fields),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      await saveProductOverride(catalog.id, id, fields)
     } catch (error) {
-      if (previous) setOverrides(previous)
-      setSaveError(`No se ha guardado el ajuste de ${id}. ¿Está corriendo npm run dev:all?`)
-      console.error("Error guardando override", id, fields, error)
+      setSaveError(`No se ha guardado el ajuste de ${id}.`)
+      console.error("Error guardando ajuste", id, fields, error)
     }
-  }, [])
+  }, [catalog?.id])
 
-  // Devuelve el producto con sus overrides mergeados
-  const applyOverride = useCallback((product) => {
-    const o = overrides[product.id]
-    if (!o) return product
-    return {
-      ...product,
-      name:        o.name        ?? product.name,
-      unitsLabel:  o.unitsLabel  ?? product.unitsLabel,
-      imgHidden:   o.imgHidden   ?? false,
-      imgX:        o.imgX        ?? 0,
-      imgY:        o.imgY        ?? 0,
-      imgScale:    o.imgScale    ?? 1,
-      imgMode:     o.imgMode     ?? "original",
+  const flushAll = useCallback(() => {
+    for (const timerId of pendingTimersRef.current.values()) {
+      clearTimeout(timerId)
     }
+    for (const id of Array.from(pendingFieldsRef.current.keys())) {
+      flushPending(id)
+    }
+  }, [flushPending])
+
+  // Sin esto, cerrar la pestaña o desmontar el provider dentro del debounce descarta el último cambio.
+  useEffect(() => {
+    const onPageHide = () => flushAll()
+    window.addEventListener("pagehide", onPageHide)
+    return () => {
+      window.removeEventListener("pagehide", onPageHide)
+      flushAll()
+    }
+  }, [flushAll])
+
+  const patchOverride = useCallback((id, fields) => {
+    if (!isAdmin || !catalog?.id) {
+      setSaveError("Debes iniciar sesión como administrador para editar.")
+      return
+    }
+
+    setOverrides(current => ({
+      ...current,
+      [id]: { ...(current[id] ?? {}), ...fields },
+    }))
+
+    const merged = { ...(pendingFieldsRef.current.get(id) ?? {}), ...fields }
+    pendingFieldsRef.current.set(id, merged)
+
+    const existingTimer = pendingTimersRef.current.get(id)
+    if (existingTimer) clearTimeout(existingTimer)
+    const timerId = setTimeout(() => flushPending(id), SAVE_DEBOUNCE_MS)
+    pendingTimersRef.current.set(id, timerId)
+  }, [catalog?.id, isAdmin, flushPending])
+
+  const applyOverride = useCallback(product => {
+    const override = overrides[product.id]
+    return override ? { ...product, ...override } : product
   }, [overrides])
 
   return (

@@ -16,9 +16,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  server: {
-    watch: {
-      ignored: ['**/src/data/overrides.json'],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-ui': ['radix-ui', 'lucide-react'],
+        },
+      },
     },
   },
 })

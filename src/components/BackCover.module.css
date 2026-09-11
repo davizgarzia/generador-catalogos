@@ -1,0 +1,24 @@
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #1a3f66;
+}
+
+:global(body.mode-print) .page {
+  margin: -3mm;
+  width: 216mm;
+  min-height: 303mm;
+  height: 303mm;
+}
+
+.logo {
+  display: block;
+  width: 72mm;
+  max-height: 42mm;
+  object-fit: contain;
+}

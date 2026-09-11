@@ -6,6 +6,13 @@
   background: #fff;
 }
 
+:global(body.mode-print) .page {
+  margin: -3mm;
+  width: 216mm;
+  min-height: 303mm;
+  height: 303mm;
+}
+
 .coverImage {
   position: absolute;
   inset: 0;

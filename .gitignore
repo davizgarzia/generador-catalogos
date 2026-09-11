@@ -2,8 +2,18 @@ node_modules
 dist
 .DS_Store
 *.local
+.env
+.env.*
+!.env.example
+.env.supabase
 *.pdf
-public/images/
-public/images-nobg/
-data/PRODUCTOS/
-data/*.xlsx
+data/
+
+# Local Netlify folder
+.netlify
+
+# Claude Code / agent tooling (local only)
+.agents/
+.claude/
+.mcp.json
+skills-lock.json

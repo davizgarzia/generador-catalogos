@@ -1,12 +1,25 @@
 import ProductCard from "./ProductCard"
-import { CATEGORY_CONFIG } from "../config/categories"
 import styles from "./ProductGrid.module.css"
-import PageWrapper from "./PageWrapper"
-import { paginateBalanced } from "../lib/pagination"
+import LazyPageWrapper from "./LazyPageWrapper"
+import { useCatalog } from "../context/CatalogContext"
 
-export default function ProductGrid({ products, category, perPage = 16, pageRefs = [], pageMeta = [] }) {
-  const config = CATEGORY_CONFIG[category] ?? { accent: "#4A6CF7", bg: "#1F2937", icon: "📦", subtitle: "" }
-  const pages = paginateBalanced(products, perPage)
+export default function ProductGrid({
+  productPages,
+  category,
+  perPage = 16,
+  pageRefs = [],
+  pageMeta = [],
+  rootRef = null,
+  forceRenderPages = false,
+}) {
+  const { categories, catalog } = useCatalog()
+  const categoryConfig = categories.find(item => item.display_name === category)
+  const config = {
+    accent: categoryConfig?.accent_color ?? "#4A6CF7",
+    bg: categoryConfig?.background_color ?? "#1F2937",
+    coverImage: categoryConfig?.coverImage,
+  }
+  const pages = productPages
 
   function gridPositions(count) {
     if (perPage === 16 && count === 4) {
@@ -108,11 +121,13 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
   return (
     <>
       {pages.map((pageProducts, pageIndex) => (
-        <PageWrapper
+        <LazyPageWrapper
           key={pageIndex}
           ref={pageRefs[pageIndex]}
           accentColor={config.accent}
           bgColor={config.bg}
+          rootRef={rootRef}
+          forceRender={forceRenderPages}
         >
           {(() => {
             const positions = gridPositions(pageProducts.length)
@@ -120,15 +135,23 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
           <div className={styles.page}>
             {/* Header de categoría */}
             <div className={styles.header} style={{ background: config.bg, "--header-bg": config.bg }}>
-              {config.coverImages?.[0] && (
+              {config.coverImage && (
                 <img
                   className={styles.headerCover}
-                  src={config.coverImages[0]}
+                  src={config.coverImage}
+                  data-fallback-src={categoryConfig?.coverImageFallback || undefined}
                   alt=""
                   aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(event) => {
+                    const fallback = event.currentTarget.dataset.fallbackSrc
+                    if (fallback && event.currentTarget.src !== fallback) {
+                      event.currentTarget.src = fallback
+                    }
+                  }}
                 />
               )}
-              <span className={styles.headerIcon}>{config.icon}</span>
               <div className={styles.headerText}>
                 <span className={styles.headerTitle}>{category}</span>
               </div>
@@ -157,8 +180,17 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
                   <span className={styles.footerBrand}>
                     <img
                       className={styles.footerLogo}
-                      src="/logo-white.png"
-                      alt="IMPORMED"
+                      src={catalog.logoWhite}
+                      data-fallback-src={catalog.logoWhiteFallback || catalog.logoFallback || undefined}
+                      alt={catalog.name}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        const fallback = event.currentTarget.dataset.fallbackSrc
+                        if (fallback && event.currentTarget.src !== fallback) {
+                          event.currentTarget.src = fallback
+                        }
+                      }}
                     />
                     <span className={styles.footerDivider} />
                     <span>CATÁLOGO DE PRODUCTOS</span>
@@ -172,7 +204,7 @@ export default function ProductGrid({ products, category, perPage = 16, pageRefs
           </div>
             )
           })()}
-        </PageWrapper>
+        </LazyPageWrapper>
       ))}
     </>
   )

@@ -1,24 +1,6 @@
-import { COMPANY } from "../config/categories"
 import styles from "./InfoPage.module.css"
 import { PhoneCall, Truck, PackageSearch, Mail, Globe2 } from "lucide-react"
-
-const INFO_ITEMS = [
-  {
-    icon: PhoneCall,
-    title: "Atención personalizada",
-    text: `Atención telefónica de ${COMPANY.hours}, excepto festivos nacionales y de la Comunidad Valenciana.`,
-  },
-  {
-    icon: Truck,
-    title: "Distribución nacional",
-    text: "Rutas semanales fijas en distribución nacional e internacional. Tu pedido llega donde lo necesitas.",
-  },
-  {
-    icon: PackageSearch,
-    title: "Productos a medida",
-    text: "¿No encuentras lo que buscas? Pídenos cualquier producto y lo gestionamos por ti.",
-  },
-]
+import { useCatalog } from "../context/CatalogContext"
 
 function WhatsAppIcon({ size = 14 }) {
   return (
@@ -49,15 +31,31 @@ function WhatsAppIcon({ size = 14 }) {
 }
 
 export default function InfoPage() {
+  const { catalog } = useCatalog()
+  const infoItems = [
+    {
+      icon: PhoneCall,
+      title: "Atención personalizada",
+      text: `Atención telefónica de ${catalog.business_hours}, excepto festivos nacionales y de la Comunidad Valenciana.`,
+    },
+    {
+      icon: Truck,
+      title: "Distribución nacional",
+      text: "Rutas semanales fijas en distribución nacional e internacional. Tu pedido llega donde lo necesitas.",
+    },
+    {
+      icon: PackageSearch,
+      title: "Productos a medida",
+      text: "¿No encuentras lo que buscas? Pídenos cualquier producto y lo gestionamos por ti.",
+    },
+  ]
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div className={styles.kicker}>Distribución para profesionales</div>
-        <h2>¿Por qué {COMPANY.name}?</h2>
-        <p>
-          Un catálogo internacional pensado para que restaurantes, tiendas y
-          negocios especializados puedan comprar con agilidad y confianza.
-        </p>
+        <div className={styles.kicker}>{catalog.settings?.info_kicker}</div>
+        <h2>{catalog.settings?.info_title || `¿Por qué ${catalog.name}?`}</h2>
+        <p>{catalog.settings?.info_description}</p>
       </div>
 
       <div className={styles.main}>
@@ -70,7 +68,7 @@ export default function InfoPage() {
         </div>
 
         <div className={styles.benefits}>
-        {INFO_ITEMS.map((item) => (
+        {infoItems.map((item) => (
           <div key={item.title} className={styles.benefit}>
             <div className={styles.benefitIcon}>
               <item.icon size={18} strokeWidth={1.7} />
@@ -94,25 +92,25 @@ export default function InfoPage() {
             <span className={styles.contactItemIcon} aria-label="Teléfono">
               <PhoneCall size={12} strokeWidth={2.2} />
             </span>
-            <span className={styles.contactItemText}>{COMPANY.phone}</span>
+            <span className={styles.contactItemText}>{catalog.phone}</span>
           </span>
           <span className={styles.contactItem}>
             <span className={`${styles.contactItemIcon} ${styles.whatsappIcon}`} aria-label="WhatsApp">
               <WhatsAppIcon size={14} />
             </span>
-            <span className={styles.contactItemText}>{COMPANY.whatsapp}</span>
+            <span className={styles.contactItemText}>{catalog.whatsapp}</span>
           </span>
           <span className={styles.contactItem}>
             <span className={styles.contactItemIcon} aria-label="Email">
               <Mail size={12} strokeWidth={2.2} />
             </span>
-            <span className={styles.contactItemText}>{COMPANY.email}</span>
+            <span className={styles.contactItemText}>{catalog.email}</span>
           </span>
           <span className={styles.contactItem}>
             <span className={styles.contactItemIcon} aria-label="Web">
               <Globe2 size={12} strokeWidth={2.2} />
             </span>
-            <span className={styles.contactItemText}>{COMPANY.web}</span>
+            <span className={styles.contactItemText}>{catalog.website}</span>
           </span>
         </div>
       </div>
