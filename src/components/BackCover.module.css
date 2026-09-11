@@ -2,9 +2,8 @@
   width: 210mm;
   min-height: 297mm;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   background: #1a3f66;
 }
@@ -18,7 +17,35 @@
 
 .logo {
   display: block;
-  width: 72mm;
-  max-height: 42mm;
+  width: 96mm;
+  max-height: 56mm;
   object-fit: contain;
+}
+
+.contact {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22mm;
+  display: flex;
+  flex-direction: column;
+  gap: 2.2mm;
+  padding: 0 20mm;
+  text-align: center;
+  color: #fff;
+}
+
+.contactName {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 1mm;
+}
+
+.contactLine {
+  font-size: 9.5pt;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
 }

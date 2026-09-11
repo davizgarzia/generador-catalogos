@@ -32,8 +32,8 @@ export default function ViewControlsSheet({ open, onOpenChange }) {
         <div className="flex flex-col gap-4">
           <ToggleRow
             id="vw-marks"
-            label="Marcas de corte"
-            description="Añade sangre 3 mm y marcas. La hoja exportada será 216×303 mm."
+            label="Versión imprenta"
+            description="Añade sangre 3 mm y marcas de corte, y completa el catálogo con hojas de imagen cuando hace falta. La hoja exportada será 216×303 mm."
             checked={printMode}
             onChange={setPrintMode}
           />

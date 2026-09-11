@@ -5,13 +5,21 @@ export default function BackCover() {
   const { catalog } = useCatalog()
   const logo = catalog.logoWhite || catalog.logo
 
+  const contactLines = [
+    [
+      catalog.phone && `Tel. ${catalog.phone}`,
+      catalog.whatsapp && `WhatsApp ${catalog.whatsapp}`,
+    ].filter(Boolean).join("  ·  "),
+    [catalog.email, catalog.website].filter(Boolean).join("  ·  "),
+    catalog.business_hours,
+  ].filter(Boolean)
+
   return (
     <div className={styles.page}>
       {logo && (
         <img
           className={styles.logo}
           src={logo}
-          data-thumb-src={logo}
           data-fallback-src={catalog.logoWhiteFallback || catalog.logoFallback || undefined}
           alt={catalog.name}
           onError={(event) => {
@@ -21,6 +29,15 @@ export default function BackCover() {
             }
           }}
         />
+      )}
+
+      {contactLines.length > 0 && (
+        <div className={styles.contact}>
+          <div className={styles.contactName}>{catalog.name}</div>
+          {contactLines.map((line, index) => (
+            <div key={index} className={styles.contactLine}>{line}</div>
+          ))}
+        </div>
       )}
     </div>
   )

@@ -1,4 +1,5 @@
 import { supabase } from "./supabase"
+import { BRAND_ASSETS, categoryCoverUrl } from "./brand"
 
 export const CATALOG_SLUG = import.meta.env.VITE_CATALOG_SLUG ?? "catalogo-principal"
 const SUPABASE_IMAGE_TRANSFORMS_ENABLED =
@@ -51,11 +52,6 @@ const PRODUCT_VARIANTS = {
   },
 }
 
-const ASSET_VARIANTS = {
-  large: { folder: "asset-large", width: 2400, height: 2400, quality: 0.86 },
-  thumb: { folder: "asset-thumb", width: 320, height: 320, quality: 0.72 },
-}
-
 function extensionlessName(path) {
   return path.split("/").pop()?.replace(/\.[^.]+$/, "") || null
 }
@@ -68,21 +64,9 @@ function productVariantPath(path, size, variant = "original") {
   return `${config.folder}/${name}.webp`
 }
 
-function assetVariantPath(path, size) {
-  if (!path || /^https?:\/\//.test(path)) return null
-  const config = ASSET_VARIANTS[size]
-  const withoutExtension = path.replace(/\.[^.]+$/, "")
-  if (!config || !withoutExtension) return null
-  return `${config.folder}/${withoutExtension}.webp`
-}
-
 function getProductVariantUrl(path, size, variant = "original", transform = null) {
   if (SUPABASE_IMAGE_TRANSFORMS_ENABLED) return getStorageUrl("catalog-images", path, transform)
   return getStorageUrl("catalog-images", productVariantPath(path, size, variant))
-}
-
-function getAssetVariantUrl(path, size) {
-  return getStorageUrl("catalog-assets", assetVariantPath(path, size))
 }
 
 async function imageBlobToVariant(source, { width, height, quality }) {
@@ -126,12 +110,6 @@ async function uploadProductImageVariants(file, productId, variant) {
   }))
 }
 
-async function uploadCatalogAssetVariants(file, path) {
-  await Promise.all(Object.values(ASSET_VARIANTS).map(async config => {
-    const blob = await imageBlobToVariant(file, config)
-    await uploadStorageObject("catalog-assets", `${config.folder}/${path.replace(/\.[^.]+$/, "")}.webp`, blob, "image/webp")
-  }))
-}
 
 function mapCatalogProduct(row) {
   const product = row.product
@@ -188,13 +166,10 @@ function mapCatalogProduct(row) {
 function mapCatalogRow(catalog) {
   return {
     ...catalog,
-    coverImage: getAssetVariantUrl(catalog.cover_image_path, "large") || getStorageUrl("catalog-assets", catalog.cover_image_path),
-    coverImageFallback: getStorageUrl("catalog-assets", catalog.cover_image_path),
-    coverThumb: getAssetVariantUrl(catalog.cover_image_path, "thumb"),
-    logo: getAssetVariantUrl(catalog.logo_path, "large") || getStorageUrl("catalog-assets", catalog.logo_path),
-    logoFallback: getStorageUrl("catalog-assets", catalog.logo_path),
-    logoWhite: getAssetVariantUrl(catalog.logo_white_path, "large") || getStorageUrl("catalog-assets", catalog.logo_white_path),
-    logoWhiteFallback: getStorageUrl("catalog-assets", catalog.logo_white_path),
+    coverImage: BRAND_ASSETS.cover,
+    logo: BRAND_ASSETS.logo,
+    logoWhite: BRAND_ASSETS.logoWhite,
+    fillerImages: BRAND_ASSETS.fillers.map(image => ({ image })),
   }
 }
 
@@ -217,9 +192,7 @@ export async function loadCategories() {
   if (error) throw error
   return data.map(category => ({
     ...category,
-    coverImage: getAssetVariantUrl(category.cover_image_path, "large") || getStorageUrl("catalog-assets", category.cover_image_path),
-    coverImageFallback: getStorageUrl("catalog-assets", category.cover_image_path),
-    coverThumb: getAssetVariantUrl(category.cover_image_path, "thumb"),
+    coverImage: categoryCoverUrl(category.code),
   }))
 }
 
@@ -245,24 +218,13 @@ export async function loadCatalogProducts(catalogId) {
   return data.map(mapCatalogProduct)
 }
 
-export async function loadCoverProductIds(catalogId) {
-  const { data, error } = await supabase
-    .from("catalog_cover_products")
-    .select("product_id,sort_order")
-    .eq("catalog_id", catalogId)
-    .order("sort_order")
-  if (error) throw error
-  return data.map(item => item.product_id)
-}
-
 export async function loadCatalogBundle() {
   const catalog = await loadCatalogRow()
-  const [categories, products, coverIds] = await Promise.all([
+  const [categories, products] = await Promise.all([
     loadCategories(),
     loadCatalogProducts(catalog.id),
-    loadCoverProductIds(catalog.id),
   ])
-  return { catalog, categories, products, coverIds }
+  return { catalog, categories, products }
 }
 
 export async function loadProductOverrides(catalogId) {
@@ -471,29 +433,4 @@ export async function updateCategory(categoryId, fields) {
   if (error) throw error
 }
 
-export async function uploadCatalogAsset(file, path) {
-  const { error } = await supabase.storage
-    .from("catalog-assets")
-    .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "31536000" })
-  if (error) throw error
-  await uploadCatalogAssetVariants(file, path)
-  return path
-}
 
-export async function setCatalogCoverProducts(catalogId, productIds) {
-  const { error: deleteError } = await supabase
-    .from("catalog_cover_products")
-    .delete()
-    .eq("catalog_id", catalogId)
-  if (deleteError) throw deleteError
-
-  if (!productIds.length) return
-  const { error } = await supabase.from("catalog_cover_products").insert(
-    productIds.map((productId, index) => ({
-      catalog_id: catalogId,
-      product_id: productId,
-      sort_order: (index + 1) * 10,
-    }))
-  )
-  if (error) throw error
-}

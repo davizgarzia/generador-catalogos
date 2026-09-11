@@ -1,10 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import {
   loadCatalogBundle,
   loadCatalogProducts,
   loadCatalogRow,
   loadCategories,
-  loadCoverProductIds,
 } from "../lib/catalog"
 
 const CatalogContext = createContext(null)
@@ -14,7 +13,6 @@ export function CatalogProvider({ children }) {
     catalog: null,
     categories: [],
     products: [],
-    coverIds: [],
   })
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -50,16 +48,15 @@ export function CatalogProvider({ children }) {
     })
   }, [catalogId, reload, runRefresh])
 
-  // Recarga datos comerciales, categorías y mosaico (tras guardar Ajustes).
+  // Recarga datos comerciales y categorías (tras guardar Ajustes).
   const reloadCatalogInfo = useCallback(() => {
     if (!catalogId) return reload()
     return runRefresh(async () => {
-      const [catalog, categories, coverIds] = await Promise.all([
+      const [catalog, categories] = await Promise.all([
         loadCatalogRow(),
         loadCategories(),
-        loadCoverProductIds(catalogId),
       ])
-      setData(current => ({ ...current, catalog, categories, coverIds }))
+      setData(current => ({ ...current, catalog, categories }))
     })
   }, [catalogId, reload, runRefresh])
 
@@ -67,18 +64,12 @@ export function CatalogProvider({ children }) {
     reload()
   }, [reload])
 
-  const coverProducts = useMemo(() => {
-    const byId = new Map(data.products.map(product => [product.id, product]))
-    return data.coverIds.map(id => byId.get(id)).filter(Boolean)
-  }, [data.products, data.coverIds])
-
   return (
     <CatalogContext.Provider
       value={{
         catalog: data.catalog,
         categories: data.categories,
         products: data.products,
-        coverProducts,
         loading,
         refreshing,
         error,

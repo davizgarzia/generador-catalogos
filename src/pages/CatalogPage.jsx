@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext"
 import { paginateBalanced } from "../lib/pagination"
 import Cover from "../components/Cover"
 import BackCover from "../components/BackCover"
+import FillerPage from "../components/FillerPage"
 import InfoPage from "../components/InfoPage"
 import CategoryDivider from "../components/CategoryDivider"
 import ProductGrid from "../components/ProductGrid"
@@ -87,7 +88,7 @@ export default function CatalogPage() {
     return map
   }, [categoryOrder, grouped, perPage])
 
-  const { pageMeta, navSections, searchItems } = useMemo(() => {
+  const { pageMeta, navSections, searchItems, fillerCount } = useMemo(() => {
     const list = []
     const sections = []
     const search = []
@@ -112,6 +113,18 @@ export default function CatalogPage() {
       }
       sections.push({ type: "category", label: category, color: cfg.background_color, children })
     }
+
+    // Versión impresa: la imprenta necesita un total de páginas múltiplo de 4
+    // (pliegos), así que completamos con hojas de imagen antes de la contraportada.
+    const fillerCount = printMode ? (4 - ((list.length + 1) % 4)) % 4 : 0
+    for (let i = 0; i < fillerCount; i++) {
+      sections.push({
+        type: "page",
+        label: `Imagen ${i + 1}`,
+        index: pushPage({ label: `Imagen ${i + 1}`, color: null }),
+      })
+    }
+
     sections.push({ type: "page", label: "Contraportada", index: pushPage({ label: "Contraportada", color: "#1a3f66" }) })
 
     const total = list.length
@@ -120,8 +133,9 @@ export default function CatalogPage() {
       pageMeta: list.map(p => ({ ...p, pageNum: pageNum++, total })),
       navSections: sections,
       searchItems: search,
+      fillerCount,
     }
-  }, [categoryByName, categoryOrder, pagesByCategory])
+  }, [categoryByName, categoryOrder, pagesByCategory, printMode])
 
   // Refs estables por índice: recrearlas reiniciaría los IntersectionObserver
   // de las páginas lazy y de las miniaturas en cada cambio de vista.
@@ -220,6 +234,15 @@ export default function CatalogPage() {
                     forceRenderPages={forceRenderPages}
                   />
                 </section>
+              )
+            })}
+
+            {Array.from({ length: fillerCount }, (_, i) => {
+              const idx = ri++
+              return (
+                <LazyPageWrapper key={`filler-${i}`} ref={pageRefs[idx]} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
+                  <FillerPage index={i} />
+                </LazyPageWrapper>
               )
             })}
 

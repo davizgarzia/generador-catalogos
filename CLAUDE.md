@@ -46,7 +46,7 @@ Los administradores pueden:
 - Dar de baja o retirar productos del catálogo.
 - Importar el Excel de stock de forma transaccional.
 - Subir imágenes individuales o en lote.
-- Editar datos comerciales y configuración de categorías en **Ajustes**.
+- Editar datos comerciales y nombres/subtítulos de categorías en **Ajustes**.
 - Guardar el catálogo como PDF.
 
 La importación Excel se procesa mediante la Edge Function
@@ -62,12 +62,21 @@ imágenes y llama a `window.print()`. Los estilos `@page` y los saltos de
 página viven en `src/index.css` y se inyectan desde `CatalogPage`.
 No existe generación de PDF en servidor.
 
+## Imágenes de marca
+
+Portada, logos, portadas de categoría y hojas de relleno viven versionadas en
+`public/brand/` y se despliegan con la app — no se editan desde Ajustes. Para
+cambiarlas: sustituir el archivo (mismo nombre) y desplegar. Las rutas están
+centralizadas en `src/lib/brand.js`; las portadas de categoría se resuelven por
+código: `public/brand/categories/{code}.png`.
+
 ## Storage
 
 - Cloudflare R2 (`impormed-catalog`): originales y variantes WebP de producto
   (`thumb`, `preview`, `catalog`), servidas desde `VITE_R2_PUBLIC_URL`.
 - `catalog-images` (Supabase): bucket heredado, solo fallback de lectura.
-- `catalog-assets` (Supabase): portada, logos y portadas de categorías.
+- `catalog-assets` (Supabase): heredado, sin uso desde que los activos de marca
+  se sirven desde `public/brand/`.
 
 La subida de imágenes usa funciones Netlify: `r2-presign-product-image` firma
 una URL de subida directa a R2 y `r2-process-product-image` genera las
