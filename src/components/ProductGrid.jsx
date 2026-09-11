@@ -1,11 +1,10 @@
 import ProductCard from "./ProductCard"
 import styles from "./ProductGrid.module.css"
 import LazyPageWrapper from "./LazyPageWrapper"
-import { paginateBalanced } from "../lib/pagination"
 import { useCatalog } from "../context/CatalogContext"
 
 export default function ProductGrid({
-  products,
+  productPages,
   category,
   perPage = 16,
   pageRefs = [],
@@ -20,7 +19,7 @@ export default function ProductGrid({
     bg: categoryConfig?.background_color ?? "#1F2937",
     coverImage: categoryConfig?.coverImage,
   }
-  const pages = paginateBalanced(products, perPage)
+  const pages = productPages
 
   function gridPositions(count) {
     if (perPage === 16 && count === 4) {
@@ -140,7 +139,6 @@ export default function ProductGrid({
                 <img
                   className={styles.headerCover}
                   src={config.coverImage}
-                  data-thumb-src={categoryConfig?.coverThumb || config.coverImage}
                   data-fallback-src={categoryConfig?.coverImageFallback || undefined}
                   alt=""
                   aria-hidden="true"
@@ -183,7 +181,6 @@ export default function ProductGrid({
                     <img
                       className={styles.footerLogo}
                       src={catalog.logoWhite}
-                      data-thumb-src={catalog.logoWhite}
                       data-fallback-src={catalog.logoWhiteFallback || catalog.logoFallback || undefined}
                       alt={catalog.name}
                       loading="lazy"

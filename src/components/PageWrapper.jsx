@@ -2,7 +2,7 @@ import { forwardRef } from "react"
 import { usePrint } from "../context/PrintContext"
 import styles from "./PageWrapper.module.css"
 
-const PageWrapper = forwardRef(function PageWrapper({ children, accentColor, bgColor }, ref) {
+const PageWrapper = forwardRef(function PageWrapper({ children }, ref) {
   const { printMode, printSize } = usePrint()
 
   const isA5 = printMode && printSize === "A5"

@@ -16,7 +16,7 @@ import CatalogPageHeader from "../components/CatalogPageHeader"
 
 export default function CatalogPage() {
   const { catalog, categories, products, loading, error, reload } = useCatalog()
-  const { printMode, printSize, productGrid, hideNoImage, isPdfRender } = usePrint()
+  const { printMode, printSize, productGrid, hideNoImage } = usePrint()
   const { editingProduct } = useEdit()
   const { isAdmin } = useAuth()
   const [exporting, setExporting] = useState(false)
@@ -78,28 +78,59 @@ export default function CatalogPage() {
     return map
   }, [visibleProducts])
 
-  const pageMeta = useMemo(() => {
-    const list = []
-    list.push({ label: "Portada",     color: "#1b3da6", icon: "📘", paginated: false })
-    list.push({ label: "Información", color: null,                   paginated: true  })
+  const pagesByCategory = useMemo(() => {
+    const map = {}
     for (const category of categoryOrder) {
-      const cat = grouped[category]
-      if (!cat?.length) continue
-      const cfg = categoryByName[category]
-      list.push({ label: category, color: cfg.background_color, paginated: false })
-      const n = paginateBalanced(cat, perPage).length
-      for (let i = 0; i < n; i++) {
-        list.push({ label: `${category} ${i + 1}/${n}`, color: null, paginated: true })
-      }
+      const items = grouped[category]
+      if (items?.length) map[category] = paginateBalanced(items, perPage)
     }
-    list.push({ label: "Contraportada", color: "#1a3f66", icon: "📘", paginated: false })
+    return map
+  }, [categoryOrder, grouped, perPage])
+
+  const { pageMeta, navSections, searchItems } = useMemo(() => {
+    const list = []
+    const sections = []
+    const search = []
+    const pushPage = meta => list.push(meta) - 1
+
+    sections.push({ type: "page", label: "Portada", index: pushPage({ label: "Portada", color: "#1b3da6" }) })
+    sections.push({ type: "page", label: "Información", index: pushPage({ label: "Información", color: null }) })
+    for (const category of categoryOrder) {
+      const categoryPages = pagesByCategory[category]
+      if (!categoryPages) continue
+      const cfg = categoryByName[category]
+      const n = categoryPages.length
+      const children = [
+        { label: "Portada de sección", index: pushPage({ label: category, color: cfg.background_color }) },
+      ]
+      for (let i = 0; i < n; i++) {
+        const index = pushPage({ label: `${category} ${i + 1}/${n}`, color: null })
+        children.push({ label: `Página ${i + 1} de ${n}`, index })
+        for (const product of categoryPages[i]) {
+          search.push({ id: product.id, name: product.name, category, index })
+        }
+      }
+      sections.push({ type: "category", label: category, color: cfg.background_color, children })
+    }
+    sections.push({ type: "page", label: "Contraportada", index: pushPage({ label: "Contraportada", color: "#1a3f66" }) })
 
     const total = list.length
     let pageNum = 1
-    return list.map(p => ({ ...p, pageNum: pageNum++, total }))
-  }, [categoryByName, categoryOrder, grouped, perPage])
+    return {
+      pageMeta: list.map(p => ({ ...p, pageNum: pageNum++, total })),
+      navSections: sections,
+      searchItems: search,
+    }
+  }, [categoryByName, categoryOrder, pagesByCategory])
 
-  const pageRefs = useMemo(() => pageMeta.map(() => createRef()), [pageMeta])
+  // Refs estables por índice: recrearlas reiniciaría los IntersectionObserver
+  // de las páginas lazy y de las miniaturas en cada cambio de vista.
+  const refStoreRef = useRef([])
+  const pageRefs = useMemo(() => {
+    const store = refStoreRef.current
+    while (store.length < pageMeta.length) store.push(createRef())
+    return store.slice(0, pageMeta.length)
+  }, [pageMeta])
   const pages = useMemo(
     () => pageMeta.map((meta, i) => ({ ...meta, ref: pageRefs[i] })),
     [pageMeta, pageRefs]
@@ -134,12 +165,11 @@ export default function CatalogPage() {
   }
 
   let ri = 0
-  const forceRenderPages = isPdfRender || exporting
+  const forceRenderPages = exporting
 
   return (
     <div className="flex flex-col h-full">
       <CatalogPageHeader
-        catalog={catalog}
         totalProducts={visibleProducts.length}
         totalPages={pages.length}
         hiddenProductsList={hiddenProductsList}
@@ -147,7 +177,12 @@ export default function CatalogPage() {
       />
 
       <div className="flex-1 flex min-h-0">
-        <PageNavigator pages={pages} />
+        <PageNavigator
+          pages={pages}
+          sections={navSections}
+          searchItems={searchItems}
+          rootRef={catalogAreaRef}
+        />
 
         <div ref={catalogAreaRef} id="catalog-area" className="flex-1 overflow-auto">
           <div id="catalog">
@@ -162,9 +197,9 @@ export default function CatalogPage() {
             )})()}
 
             {categoryOrder.map((category) => {
-              const categoryProducts = grouped[category]
-              if (!categoryProducts?.length) return null
-              const numPages = paginateBalanced(categoryProducts, perPage).length
+              const categoryPages = pagesByCategory[category]
+              if (!categoryPages) return null
+              const numPages = categoryPages.length
               const dividerRef = pageRefs[ri++]
               const gridRefs = pageRefs.slice(ri, ri + numPages)
               const gridMeta = pageMeta.slice(ri, ri + numPages)
@@ -176,7 +211,7 @@ export default function CatalogPage() {
                     <CategoryDivider category={category} />
                   </LazyPageWrapper>
                   <ProductGrid
-                    products={categoryProducts}
+                    productPages={categoryPages}
                     category={category}
                     perPage={perPage}
                     pageRefs={gridRefs}

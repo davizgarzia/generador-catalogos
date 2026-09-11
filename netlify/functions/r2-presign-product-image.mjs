@@ -11,6 +11,8 @@ import {
   sourcePathForProduct,
 } from "./lib/r2-catalog.mjs"
 
+const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"])
+
 export default async function handler(request) {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, { status: 405 })
@@ -25,7 +27,10 @@ export default async function handler(request) {
     const body = await request.json()
     const productId = sanitizeProductId(body.productId)
     const variant = normalizeVariant(body.variant)
-    const contentType = String(body.contentType || "application/octet-stream")
+    const contentType = String(body.contentType || "")
+    if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+      return jsonResponse({ error: `Tipo de imagen no admitido: ${contentType || "desconocido"}` }, { status: 400 })
+    }
     const extension = imageExtension(body.fileName, contentType)
     const path = sourcePathForProduct(productId, variant, extension)
 
@@ -42,6 +47,7 @@ export default async function handler(request) {
       headers: { "content-type": contentType },
     })
   } catch (error) {
+    console.error("r2-presign-product-image", error)
     return jsonResponse({ error: error.message }, { status: 400 })
   }
 }

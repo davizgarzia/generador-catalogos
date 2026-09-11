@@ -40,7 +40,7 @@ const EMPTY_FORM = {
 }
 
 export default function ProductFormSheet({ open, onOpenChange, product = null }) {
-  const { catalog, categories, products, reload } = useCatalog()
+  const { catalog, categories, products, reloadProducts } = useCatalog()
   const isEdit = Boolean(product)
   const liveProduct = useMemo(() => {
     if (!product?.id) return product
@@ -82,7 +82,7 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
     setError("")
     try {
       await uploadProductImage(catalog.id, product.id, file, "original")
-      await reload()
+      await reloadProducts()
       setUploadStatus("ok")
       setTimeout(() => setUploadStatus(null), 2000)
     } catch (uploadError) {
@@ -139,7 +139,7 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
           sortOrder: 0,
         })
       }
-      await reload()
+      await reloadProducts()
       onOpenChange(false)
     } catch (saveError) {
       setError(saveError.message)

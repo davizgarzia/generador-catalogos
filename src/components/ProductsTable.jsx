@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -44,7 +43,7 @@ function statusOf(product) {
   return { label: "Activo", variant: "secondary" }
 }
 
-const ALL_COLUMNS = [
+const COLUMNS = [
   { key: "id", label: "Ref", sortable: true, className: "w-[110px]" },
   { key: "name", label: "Nombre", sortable: true },
   { key: "status", label: "Estado", sortable: false, className: "w-[120px]" },
@@ -68,17 +67,12 @@ export default function ProductsTable({
   products,
   onRowClick,
   onDeleteClick,
-  columnVisibility = {},
 }) {
   const [sort, setSort] = useState({ key: "addedAt", direction: "desc" })
-  const [selection, setSelection] = useState(() => new Set())
   const [pageSize, setPageSize] = useState(10)
   const [pageIndex, setPageIndex] = useState(0)
 
-  const columns = useMemo(
-    () => ALL_COLUMNS.filter(column => columnVisibility[column.key] !== false),
-    [columnVisibility]
-  )
+  const columns = COLUMNS
 
   const sorted = useMemo(() => {
     const copy = [...products]
@@ -114,10 +108,6 @@ export default function ProductsTable({
     return sorted.slice(start, start + pageSize)
   }, [sorted, pageIndex, pageSize])
 
-  const pageIds = paged.map(product => product.id)
-  const allOnPageSelected = pageIds.length > 0 && pageIds.every(id => selection.has(id))
-  const someOnPageSelected = pageIds.some(id => selection.has(id))
-
   function toggleSort(key) {
     setSort(prev => (
       prev.key === key
@@ -126,37 +116,12 @@ export default function ProductsTable({
     ))
   }
 
-  function togglePageSelection(value) {
-    setSelection(prev => {
-      const next = new Set(prev)
-      if (value) pageIds.forEach(id => next.add(id))
-      else pageIds.forEach(id => next.delete(id))
-      return next
-    })
-  }
-
-  function toggleRowSelection(id, value) {
-    setSelection(prev => {
-      const next = new Set(prev)
-      if (value) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  }
-
   return (
     <div className="flex flex-col">
       <div className="overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[44px] px-6">
-                <Checkbox
-                  checked={allOnPageSelected ? true : someOnPageSelected ? "indeterminate" : false}
-                  onCheckedChange={togglePageSelection}
-                  aria-label="Seleccionar página"
-                />
-              </TableHead>
               {columns.map(column => (
                 <TableHead
                   key={column.key}
@@ -183,21 +148,12 @@ export default function ProductsTable({
           <TableBody>
             {paged.map(product => {
               const status = statusOf(product)
-              const isSelected = selection.has(product.id)
               return (
                 <TableRow
                   key={product.id}
-                  data-state={isSelected ? "selected" : undefined}
                   onClick={() => onRowClick(product)}
                   className="cursor-pointer"
                 >
-                  <TableCell className="px-6" onClick={event => event.stopPropagation()}>
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={value => toggleRowSelection(product.id, !!value)}
-                      aria-label={`Seleccionar ${product.id}`}
-                    />
-                  </TableCell>
                   {columns.map(column => (
                     <TableCell key={column.key} className={cn("px-6 py-4", column.className)}>
                       {renderCell(column.key, product, status)}
@@ -235,7 +191,7 @@ export default function ProductsTable({
             })}
             {!paged.length && (
               <TableRow>
-                <TableCell colSpan={columns.length + 2} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length + 1} className="h-32 text-center text-muted-foreground">
                   No hay productos que coincidan con los filtros.
                 </TableCell>
               </TableRow>
@@ -246,7 +202,7 @@ export default function ProductsTable({
 
       <div className="flex flex-col gap-3 border-t border-border bg-card px-6 py-3 text-sm text-muted-foreground lg:flex-row lg:items-center lg:justify-between">
         <span className="tabular-nums">
-          {selection.size} de {totalRows} fila(s) seleccionada(s).
+          {totalRows} producto(s).
         </span>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="flex items-center gap-2">
@@ -342,12 +298,6 @@ function renderCell(key, product, status) {
       return <DateCell value={product.addedAt} />
     case "updatedAt":
       return <DateCell value={product.updatedAt} />
-    case "sourceType":
-      return (
-        <Badge variant={product.sourceType === "manual" ? "secondary" : "outline"} className="font-normal capitalize">
-          {product.sourceType ?? "—"}
-        </Badge>
-      )
     case "status":
       return <Badge variant={status.variant}>{status.label}</Badge>
     default:

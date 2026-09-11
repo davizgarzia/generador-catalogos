@@ -22,14 +22,9 @@ export default function CategoryDivider({ category }) {
       </div>
 
       <div className={styles.imageArea} aria-hidden="true">
-        <div className={styles.placeholder}>
-          <span>Imagen principal</span>
-          <small>{mainImage ?? "Sin ruta configurada"}</small>
-        </div>
         {mainImage && (
           <img
             src={mainImage}
-            data-thumb-src={config?.coverThumb || mainImage}
             data-fallback-src={fallbackImage || undefined}
             alt=""
             onError={(event) => {

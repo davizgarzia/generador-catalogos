@@ -9,7 +9,6 @@ export default function Cover() {
         <img
           className={styles.coverImage}
           src={catalog.coverImage}
-          data-thumb-src={catalog.coverThumb || catalog.coverImage}
           data-fallback-src={catalog.coverImageFallback || undefined}
           alt={`Catálogo ${catalog.name}`}
           onError={(event) => {

@@ -26,7 +26,17 @@ const TEXT_FIELDS = [
 ]
 
 export default function SettingsPage() {
-  const { catalog, categories, coverProducts, reload, loading } = useCatalog()
+  const { catalog, loading } = useCatalog()
+
+  if (loading || !catalog) {
+    return <div className="p-6 text-sm text-muted-foreground">Cargando ajustes…</div>
+  }
+
+  return <SettingsForm key={catalog.id} />
+}
+
+function SettingsForm() {
+  const { catalog, categories, products, coverProducts, reloadCatalogInfo } = useCatalog()
   const { isAdmin } = useAuth()
   const [form, setForm] = useState(catalog)
   const [categoryRows, setCategoryRows] = useState(categories)
@@ -35,20 +45,17 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  if (loading || !catalog) {
-    return <div className="p-6 text-sm text-muted-foreground">Cargando ajustes…</div>
-  }
-
-  if (!form) {
-    setForm(catalog)
-    return null
-  }
-
   async function save() {
     setError("")
     setSaved(false)
     setSaving(true)
     try {
+      const mosaicRefs = mosaicIds.split(",").map(value => value.trim()).filter(Boolean)
+      const knownIds = new Set(products.map(product => product.id))
+      const unknownRefs = mosaicRefs.filter(ref => !knownIds.has(ref))
+      if (unknownRefs.length) {
+        throw new Error(`Referencias del mosaico inexistentes: ${unknownRefs.join(", ")}`)
+      }
       await updateCatalog(catalog.id, {
         name: form.name,
         edition: form.edition,
@@ -66,11 +73,8 @@ export default function SettingsPage() {
         background_color: category.background_color,
         accent_color: category.accent_color,
       })))
-      await setCatalogCoverProducts(
-        catalog.id,
-        mosaicIds.split(",").map(value => value.trim()).filter(Boolean)
-      )
-      await reload()
+      await setCatalogCoverProducts(catalog.id, mosaicRefs)
+      await reloadCatalogInfo()
       setSaved(true)
     } catch (saveError) {
       setError(saveError.message)
@@ -86,7 +90,7 @@ export default function SettingsPage() {
       const path = `assets/cover.${extension}`
       await uploadCatalogAsset(file, path)
       await updateCatalog(catalog.id, { cover_image_path: path })
-      await reload()
+      await reloadCatalogInfo()
     } catch (uploadError) {
       setError(uploadError.message)
     }
@@ -99,7 +103,7 @@ export default function SettingsPage() {
       const path = `assets/${filename}.${extension}`
       await uploadCatalogAsset(file, path)
       await updateCatalog(catalog.id, { [field]: path })
-      await reload()
+      await reloadCatalogInfo()
     } catch (uploadError) {
       setError(uploadError.message)
     }
@@ -112,7 +116,7 @@ export default function SettingsPage() {
       const path = `category-covers/${category.code}.${extension}`
       await uploadCatalogAsset(file, path)
       await updateCategory(category.id, { cover_image_path: path })
-      await reload()
+      await reloadCatalogInfo()
     } catch (uploadError) {
       setError(uploadError.message)
     }

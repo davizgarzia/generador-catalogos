@@ -60,7 +60,7 @@ async function parseWorkbook(file) {
 
 export default function ImportExcelButton() {
   const inputRef = useRef(null)
-  const { products: currentProducts, reload } = useCatalog()
+  const { products: currentProducts, reloadProducts } = useCatalog()
   const [pending, setPending] = useState(null)
   const [state, setState] = useState("idle")
   const [error, setError] = useState("")
@@ -91,7 +91,7 @@ export default function ImportExcelButton() {
     setState("saving")
     try {
       await importCatalogProducts(pending.products)
-      await reload()
+      await reloadProducts()
       setPending(null)
       setState("done")
     } catch (importError) {

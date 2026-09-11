@@ -49,7 +49,7 @@ const SOURCE_OPTIONS = [
 ]
 
 export default function ProductsPage() {
-  const { catalog, categories, products, loading, reload } = useCatalog()
+  const { catalog, categories, products, loading, reloadProducts } = useCatalog()
   const { isAdmin } = useAuth()
   const [query, setQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState(ANY)
@@ -92,7 +92,7 @@ export default function ProductsPage() {
     setDeleteError("")
     try {
       await deleteProduct(catalog.id, deleting.id)
-      await reload()
+      await reloadProducts()
       setDeleting(null)
     } catch (error) {
       setDeleteError(error.message)
@@ -225,7 +225,9 @@ export default function ProductsPage() {
           <DialogHeader>
             <DialogTitle>Eliminar producto</DialogTitle>
             <DialogDescription>
-              Esta acción quitará {deleting?.name || deleting?.id} del catálogo. No se puede deshacer.
+              Esta acción quitará {deleting?.name || deleting?.id} del catálogo. Si no está
+              en ningún otro catálogo, el producto y sus imágenes se eliminarán de forma
+              permanente. No se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}

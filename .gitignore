@@ -7,10 +7,7 @@ dist
 !.env.example
 .env.supabase
 *.pdf
-public/images/
-public/images-nobg/
-data/PRODUCTOS/
-data/*.xlsx
+data/
 
 # Local Netlify folder
 .netlify

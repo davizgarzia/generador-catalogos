@@ -3,41 +3,37 @@ import { Download, Loader2, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { usePrint } from "../context/PrintContext"
 import ViewControlsSheet from "./ViewControlsSheet"
 
-const SHOW_LEGACY_PDF_EXPORT = false
-const LEGACY_QUALITY_PRESETS = {
-  low:    { label: "Rápida", scale: 1,    jpegQuality: 0.6 },
-  medium: { label: "Media",  scale: 1.5,  jpegQuality: 0.85 },
-  high:   { label: "Alta",   scale: 2.5,  jpegQuality: 0.95 },
-}
+// Tiempo máximo de espera a que las páginas lazy terminen de montar antes de imprimir.
+const RENDER_WAIT_MS = 30000
+// Respaldo por si afterprint/matchMedia no llegan (diálogo abierto mucho tiempo, navegadores antiguos).
+const CLEANUP_FALLBACK_MS = 60000
 
 export default function CatalogPageHeader({
-  catalog,
   totalProducts,
   totalPages,
   hiddenProductsList = [],
   onExportingChange,
 }) {
-  const { printMode } = usePrint()
   const [viewOpen, setViewOpen] = useState(false)
-  const [legacyQuality] = useState("medium")
   const [clientExport, setClientExport] = useState({ active: false, phase: null, page: 0, total: 0 })
+  const [exportError, setExportError] = useState("")
   const cancelExportRef = useRef(false)
 
   async function waitForCatalogPages() {
     const startedAt = Date.now()
-    while (Date.now() - startedAt < 6000) {
+    while (Date.now() - startedAt < RENDER_WAIT_MS) {
       if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
       const wrappers = Array.from(document.querySelectorAll("#catalog > div, #catalog section > div"))
       const rendered = wrappers.filter(wrapper =>
         Array.from(wrapper.children).some(child => child.childElementCount > 0)
       ).length
       if (wrappers.length >= totalPages && rendered >= totalPages) return
-      setClientExport({ active: true, phase: "rendering", page: 0, total: 0 })
+      setClientExport({ active: true, phase: "rendering", page: rendered, total: totalPages })
       await new Promise(resolve => setTimeout(resolve, 100))
     }
+    throw new Error("No se han podido preparar todas las páginas del catálogo. Vuelve a intentarlo.")
   }
 
   async function preloadCatalogImages(onProgress) {
@@ -69,16 +65,23 @@ export default function CatalogPageHeader({
   async function handleBrowserPrint() {
     if (clientExport.active) return
     cancelExportRef.current = false
+    setExportError("")
     setClientExport({ active: true, phase: "preparing", page: 0, total: 0 })
     onExportingChange?.(true)
 
     let cleanupTimer
+    const printMedia = window.matchMedia("print")
     const cleanup = () => {
       window.removeEventListener("afterprint", cleanup)
+      printMedia.removeEventListener?.("change", onPrintMediaChange)
       window.clearTimeout(cleanupTimer)
       onExportingChange?.(false)
       setClientExport({ active: false, phase: null, page: 0, total: 0 })
       cancelExportRef.current = false
+    }
+    // En navegadores donde print() no bloquea, el fin de la impresión llega por aquí.
+    const onPrintMediaChange = event => {
+      if (!event.matches) cleanup()
     }
 
     try {
@@ -87,74 +90,30 @@ export default function CatalogPageHeader({
       await waitForCatalogPages()
 
       await preloadCatalogImages((page, total) => {
-        setClientExport({ active: true, phase: "preparing", page, total })
+        setClientExport({ active: true, phase: "images", page, total })
       })
       if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
 
       setClientExport({ active: true, phase: "printing", page: 0, total: 0 })
       window.addEventListener("afterprint", cleanup, { once: true })
+      printMedia.addEventListener?.("change", onPrintMediaChange)
       window.print()
-      cleanupTimer = window.setTimeout(cleanup, 1000)
+      cleanupTimer = window.setTimeout(cleanup, CLEANUP_FALLBACK_MS)
     } catch (error) {
       if (error.message !== "EXPORT_CANCELLED") {
-        alert(`Error preparando impresión: ${error.message}`)
+        setExportError(error.message)
       }
       cleanup()
     }
   }
 
-  async function handleLegacyPdfExport() {
-    if (clientExport.active) return
-    cancelExportRef.current = false
-    setClientExport({ active: true, phase: "preparing", page: 0, total: 0 })
-    onExportingChange?.(true)
-    try {
-      const preset = LEGACY_QUALITY_PRESETS[legacyQuality]
-      await waitForCatalogPages()
-      await preloadCatalogImages((page, total) => {
-        setClientExport({ active: true, phase: "preparing", page, total })
-      })
-      if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
-
-      const [{ domToJpeg }, { jsPDF }] = await Promise.all([
-        import("modern-screenshot"),
-        import("jspdf"),
-      ])
-      const pages = Array.from(document.querySelectorAll("#catalog > div, #catalog section > div"))
-      if (!pages.length) throw new Error("No se encontraron páginas para exportar.")
-
-      setClientExport({ active: true, phase: "capturing", page: 0, total: pages.length })
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true })
-      const widthMm = printMode ? 216 : 210
-      const heightMm = printMode ? 303 : 297
-      if (printMode) {
-        pdf.deletePage(1)
-        pdf.addPage([widthMm, heightMm], "portrait")
-      }
-
-      for (let i = 0; i < pages.length; i++) {
-        if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
-        setClientExport({ active: true, phase: "capturing", page: i + 1, total: pages.length })
-        const imgData = await domToJpeg(pages[i], {
-          scale: preset.scale,
-          quality: preset.jpegQuality,
-          backgroundColor: "#ffffff",
-        })
-        if (cancelExportRef.current) throw new Error("EXPORT_CANCELLED")
-        if (i > 0) pdf.addPage(printMode ? [widthMm, heightMm] : "a4", "portrait")
-        pdf.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm, undefined, "FAST")
-      }
-
-      pdf.save(`catalogo-${catalog.slug}-${catalog.edition}.pdf`)
-    } catch (error) {
-      if (error.message !== "EXPORT_CANCELLED") {
-        alert(`Error generando PDF: ${error.message}`)
-      }
-    } finally {
-      onExportingChange?.(false)
-      setClientExport({ active: false, phase: null, page: 0, total: 0 })
-      cancelExportRef.current = false
+  function exportLabel() {
+    if (clientExport.phase === "canceling") return "Cancelando…"
+    if (clientExport.phase === "images" && clientExport.total) {
+      return `Cargando imágenes ${clientExport.page}/${clientExport.total}…`
     }
+    if (clientExport.phase === "printing") return "Abriendo impresión…"
+    return "Preparando…"
   }
 
   return (
@@ -189,6 +148,9 @@ export default function CatalogPageHeader({
               </>
             )}
           </p>
+          {exportError && (
+            <p className="text-xs text-destructive" role="alert">{exportError}</p>
+          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -200,13 +162,7 @@ export default function CatalogPageHeader({
             {clientExport.active ? (
               <>
                 <Loader2 className="animate-spin" />
-                {clientExport.phase === "preparing"
-                  ? "Preparando…"
-                  : clientExport.phase === "rendering"
-                    ? "Preparando…"
-                  : clientExport.phase === "canceling"
-                    ? "Cancelando…"
-                  : "Preparando impresión…"}
+                {exportLabel()}
               </>
             ) : (
               <>
@@ -214,17 +170,6 @@ export default function CatalogPageHeader({
               </>
             )}
           </Button>
-
-          {SHOW_LEGACY_PDF_EXPORT && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleLegacyPdfExport}
-              disabled={clientExport.active}
-            >
-              Generar PDF
-            </Button>
-          )}
 
           {clientExport.active && (
             <Button

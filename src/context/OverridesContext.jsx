@@ -35,15 +35,24 @@ export function OverridesProvider({ children }) {
     }
   }, [catalog?.id])
 
-  useEffect(() => {
-    return () => {
-      for (const timerId of pendingTimersRef.current.values()) {
-        clearTimeout(timerId)
-      }
-      pendingTimersRef.current.clear()
-      pendingFieldsRef.current.clear()
+  const flushAll = useCallback(() => {
+    for (const timerId of pendingTimersRef.current.values()) {
+      clearTimeout(timerId)
     }
-  }, [])
+    for (const id of Array.from(pendingFieldsRef.current.keys())) {
+      flushPending(id)
+    }
+  }, [flushPending])
+
+  // Sin esto, cerrar la pestaña o desmontar el provider dentro del debounce descarta el último cambio.
+  useEffect(() => {
+    const onPageHide = () => flushAll()
+    window.addEventListener("pagehide", onPageHide)
+    return () => {
+      window.removeEventListener("pagehide", onPageHide)
+      flushAll()
+    }
+  }, [flushAll])
 
   const patchOverride = useCallback((id, fields) => {
     if (!isAdmin || !catalog?.id) {

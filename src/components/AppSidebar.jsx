@@ -3,6 +3,7 @@ import {
   LogOut,
   MoreVertical,
   Package,
+  Settings,
   Sparkles,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
@@ -36,6 +37,7 @@ import { useCatalog } from "../context/CatalogContext"
 const NAV_MAIN = [
   { to: "/products", label: "Productos", icon: Package },
   { to: "/catalog", label: "Catálogo", icon: BookOpen },
+  { to: "/settings", label: "Ajustes", icon: Settings },
 ]
 
 function initialsOf(email) {

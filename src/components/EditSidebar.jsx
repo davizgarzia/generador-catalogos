@@ -60,13 +60,14 @@ export default function EditSidebar() {
     return products.find(item => item.id === editingProduct.id) ?? editingProduct
   }, [products, editingProduct])
 
+  const liveImgMode = overrides[liveProduct?.id]?.imgMode
   useEffect(() => {
     setImageFallbackIndex(0)
   }, [
     liveProduct?.id,
     liveProduct?.imageVersion,
     liveProduct?.nobgVersion,
-    overrides[liveProduct?.id]?.imgMode,
+    liveImgMode,
   ])
 
   if (!liveProduct) return null

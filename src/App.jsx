@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react"
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
@@ -16,12 +17,13 @@ import {
 import { useAuth } from "./context/AuthContext"
 import AppSidebar from "./components/AppSidebar"
 import LoginPage from "./pages/LoginPage"
-import CatalogPage from "./pages/CatalogPage"
-import ProductsPage from "./pages/ProductsPage"
-import SettingsPage from "./pages/SettingsPage"
+
+const CatalogPage = lazy(() => import("./pages/CatalogPage"))
+const ProductsPage = lazy(() => import("./pages/ProductsPage"))
+const SettingsPage = lazy(() => import("./pages/SettingsPage"))
 
 function RequireAuth() {
-  const { user, loading } = useAuth()
+  const { user, isAdmin, loading, signOut } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -34,6 +36,27 @@ function RequireAuth() {
 
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-svh grid place-items-center p-6">
+        <div className="max-w-sm text-center space-y-3">
+          <h1 className="text-lg font-semibold">Cuenta sin permisos</h1>
+          <p className="text-sm text-muted-foreground">
+            Tu cuenta ({user.email}) no está autorizada para administrar el catálogo.
+            Contacta con un administrador para que te dé acceso.
+          </p>
+          <button
+            type="button"
+            onClick={signOut}
+            className="text-sm underline underline-offset-2 text-muted-foreground hover:text-foreground"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return <Outlet />
@@ -86,7 +109,13 @@ function AppShell() {
         </header>
         <div className="app-main flex-1 min-h-0 min-w-0 relative">
           <div className="app-scroll absolute inset-0 flex flex-col overflow-y-auto">
-            <Outlet />
+            <Suspense
+              fallback={
+                <div className="p-6 text-sm text-muted-foreground">Cargando…</div>
+              }
+            >
+              <Outlet />
+            </Suspense>
           </div>
         </div>
       </SidebarInset>

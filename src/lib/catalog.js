@@ -185,72 +185,84 @@ function mapCatalogProduct(row) {
   }
 }
 
-export async function loadCatalogBundle() {
-  const { data: catalog, error: catalogError } = await supabase
+function mapCatalogRow(catalog) {
+  return {
+    ...catalog,
+    coverImage: getAssetVariantUrl(catalog.cover_image_path, "large") || getStorageUrl("catalog-assets", catalog.cover_image_path),
+    coverImageFallback: getStorageUrl("catalog-assets", catalog.cover_image_path),
+    coverThumb: getAssetVariantUrl(catalog.cover_image_path, "thumb"),
+    logo: getAssetVariantUrl(catalog.logo_path, "large") || getStorageUrl("catalog-assets", catalog.logo_path),
+    logoFallback: getStorageUrl("catalog-assets", catalog.logo_path),
+    logoWhite: getAssetVariantUrl(catalog.logo_white_path, "large") || getStorageUrl("catalog-assets", catalog.logo_white_path),
+    logoWhiteFallback: getStorageUrl("catalog-assets", catalog.logo_white_path),
+  }
+}
+
+export async function loadCatalogRow() {
+  const { data, error } = await supabase
     .from("catalogs")
     .select("*")
     .eq("slug", CATALOG_SLUG)
     .single()
-  if (catalogError) throw catalogError
+  if (error) throw error
+  return mapCatalogRow(data)
+}
 
-  const [categoriesResult, productsResult, coverResult] = await Promise.all([
-    supabase
-      .from("catalog_categories")
-      .select("*")
-      .eq("active", true)
-      .order("sort_order"),
-    supabase
-      .from("catalog_products")
-      .select(`
-        *,
-        product:products(
-          article_name,
-          display_name,
-          stock_units,
-          units_per_case,
-          category_id,
-          source_type,
-          discontinued,
-          category:catalog_categories(display_name)
-        )
-      `)
-      .eq("catalog_id", catalog.id)
-      .order("sort_order"),
-    supabase
-      .from("catalog_cover_products")
-      .select("product_id,sort_order")
-      .eq("catalog_id", catalog.id)
-      .order("sort_order"),
-  ])
-
-  if (categoriesResult.error) throw categoriesResult.error
-  if (productsResult.error) throw productsResult.error
-  if (coverResult.error) throw coverResult.error
-
-  const categories = categoriesResult.data.map(category => ({
+export async function loadCategories() {
+  const { data, error } = await supabase
+    .from("catalog_categories")
+    .select("*")
+    .eq("active", true)
+    .order("sort_order")
+  if (error) throw error
+  return data.map(category => ({
     ...category,
     coverImage: getAssetVariantUrl(category.cover_image_path, "large") || getStorageUrl("catalog-assets", category.cover_image_path),
     coverImageFallback: getStorageUrl("catalog-assets", category.cover_image_path),
     coverThumb: getAssetVariantUrl(category.cover_image_path, "thumb"),
   }))
-  const products = productsResult.data.map(mapCatalogProduct)
-  const byId = new Map(products.map(product => [product.id, product]))
+}
 
-  return {
-    catalog: {
-      ...catalog,
-      coverImage: getAssetVariantUrl(catalog.cover_image_path, "large") || getStorageUrl("catalog-assets", catalog.cover_image_path),
-      coverImageFallback: getStorageUrl("catalog-assets", catalog.cover_image_path),
-      coverThumb: getAssetVariantUrl(catalog.cover_image_path, "thumb"),
-      logo: getAssetVariantUrl(catalog.logo_path, "large") || getStorageUrl("catalog-assets", catalog.logo_path),
-      logoFallback: getStorageUrl("catalog-assets", catalog.logo_path),
-      logoWhite: getAssetVariantUrl(catalog.logo_white_path, "large") || getStorageUrl("catalog-assets", catalog.logo_white_path),
-      logoWhiteFallback: getStorageUrl("catalog-assets", catalog.logo_white_path),
-    },
-    categories,
-    products,
-    coverProducts: coverResult.data.map(item => byId.get(item.product_id)).filter(Boolean),
-  }
+export async function loadCatalogProducts(catalogId) {
+  const { data, error } = await supabase
+    .from("catalog_products")
+    .select(`
+      *,
+      product:products(
+        article_name,
+        display_name,
+        stock_units,
+        units_per_case,
+        category_id,
+        source_type,
+        discontinued,
+        category:catalog_categories(display_name)
+      )
+    `)
+    .eq("catalog_id", catalogId)
+    .order("sort_order")
+  if (error) throw error
+  return data.map(mapCatalogProduct)
+}
+
+export async function loadCoverProductIds(catalogId) {
+  const { data, error } = await supabase
+    .from("catalog_cover_products")
+    .select("product_id,sort_order")
+    .eq("catalog_id", catalogId)
+    .order("sort_order")
+  if (error) throw error
+  return data.map(item => item.product_id)
+}
+
+export async function loadCatalogBundle() {
+  const catalog = await loadCatalogRow()
+  const [categories, products, coverIds] = await Promise.all([
+    loadCategories(),
+    loadCatalogProducts(catalog.id),
+    loadCoverProductIds(catalog.id),
+  ])
+  return { catalog, categories, products, coverIds }
 }
 
 export async function loadProductOverrides(catalogId) {
@@ -344,30 +356,45 @@ export async function setProductActive(catalogId, productId, active) {
   if (error) throw error
 }
 
+async function callNetlifyFunction(name, body, fallbackMessage) {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw sessionError
+  const token = sessionData.session?.access_token
+  if (!token) throw new Error("Debes iniciar sesión como administrador.")
+
+  const response = await fetch(`/.netlify/functions/${name}`, {
+    method: "POST",
+    headers: {
+      "authorization": `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  })
+  const result = await response.json().catch(() => null)
+  if (!response.ok) {
+    if (result === null) {
+      throw new Error(
+        `Las funciones de Netlify no responden (HTTP ${response.status}). ` +
+        "En local, arranca la app con `npx netlify dev` en lugar de `npm run dev`."
+      )
+    }
+    throw new Error(result.error || fallbackMessage)
+  }
+  return result ?? {}
+}
+
 export async function uploadProductImage(catalogId, productId, file, variant = "original") {
   if (PRODUCT_IMAGE_UPLOADS_USE_R2) {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-    if (sessionError) throw sessionError
-    const token = sessionData.session?.access_token
-    if (!token) throw new Error("Debes iniciar sesión para subir imágenes.")
-
-    const presignResponse = await fetch("/.netlify/functions/r2-presign-product-image", {
-      method: "POST",
-      headers: {
-        "authorization": `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
+    const presign = await callNetlifyFunction(
+      "r2-presign-product-image",
+      {
         productId,
         variant,
         fileName: file.name,
         contentType: file.type || "application/octet-stream",
-      }),
-    })
-    const presign = await presignResponse.json().catch(() => ({}))
-    if (!presignResponse.ok) {
-      throw new Error(presign.error || "No se pudo preparar la subida a R2.")
-    }
+      },
+      "No se pudo preparar la subida a R2."
+    )
 
     const uploadResponse = await fetch(presign.uploadUrl, {
       method: "PUT",
@@ -378,23 +405,11 @@ export async function uploadProductImage(catalogId, productId, file, variant = "
       throw new Error(`No se pudo subir la imagen a R2: HTTP ${uploadResponse.status}`)
     }
 
-    const processResponse = await fetch("/.netlify/functions/r2-process-product-image", {
-      method: "POST",
-      headers: {
-        "authorization": `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        catalogId,
-        productId,
-        variant,
-        path: presign.path,
-      }),
-    })
-    const processed = await processResponse.json().catch(() => ({}))
-    if (!processResponse.ok) {
-      throw new Error(processed.error || "No se pudieron generar las variantes de imagen.")
-    }
+    const processed = await callNetlifyFunction(
+      "r2-process-product-image",
+      { catalogId, productId, variant, path: presign.path },
+      "No se pudieron generar las variantes de imagen."
+    )
     return processed.path
   }
 
@@ -424,24 +439,11 @@ export async function uploadProductImage(catalogId, productId, file, variant = "
 }
 
 export async function deleteProduct(catalogId, productId) {
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-  if (sessionError) throw sessionError
-  const token = sessionData.session?.access_token
-  if (!token) throw new Error("Debes iniciar sesión para eliminar productos.")
-
-  const response = await fetch("/.netlify/functions/r2-delete-product", {
-    method: "POST",
-    headers: {
-      "authorization": `Bearer ${token}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ catalogId, productId }),
-  })
-  const result = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    throw new Error(result.error || "No se pudo eliminar el producto.")
-  }
-  return result
+  return callNetlifyFunction(
+    "r2-delete-product",
+    { catalogId, productId },
+    "No se pudo eliminar el producto."
+  )
 }
 
 export async function importCatalogProducts(products) {

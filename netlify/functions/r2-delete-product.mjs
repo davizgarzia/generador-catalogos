@@ -75,6 +75,7 @@ export default async function handler(request) {
 
     return jsonResponse({ productId, deletedImages })
   } catch (error) {
+    console.error("r2-delete-product", error)
     return jsonResponse({ error: error.message }, { status: 400 })
   }
 }
