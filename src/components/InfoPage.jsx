@@ -31,12 +31,12 @@ function WhatsAppIcon({ size = 14 }) {
 }
 
 export default function InfoPage() {
-  const { catalog } = useCatalog()
+  const { company } = useCatalog()
   const infoItems = [
     {
       icon: PhoneCall,
       title: "Atención personalizada",
-      text: `Atención telefónica de ${catalog.business_hours}, excepto festivos nacionales y de la Comunidad Valenciana.`,
+      text: `Atención telefónica de ${company.business_hours}, excepto festivos nacionales y de la Comunidad Valenciana.`,
     },
     {
       icon: Truck,
@@ -53,9 +53,9 @@ export default function InfoPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div className={styles.kicker}>{catalog.settings?.info_kicker}</div>
-        <h2>{catalog.settings?.info_title || `¿Por qué ${catalog.name}?`}</h2>
-        <p>{catalog.settings?.info_description}</p>
+        <div className={styles.kicker}>{company.settings?.info_kicker}</div>
+        <h2>{company.settings?.info_title || `¿Por qué ${company.name}?`}</h2>
+        <p>{company.settings?.info_description}</p>
       </div>
 
       <div className={styles.main}>
@@ -92,25 +92,25 @@ export default function InfoPage() {
             <span className={styles.contactItemIcon} aria-label="Teléfono">
               <PhoneCall size={12} strokeWidth={2.2} />
             </span>
-            <span className={styles.contactItemText}>{catalog.phone}</span>
+            <span className={styles.contactItemText}>{company.phone}</span>
           </span>
           <span className={styles.contactItem}>
             <span className={`${styles.contactItemIcon} ${styles.whatsappIcon}`} aria-label="WhatsApp">
               <WhatsAppIcon size={14} />
             </span>
-            <span className={styles.contactItemText}>{catalog.whatsapp}</span>
+            <span className={styles.contactItemText}>{company.whatsapp}</span>
           </span>
           <span className={styles.contactItem}>
             <span className={styles.contactItemIcon} aria-label="Email">
               <Mail size={12} strokeWidth={2.2} />
             </span>
-            <span className={styles.contactItemText}>{catalog.email}</span>
+            <span className={styles.contactItemText}>{company.email}</span>
           </span>
           <span className={styles.contactItem}>
             <span className={styles.contactItemIcon} aria-label="Web">
               <Globe2 size={12} strokeWidth={2.2} />
             </span>
-            <span className={styles.contactItemText}>{catalog.website}</span>
+            <span className={styles.contactItemText}>{company.website}</span>
           </span>
         </div>
       </div>

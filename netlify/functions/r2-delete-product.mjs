@@ -8,6 +8,8 @@ import {
   sanitizeProductId,
 } from "./lib/r2-catalog.mjs"
 
+// Elimina el producto del maestro: sus vínculos en todos los catálogos,
+// la fila de products y sus imágenes en R2.
 export default async function handler(request) {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, { status: 405 })
@@ -19,61 +21,45 @@ export default async function handler(request) {
     if (auth.error) return auth.error
 
     const body = await request.json()
-    const catalogId = body.catalogId
     const productId = sanitizeProductId(body.productId)
-    if (!catalogId) throw new Error("Falta catalogId.")
 
-    const { data: catalogProduct, error: fetchError } = await supabase
-      .from("catalog_products")
-      .select("catalog_id,product_id,original_image_path,processed_image_path")
-      .eq("catalog_id", catalogId)
-      .eq("product_id", productId)
+    const { data: product, error: fetchError } = await supabase
+      .from("products")
+      .select("id,original_image_path,processed_image_path")
+      .eq("id", productId)
       .maybeSingle()
     if (fetchError) throw fetchError
-    if (!catalogProduct) return jsonResponse({ error: "Producto no encontrado." }, { status: 404 })
-
-    const { count: linkCount, error: countError } = await supabase
-      .from("catalog_products")
-      .select("product_id", { count: "exact", head: true })
-      .eq("product_id", productId)
-    if (countError) throw countError
-    const deleteSharedAssets = (linkCount ?? 0) <= 1
+    if (!product) return jsonResponse({ error: "Producto no encontrado." }, { status: 404 })
 
     const { error: coverError } = await supabase
       .from("catalog_cover_products")
       .delete()
-      .eq("catalog_id", catalogId)
       .eq("product_id", productId)
     if (coverError) throw coverError
 
-    const { error: catalogError } = await supabase
+    const { error: linksError } = await supabase
       .from("catalog_products")
       .delete()
-      .eq("catalog_id", catalogId)
       .eq("product_id", productId)
-    if (catalogError) throw catalogError
+    if (linksError) throw linksError
 
-    let deletedImages = 0
-    if (deleteSharedAssets) {
-      const { error: productError } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", productId)
-      if (productError) throw productError
+    const { error: productError } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", productId)
+    if (productError) throw productError
 
-      const { bucket, client } = requireR2Config()
-      const paths = productImagePaths(productId, catalogProduct)
-      await client.send(new DeleteObjectsCommand({
-        Bucket: bucket,
-        Delete: {
-          Objects: paths.map(Key => ({ Key })),
-          Quiet: true,
-        },
-      }))
-      deletedImages = paths.length
-    }
+    const { bucket, client } = requireR2Config()
+    const paths = productImagePaths(productId, product)
+    await client.send(new DeleteObjectsCommand({
+      Bucket: bucket,
+      Delete: {
+        Objects: paths.map(Key => ({ Key })),
+        Quiet: true,
+      },
+    }))
 
-    return jsonResponse({ productId, deletedImages })
+    return jsonResponse({ productId, deletedImages: paths.length })
   } catch (error) {
     console.error("r2-delete-product", error)
     return jsonResponse({ error: error.message }, { status: 400 })

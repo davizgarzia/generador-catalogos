@@ -1,5 +1,5 @@
 import {
-  BookOpen,
+  LayoutGrid,
   LogOut,
   MoreVertical,
   Package,
@@ -36,7 +36,7 @@ import { useCatalog } from "../context/CatalogContext"
 
 const NAV_MAIN = [
   { to: "/products", label: "Productos", icon: Package },
-  { to: "/catalog", label: "Catálogo", icon: BookOpen },
+  { to: "/catalogs", label: "Catálogos", icon: LayoutGrid },
   { to: "/settings", label: "Ajustes", icon: Settings },
 ]
 
@@ -48,7 +48,7 @@ function initialsOf(email) {
 
 export default function AppSidebar(props) {
   const { user, signOut } = useAuth()
-  const { catalog } = useCatalog()
+  const { company } = useCatalog()
   const { isMobile } = useSidebar()
 
   const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "Cuenta"
@@ -66,10 +66,10 @@ export default function AppSidebar(props) {
               <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                 <Sparkles className="size-4" />
               </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Impormed</span>
+              <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
+                <span className="truncate font-semibold">{company?.name ?? "Impormed"}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {catalog?.edition ? `Edición ${catalog.edition}` : "Catálogo"}
+                  Generador de catálogos
                 </span>
               </div>
             </SidebarMenuButton>

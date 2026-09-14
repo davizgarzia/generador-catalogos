@@ -1,5 +1,5 @@
-import { Suspense, lazy } from "react"
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom"
+import { Fragment, Suspense, lazy } from "react"
+import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   SidebarInset,
@@ -10,15 +10,18 @@ import { Separator } from "@/components/ui/separator"
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { useAuth } from "./context/AuthContext"
+import { useCatalog } from "./context/CatalogContext"
 import AppSidebar from "./components/AppSidebar"
 import LoginPage from "./pages/LoginPage"
 
 const CatalogPage = lazy(() => import("./pages/CatalogPage"))
+const CatalogsPage = lazy(() => import("./pages/CatalogsPage"))
 const ProductsPage = lazy(() => import("./pages/ProductsPage"))
 const SettingsPage = lazy(() => import("./pages/SettingsPage"))
 
@@ -62,16 +65,30 @@ function RequireAuth() {
   return <Outlet />
 }
 
-function sectionLabel(pathname) {
-  if (pathname.startsWith("/catalog")) return "Catálogo"
-  if (pathname.startsWith("/products")) return "Productos"
-  if (pathname.startsWith("/settings")) return "Ajustes"
-  return ""
+function useBreadcrumbItems() {
+  const location = useLocation()
+  const { catalog, catalogs } = useCatalog()
+  const pathname = location.pathname
+
+  if (pathname.startsWith("/products")) return [{ label: "Productos", to: "/products" }]
+  if (pathname.startsWith("/settings")) return [{ label: "Ajustes", to: "/settings" }]
+  if (pathname.startsWith("/catalogs")) {
+    const items = [{ label: "Catálogos", to: "/catalogs" }]
+    const slug = pathname.split("/")[2]
+    if (slug) {
+      const name =
+        (catalog?.slug === slug ? catalog.name : null) ??
+        catalogs.find(item => item.slug === slug)?.name ??
+        slug
+      items.push({ label: name, to: pathname })
+    }
+    return items
+  }
+  return []
 }
 
 function AppShell() {
-  const location = useLocation()
-  const section = sectionLabel(location.pathname)
+  const items = useBreadcrumbItems()
 
   return (
     <SidebarProvider
@@ -94,15 +111,31 @@ function AppShell() {
             />
             <Breadcrumb>
               <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:inline-flex text-muted-foreground">
-                  Impormed
+                <BreadcrumbItem className="hidden md:inline-flex">
+                  <BreadcrumbLink asChild className="text-muted-foreground hover:text-foreground">
+                    <Link to="/products">Impormed</Link>
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="text-base font-medium">
-                    {section}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
+                {items.length > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+                {items.map((item, index) => {
+                  const isLast = index === items.length - 1
+                  return (
+                    <Fragment key={item.to}>
+                      <BreadcrumbItem>
+                        {isLast ? (
+                          <BreadcrumbPage className="text-base font-medium max-w-[40vw] truncate">
+                            {item.label}
+                          </BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink asChild>
+                            <Link to={item.to}>{item.label}</Link>
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                      {!isLast && <BreadcrumbSeparator />}
+                    </Fragment>
+                  )
+                })}
               </BreadcrumbList>
             </Breadcrumb>
           </div>
@@ -131,7 +164,8 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
             <Route index element={<Navigate to="/products" replace />} />
-            <Route path="/catalog" element={<CatalogPage />} />
+            <Route path="/catalogs" element={<CatalogsPage />} />
+            <Route path="/catalogs/:slug" element={<CatalogPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

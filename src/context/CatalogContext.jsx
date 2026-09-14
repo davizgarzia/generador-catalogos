@@ -1,22 +1,32 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import {
-  loadCatalogBundle,
   loadCatalogProducts,
   loadCatalogRow,
+  loadCatalogs,
   loadCategories,
+  loadCompanyProfile,
+  loadProducts,
 } from "../lib/catalog"
 
 const CatalogContext = createContext(null)
 
 export function CatalogProvider({ children }) {
-  const [data, setData] = useState({
-    catalog: null,
-    categories: [],
-    products: [],
-  })
+  // Datos globales: maestro de productos, categorías, lista de catálogos y empresa.
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [catalogs, setCatalogs] = useState([])
+  const [company, setCompany] = useState({ settings: {} })
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState("")
+
+  // Detalle del catálogo que se está viendo (/catalogs/:slug).
+  const [viewedSlug, setViewedSlug] = useState(null)
+  const [detail, setDetail] = useState({ catalog: null, items: [] })
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState("")
+  const detailIdRef = useRef(null)
+  detailIdRef.current = detail.catalog?.id ?? null
 
   const runRefresh = useCallback(async task => {
     setError("")
@@ -25,7 +35,7 @@ export function CatalogProvider({ children }) {
       await task()
     } catch (loadError) {
       console.error(loadError)
-      setError("No se pudo cargar el catálogo desde Supabase.")
+      setError("No se pudieron cargar los datos desde Supabase.")
     } finally {
       setRefreshing(false)
       setLoading(false)
@@ -33,49 +43,113 @@ export function CatalogProvider({ children }) {
   }, [])
 
   const reload = useCallback(
-    () => runRefresh(async () => setData(await loadCatalogBundle())),
+    () =>
+      runRefresh(async () => {
+        const [master, categoryList, catalogList, companyProfile] = await Promise.all([
+          loadProducts(),
+          loadCategories(),
+          loadCatalogs(),
+          loadCompanyProfile(),
+        ])
+        setProducts(master)
+        setCategories(categoryList)
+        setCatalogs(catalogList)
+        setCompany(companyProfile)
+      }),
     [runRefresh]
   )
 
-  const catalogId = data.catalog?.id
+  const reloadProducts = useCallback(
+    () =>
+      runRefresh(async () => {
+        setProducts(await loadProducts())
+        // El detalle abierto muestra datos del maestro: mantenerlo en sincronía.
+        if (detailIdRef.current) {
+          const items = await loadCatalogProducts(detailIdRef.current)
+          setDetail(current => ({ ...current, items }))
+        }
+      }),
+    [runRefresh]
+  )
 
-  // Recarga solo los productos del catálogo (tras crear/editar/borrar/importar).
-  const reloadProducts = useCallback(() => {
-    if (!catalogId) return reload()
-    return runRefresh(async () => {
-      const products = await loadCatalogProducts(catalogId)
-      setData(current => ({ ...current, products }))
-    })
-  }, [catalogId, reload, runRefresh])
-
-  // Recarga datos comerciales y categorías (tras guardar Ajustes).
-  const reloadCatalogInfo = useCallback(() => {
-    if (!catalogId) return reload()
-    return runRefresh(async () => {
-      const [catalog, categories] = await Promise.all([
-        loadCatalogRow(),
-        loadCategories(),
-      ])
-      setData(current => ({ ...current, catalog, categories }))
-    })
-  }, [catalogId, reload, runRefresh])
+  const reloadMeta = useCallback(
+    () =>
+      runRefresh(async () => {
+        const [categoryList, catalogList, companyProfile] = await Promise.all([
+          loadCategories(),
+          loadCatalogs(),
+          loadCompanyProfile(),
+        ])
+        setCategories(categoryList)
+        setCatalogs(catalogList)
+        setCompany(companyProfile)
+      }),
+    [runRefresh]
+  )
 
   useEffect(() => {
     reload()
   }, [reload])
 
+  // Carga del detalle cuando cambia el catálogo visitado.
+  const openCatalog = useCallback(slug => {
+    setViewedSlug(slug)
+  }, [])
+
+  const loadDetail = useCallback(async slug => {
+    if (!slug) return
+    setDetailLoading(true)
+    setDetailError("")
+    try {
+      const catalog = await loadCatalogRow(slug)
+      const items = await loadCatalogProducts(catalog.id)
+      setDetail({ catalog, items })
+    } catch (loadError) {
+      console.error(loadError)
+      setDetail({ catalog: null, items: [] })
+      setDetailError("No se pudo cargar el catálogo.")
+    } finally {
+      setDetailLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadDetail(viewedSlug)
+  }, [viewedSlug, loadDetail])
+
+  const reloadCatalogItems = useCallback(async () => {
+    if (!detail.catalog?.id) return
+    try {
+      const items = await loadCatalogProducts(detail.catalog.id)
+      setDetail(current => ({ ...current, items }))
+    } catch (loadError) {
+      console.error(loadError)
+      setDetailError("No se pudo actualizar el catálogo.")
+    }
+  }, [detail.catalog?.id])
+
   return (
     <CatalogContext.Provider
       value={{
-        catalog: data.catalog,
-        categories: data.categories,
-        products: data.products,
+        // Global
+        products,
+        categories,
+        catalogs,
+        company,
         loading,
         refreshing,
         error,
         reload,
         reloadProducts,
-        reloadCatalogInfo,
+        reloadMeta,
+        // Detalle
+        catalog: detail.catalog,
+        catalogItems: detail.items,
+        detailLoading,
+        detailError,
+        openCatalog,
+        reloadCatalogDetail: loadDetail,
+        reloadCatalogItems,
       }}
     >
       {children}

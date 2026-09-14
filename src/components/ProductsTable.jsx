@@ -39,7 +39,6 @@ import { cn } from "@/lib/utils"
 
 function statusOf(product) {
   if (product.discontinued) return { label: "De baja", variant: "destructive" }
-  if (!product.active) return { label: "Fuera", variant: "outline" }
   return { label: "Activo", variant: "secondary" }
 }
 

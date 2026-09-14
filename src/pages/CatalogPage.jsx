@@ -1,5 +1,7 @@
 import { createRef, useEffect, useMemo, useRef, useState } from "react"
+import { useParams } from "react-router-dom"
 import { useCatalog } from "../context/CatalogContext"
+import CatalogProductsManager from "../components/CatalogProductsManager"
 import { usePrint } from "../context/PrintContext"
 import { useEdit } from "../context/EditContext"
 import { useAuth } from "../context/AuthContext"
@@ -16,11 +18,27 @@ import EditSidebar from "../components/EditSidebar"
 import CatalogPageHeader from "../components/CatalogPageHeader"
 
 export default function CatalogPage() {
-  const { catalog, categories, products, loading, error, reload } = useCatalog()
+  const { slug } = useParams()
+  const {
+    catalog,
+    catalogItems: products,
+    categories,
+    detailLoading,
+    detailError,
+    openCatalog,
+    reloadCatalogDetail,
+  } = useCatalog()
   const { printMode, printSize, productGrid, hideNoImage } = usePrint()
   const { editingProduct } = useEdit()
   const { isAdmin } = useAuth()
   const [exporting, setExporting] = useState(false)
+  const [managerOpen, setManagerOpen] = useState(false)
+
+  useEffect(() => {
+    openCatalog(slug)
+  }, [slug, openCatalog])
+
+  const detailReady = catalog?.slug === slug
 
   const categoryOrder = useMemo(
     () => categories.map(category => category.display_name),
@@ -159,19 +177,19 @@ export default function CatalogPage() {
     })
   }, [pages.length])
 
-  if (loading) {
+  if (detailLoading || (!detailReady && !detailError)) {
     return (
       <div className="p-10 text-sm text-muted-foreground">Cargando catálogo…</div>
     )
   }
 
-  if (error || !catalog) {
+  if (detailError || !catalog) {
     return (
       <div className="p-10 flex flex-col items-start gap-3">
         <p className="text-sm text-muted-foreground">
-          {error || "No existe un catálogo activo."}
+          {detailError || "No existe este catálogo."}
         </p>
-        <button onClick={reload} className="text-sm underline text-primary">
+        <button onClick={() => reloadCatalogDetail(slug)} className="text-sm underline text-primary">
           Reintentar
         </button>
       </div>
@@ -184,11 +202,13 @@ export default function CatalogPage() {
   return (
     <div className="flex flex-col h-full">
       <CatalogPageHeader
+        catalogName={catalog.name}
         totalProducts={visibleProducts.length}
         totalPages={pages.length}
         hiddenProductsList={hiddenProductsList}
         onExportingChange={setExporting}
       />
+
 
       <div className="flex-1 flex min-h-0">
         <PageNavigator
@@ -196,6 +216,7 @@ export default function CatalogPage() {
           sections={navSections}
           searchItems={searchItems}
           rootRef={catalogAreaRef}
+          onManageProducts={isAdmin ? () => setManagerOpen(true) : undefined}
         />
 
         <div ref={catalogAreaRef} id="catalog-area" className="flex-1 overflow-auto">
@@ -258,6 +279,10 @@ export default function CatalogPage() {
           </aside>
         )}
       </div>
+
+      {isAdmin && (
+        <CatalogProductsManager open={managerOpen} onOpenChange={setManagerOpen} />
+      )}
     </div>
   )
 }

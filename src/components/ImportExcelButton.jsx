@@ -1,7 +1,10 @@
 import { useRef, useState } from "react"
-import readXlsxFile from "read-excel-file/browser"
 import { Upload, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import {
   Dialog,
   DialogContent,
@@ -10,60 +13,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { importCatalogProducts } from "../lib/catalog"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import ImportSection from "./import/ImportSection"
+import { importMasterProducts } from "../lib/catalog"
+import { EXPECTED_HEADERS, computeImportDiff, parseImportFile } from "../lib/importExcel"
 import { useCatalog } from "../context/CatalogContext"
-
-function cleanName(fullName) {
-  return fullName
-    .replace(/\s*\([^)]*(?:U\s*x\s*C|UXC|UDS?|UNI(?:D(?:AD(?:ES)?)?)?|CAJA|PACKS?|DISPLAY)[^)]*\)/gi, "")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-function unitsPerCase(fullName) {
-  const patterns = [
-    /\((?:[^)]*?\b)?(\d+)\s*(?:U\s*x\s*C|UXC|UDS?\s*\/?\s*C(?:AJA)?|UNI(?:D(?:AD(?:ES)?)?)?(?:\s*X\s*CAJA)?|PACKS?|DISP(?:L|LAY)?)[^)]*\)/i,
-    /\b(?:CAJA|DISPLAY)\s*(?:X\s*)?(\d+)\s*(?:UNI(?:D(?:AD(?:ES)?)?)?|UDS?)\b/i,
-  ]
-  for (const pattern of patterns) {
-    const match = fullName.match(pattern)
-    if (match) return Number.parseInt(match[1], 10)
-  }
-  return null
-}
-
-async function parseWorkbook(file) {
-  const rows = await readXlsxFile(file, { sheet: "Valoración de stocks" })
-  const headers = rows[0].map(value => String(value ?? "").trim())
-  const indexOf = name => headers.indexOf(name)
-  const idIndex = indexOf("Artículo")
-  const nameIndex = indexOf("Nombre artículo")
-  const familyIndex = indexOf("Nombre de familia")
-  const stockIndex = indexOf("Unidades")
-  if ([idIndex, nameIndex, familyIndex, stockIndex].some(index => index === -1)) {
-    throw new Error("El Excel no contiene las columnas esperadas.")
-  }
-
-  return rows.slice(1).map((row, index) => {
-      const articleName = String(row[nameIndex] ?? "").replace(/\s+/g, " ").trim()
-      return {
-        id: String(row[idIndex] ?? "").trim(),
-        article_name: articleName,
-        display_name: cleanName(articleName),
-        family_name: String(row[familyIndex] ?? "").trim(),
-        stock_units: Number(row[stockIndex] ?? 0),
-        units_per_case: unitsPerCase(articleName),
-        sort_order: index,
-      }
-    }).filter(product => product.id && product.article_name && product.family_name)
-}
 
 export default function ImportExcelButton() {
   const inputRef = useRef(null)
-  const { products: currentProducts, reloadProducts } = useCatalog()
-  const [pending, setPending] = useState(null)
+  const { products: currentProducts, categories, reloadProducts } = useCatalog()
   const [state, setState] = useState("idle")
+  const [diff, setDiff] = useState(null)
+  const [discarded, setDiscarded] = useState([])
+  const [markMissing, setMarkMissing] = useState(true)
+  const [summary, setSummary] = useState(null)
   const [error, setError] = useState("")
+
+  const masterIsEmpty = currentProducts.length === 0
+  const dialogOpen = ["preview", "saving", "result", "error"].includes(state)
 
   async function selectFile(event) {
     const file = event.target.files?.[0]
@@ -72,14 +46,21 @@ export default function ImportExcelButton() {
     setState("loading")
     setError("")
     try {
-      const products = await parseWorkbook(file)
-      const currentIds = new Set(currentProducts.map(product => product.id))
-      const nextIds = new Set(products.map(product => product.id))
-      setPending({
-        products,
-        added: products.filter(product => !currentIds.has(product.id)).length,
-        discontinued: currentProducts.filter(product => !nextIds.has(product.id) && product.sourceType === "excel").length,
-      })
+      const parsed = await parseImportFile(file)
+      if (parsed.kind === "references") {
+        throw new Error(
+          `Este fichero es una lista de ${parsed.references.length} referencia(s), útil para ` +
+          "componer un catálogo (desde su «Gestionar productos»). Para actualizar el maestro " +
+          `se necesita el formato completo con las columnas ${EXPECTED_HEADERS}.`
+        )
+      }
+      const { products, discarded: discardedRows } = parsed
+      if (!products.length) {
+        throw new Error("El fichero no contiene ninguna fila válida.")
+      }
+      setDiff(computeImportDiff({ fileProducts: products, currentProducts, categories }))
+      setDiscarded(discardedRows)
+      setMarkMissing(!masterIsEmpty)
       setState("preview")
     } catch (parseError) {
       setError(parseError.message)
@@ -89,63 +70,229 @@ export default function ImportExcelButton() {
 
   async function confirm() {
     setState("saving")
+    setError("")
     try {
-      await importCatalogProducts(pending.products)
+      const result = await importMasterProducts(diff.toSend, {
+        markMissing: masterIsEmpty ? false : markMissing,
+      })
       await reloadProducts()
-      setPending(null)
-      setState("done")
+      setSummary(result)
+      setState("result")
     } catch (importError) {
       setError(importError.message)
       setState("error")
     }
   }
 
+  function close() {
+    setState("idle")
+    setDiff(null)
+    setDiscarded([])
+    setSummary(null)
+    setError("")
+  }
+
+  const blocked = diff?.unknownFamilies.length > 0
+
   return (
     <>
-      <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={selectFile} />
-      <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={state === "loading" || state === "saving"}>
+      <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={selectFile} />
+      <Button
+        variant="outline"
+        onClick={() => inputRef.current?.click()}
+        disabled={state === "loading" || state === "saving"}
+      >
         {state === "loading" || state === "saving" ? <Loader2 className="animate-spin" /> : <Upload />}
         {state === "saving" ? "Importando…" : "Importar Excel"}
       </Button>
-      <Dialog
-        open={state === "preview" || state === "error"}
-        onOpenChange={value => !value && setState("idle")}
-      >
-        <DialogContent className="sm:max-w-md">
-          {state === "error" && (
+
+      <Dialog open={dialogOpen} onOpenChange={open => !open && state !== "saving" && close()}>
+        <DialogContent className="sm:max-w-3xl">
+          {state === "error" ? (
             <>
               <DialogHeader>
-                <DialogTitle>Error de importación</DialogTitle>
-                <DialogDescription className="text-destructive">{error}</DialogDescription>
+                <DialogTitle>No se pudo importar</DialogTitle>
               </DialogHeader>
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
               <DialogFooter>
-                <Button onClick={() => setState("idle")}>Cerrar</Button>
+                <Button variant="outline" onClick={close}>Cerrar</Button>
               </DialogFooter>
             </>
-          )}
-          {state === "preview" && pending && (
+          ) : state === "result" ? (
             <>
               <DialogHeader>
-                <DialogTitle>Confirmar importación</DialogTitle>
+                <DialogTitle>Importación completada</DialogTitle>
                 <DialogDescription>
-                  {pending.products.length} productos · {pending.added} nuevos · {pending.discontinued} bajas
+                  {summary?.total ?? 0} artículos procesados en el fichero.
                 </DialogDescription>
               </DialogHeader>
-              <p className="text-muted-foreground text-xs">
-                La operación es transaccional. Las familias desconocidas bloquearán toda la importación.
-              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">{summary?.added ?? 0} nuevos</Badge>
+                <Badge variant="secondary">{summary?.updated ?? 0} actualizados</Badge>
+                {(summary?.reactivated ?? 0) > 0 && (
+                  <Badge variant="secondary">{summary.reactivated} reincorporados</Badge>
+                )}
+                {(summary?.discontinued ?? 0) > 0 && (
+                  <Badge variant="destructive">{summary.discontinued} bajas</Badge>
+                )}
+              </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setState("idle")} className="sm:flex-1">
+                <Button onClick={close}>Cerrar</Button>
+              </DialogFooter>
+            </>
+          ) : diff ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Revisar importación</DialogTitle>
+                <DialogDescription>
+                  Nada se guarda hasta que confirmes. Revisa especialmente las bajas.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">{diff.toSend.length} en el fichero</Badge>
+                <Badge variant="secondary">{diff.added.length} nuevos</Badge>
+                <Badge variant="secondary">{diff.updated.length} con cambios</Badge>
+                <Badge variant="outline">{diff.unchanged.length} sin cambios</Badge>
+                {diff.reactivated.length > 0 && (
+                  <Badge variant="secondary">{diff.reactivated.length} reincorporados</Badge>
+                )}
+                {diff.discontinuedNow.length > 0 && (
+                  <Badge variant={markMissing ? "destructive" : "outline"}>
+                    {diff.discontinuedNow.length} bajas
+                  </Badge>
+                )}
+                {discarded.length > 0 && (
+                  <Badge variant="outline">{discarded.length} descartados</Badge>
+                )}
+              </div>
+
+              {blocked && (
+                <Alert variant="destructive">
+                  <AlertTitle>Familias desconocidas</AlertTitle>
+                  <AlertDescription>
+                    Estas familias no existen como categoría y bloquean la importación:{" "}
+                    <strong>{diff.unknownFamilies.join(", ")}</strong>. Corrige el fichero
+                    o crea las categorías antes de continuar.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {diff.manualConflicts.length > 0 && (
+                <Alert>
+                  <AlertDescription>
+                    {diff.manualConflicts.length} referencia(s) del fichero corresponden a
+                    productos manuales ({diff.manualConflicts.map(item => item.id).join(", ")}).
+                    Sus datos y su estado no se modificarán.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <ImportSection
+                  title={markMissing ? "Bajas (se darán de baja al confirmar)" : "Bajas (no se aplicarán)"}
+                  count={diff.discontinuedNow.length}
+                  tone={markMissing ? "destructive" : "muted"}
+                  defaultOpen
+                >
+                  <SimpleTable
+                    headers={["Ref", "Nombre", "Stock actual"]}
+                    rows={diff.discontinuedNow.map(product => [product.id, product.name, product.stockUnits ?? 0])}
+                  />
+                </ImportSection>
+
+                <ImportSection title="Con cambios" count={diff.updated.length}>
+                  <SimpleTable
+                    headers={["Ref", "Nombre", "Cambios"]}
+                    rows={diff.updated.map(item => [
+                      item.id,
+                      item.name,
+                      item.changes.map(change => `${change.field}: ${change.before} → ${change.after}`).join(" · "),
+                    ])}
+                  />
+                </ImportSection>
+
+                <ImportSection title="Nuevos" count={diff.added.length}>
+                  <SimpleTable
+                    headers={["Ref", "Nombre", "Familia", "Stock"]}
+                    rows={diff.added.map(item => [item.id, item.display_name, item.family_name, item.stock_units])}
+                  />
+                </ImportSection>
+
+                <ImportSection title="Reincorporados (estaban de baja)" count={diff.reactivated.length}>
+                  <SimpleTable
+                    headers={["Ref", "Nombre"]}
+                    rows={diff.reactivated.map(item => [item.id, item.name])}
+                  />
+                </ImportSection>
+
+                <ImportSection title="Filas descartadas" count={discarded.length} tone="muted">
+                  <SimpleTable
+                    headers={["Fila", "Ref", "Motivo"]}
+                    rows={discarded.map(item => [item.rowNumber, item.id || "—", item.reason])}
+                  />
+                </ImportSection>
+              </div>
+
+              {!masterIsEmpty && diff.discontinuedNow.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="import-mark-missing"
+                    checked={markMissing}
+                    onCheckedChange={value => setMarkMissing(Boolean(value))}
+                    disabled={state === "saving"}
+                  />
+                  <Label htmlFor="import-mark-missing" className="text-sm font-normal">
+                    Dar de baja los productos ausentes del fichero
+                  </Label>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button variant="outline" disabled={state === "saving"} onClick={close}>
                   Cancelar
                 </Button>
-                <Button onClick={confirm} className="sm:flex-1">
-                  Confirmar
+                <Button disabled={state === "saving" || blocked} onClick={confirm}>
+                  {state === "saving" ? (
+                    <>
+                      <Loader2 className="animate-spin" /> Importando…
+                    </>
+                  ) : (
+                    "Confirmar importación"
+                  )}
                 </Button>
               </DialogFooter>
             </>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+function SimpleTable({ headers, rows }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {headers.map(header => (
+            <TableHead key={header} className="h-9 px-4 text-xs">{header}</TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((cells, index) => (
+          <TableRow key={index}>
+            {cells.map((cell, cellIndex) => (
+              <TableCell key={cellIndex} className="px-4 py-2 text-xs">
+                {cell}
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   )
 }

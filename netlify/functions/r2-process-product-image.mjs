@@ -28,7 +28,6 @@ export default async function handler(request) {
 
     const { bucket, client } = requireR2Config()
     const body = await request.json()
-    const catalogId = body.catalogId
     const productId = sanitizeProductId(body.productId)
     const variant = normalizeVariant(body.variant)
     const sourcePath = String(body.path || "")
@@ -68,10 +67,9 @@ export default async function handler(request) {
     if (variant === "processed") payload.nobg_version = timestamp
 
     const { error } = await supabase
-      .from("catalog_products")
+      .from("products")
       .update(payload)
-      .eq("catalog_id", catalogId)
-      .eq("product_id", productId)
+      .eq("id", productId)
     if (error) throw error
 
     return jsonResponse({ path: sourcePath, imageVersion: timestamp })

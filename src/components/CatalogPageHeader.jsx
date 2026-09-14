@@ -11,6 +11,7 @@ const RENDER_WAIT_MS = 30000
 const CLEANUP_FALLBACK_MS = 60000
 
 export default function CatalogPageHeader({
+  catalogName,
   totalProducts,
   totalPages,
   hiddenProductsList = [],
@@ -120,7 +121,9 @@ export default function CatalogPageHeader({
     <>
       <div className="app-chrome flex items-start justify-between gap-4 px-4 py-4 md:py-6 lg:px-6 border-b border-border bg-background">
         <div className="space-y-1 min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Catálogo</h1>
+          <h1 className="text-2xl font-semibold tracking-tight truncate">
+            {catalogName ?? "Catálogo"}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {totalProducts} productos · {totalPages} páginas
             {hiddenProductsList.length > 0 && (

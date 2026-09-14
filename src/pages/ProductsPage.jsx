@@ -38,7 +38,6 @@ const ANY = "all"
 const STATUS_OPTIONS = [
   { value: ANY, label: "Todos" },
   { value: "active", label: "Activos" },
-  { value: "inactive", label: "Inactivos" },
   { value: "discontinued", label: "De baja" },
 ]
 
@@ -49,7 +48,7 @@ const SOURCE_OPTIONS = [
 ]
 
 export default function ProductsPage() {
-  const { catalog, categories, products, loading, reloadProducts } = useCatalog()
+  const { categories, products, loading, reloadProducts } = useCatalog()
   const { isAdmin } = useAuth()
   const [query, setQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState(ANY)
@@ -69,8 +68,7 @@ export default function ProductsPage() {
       if (categoryFilter !== ANY && product.category !== categoryFilter) return false
       if (sourceFilter !== ANY && product.sourceType !== sourceFilter) return false
       if (statusFilter !== ANY) {
-        if (statusFilter === "active" && !product.active) return false
-        if (statusFilter === "inactive" && product.active) return false
+        if (statusFilter === "active" && product.discontinued) return false
         if (statusFilter === "discontinued" && !product.discontinued) return false
       }
       return true
@@ -87,11 +85,11 @@ export default function ProductsPage() {
   }
 
   async function handleDeleteProduct() {
-    if (!catalog?.id || !deleting?.id) return
+    if (!deleting?.id) return
     setDeletePending(true)
     setDeleteError("")
     try {
-      await deleteProduct(catalog.id, deleting.id)
+      await deleteProduct(deleting.id)
       await reloadProducts()
       setDeleting(null)
     } catch (error) {
@@ -107,7 +105,7 @@ export default function ProductsPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Productos</h1>
           <p className="text-sm text-muted-foreground">
-            {filtered.length} de {products.length} productos en el catálogo.
+            {filtered.length} de {products.length} productos en el maestro.
           </p>
         </div>
         {isAdmin && (
@@ -196,6 +194,25 @@ export default function ProductsPage() {
             Cargando productos…
           </CardContent>
         </Card>
+      ) : products.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 flex flex-col items-center gap-4 text-center">
+            <div className="space-y-1">
+              <p className="font-medium">Aún no hay productos</p>
+              <p className="text-sm text-muted-foreground max-w-md">
+                1. Importa el Excel de stock. &nbsp; 2. Sube las imágenes (cada fichero
+                debe llamarse como la referencia: <code className="text-xs">REF.jpg</code>).
+                &nbsp; 3. Crea un catálogo y elige qué productos incluye.
+              </p>
+            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <ImportExcelButton />
+                <ImportImagesButton />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       ) : (
         <Card className="gap-0 py-0 overflow-hidden">
           <ProductsTable
@@ -225,9 +242,9 @@ export default function ProductsPage() {
           <DialogHeader>
             <DialogTitle>Eliminar producto</DialogTitle>
             <DialogDescription>
-              Esta acción quitará {deleting?.name || deleting?.id} del catálogo. Si no está
-              en ningún otro catálogo, el producto y sus imágenes se eliminarán de forma
-              permanente. No se puede deshacer.
+              Esta acción eliminará {deleting?.name || deleting?.id} del maestro, de todos
+              los catálogos donde aparece, y borrará sus imágenes de forma permanente.
+              No se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}

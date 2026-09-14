@@ -22,37 +22,48 @@ VITE_CATALOG_SLUG=catalogo-principal
 VITE_R2_PUBLIC_URL=...   # activa el camino R2 para imágenes de producto
 ```
 
+## Arquitectura de la app
+
+- **Productos** (`/products`): el maestro global. Importar Excel/CSV de stock,
+  subir imágenes en lote, crear productos manuales, dar de baja o eliminar.
+- **Catálogos** (`/catalogs`): listado; crear vacío, con todos los productos
+  activos o duplicando otro. `/catalogs/:slug` es el detalle: la vista de
+  páginas, el PDF y el gestor de composición ("Gestionar productos": selección
+  manual con buscador o desde un Excel con las referencias a incluir).
+- **Ajustes** (`/settings`): datos de la empresa (`company_profile`, una sola
+  fila) y categorías — todo compartido por todos los catálogos.
+
 ## Modelo
 
-- `products`: producto maestro, stock, categoría, origen y estado de baja.
-- `catalog_products`: inclusión, orden, imágenes y ajustes por catálogo.
-- `catalog_categories`: nombre, orden, colores, subtítulo y portada.
-- `catalogs`: edición, datos comerciales, logos, portada y configuración.
+- `products`: maestro global — stock, categoría, origen, baja **e imagen**
+  (`original_image_path`, `image_version`, `img_mode`, …). La imagen es única
+  por producto y se ve igual en todos los catálogos.
+- `catalog_products`: inclusión por catálogo — `active`, `sort_order` y el
+  encuadre visual (`img_hidden`, `img_x`, `img_y`, `img_scale`).
+- `catalog_categories`: globales — nombre, orden, colores, subtítulo.
+- `catalogs`: nombre, edición y slug (los datos comerciales viven en
+  `company_profile`; las columnas de contacto de `catalogs` quedaron sin uso).
+- `company_profile`: fila única con nombre, contacto, horario y `settings`
+  (textos de la página de información).
 - `catalog_cover_products`: mosaico ordenado de portada (aún sin render).
 - `catalog_admins`: usuarios de Supabase Auth autorizados para editar.
 
 Todo el panel requiere sesión de un usuario presente en `catalog_admins`;
-las políticas RLS no permiten lecturas anónimas. Los productos e imágenes se
-leen exclusivamente desde Supabase/R2, sin fallback a archivos locales.
+las políticas RLS no permiten lecturas anónimas.
 
 ## Administración
 
 1. Crear el usuario en Supabase Auth con email y contraseña.
 2. Insertar su UUID en `catalog_admins`.
 
-Los administradores pueden:
-
-- Crear y editar productos manuales.
-- Dar de baja o retirar productos del catálogo.
-- Importar el Excel de stock de forma transaccional.
-- Subir imágenes individuales o en lote.
-- Editar datos comerciales y nombres/subtítulos de categorías en **Ajustes**.
-- Guardar el catálogo como PDF.
-
-La importación Excel se procesa mediante la Edge Function
-`import-catalog-products` (desplegada en Supabase; su código no está en este
-repo). Los productos ausentes se marcan como baja; los productos manuales no
-se modifican.
+La importación del maestro se procesa con la función Netlify
+`import-master-products`, que valida el JWT y llama a la RPC
+`import_master_products` (atómica): upsert del maestro con bajas globales
+opcionales (`markMissing`); los productos manuales nunca se modifican. La
+UI muestra previsualización completa (nuevos, cambios, bajas, descartes con
+motivo) antes de confirmar. La lógica de parseo/diff vive en
+`src/lib/importExcel.js` (xlsx y csv). La antigua Edge Function de Supabase
+quedó retirada.
 
 ## PDF
 

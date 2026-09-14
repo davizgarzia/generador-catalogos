@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, ListPlus } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -19,7 +20,13 @@ const MAX_SEARCH_RESULTS = 30
 // evita que un scroll rápido active en cascada todas las intermedias.
 const ACTIVE_SETTLE_MS = 150
 
-export default function PageNavigator({ pages, sections, searchItems = [], rootRef }) {
+export default function PageNavigator({
+  pages,
+  sections,
+  searchItems = [],
+  rootRef,
+  onManageProducts,
+}) {
   const [active, setActive] = useState(0)
   const [openSections, setOpenSections] = useState(() => new Set())
   const [query, setQuery] = useState("")
@@ -130,11 +137,23 @@ export default function PageNavigator({ pages, sections, searchItems = [], rootR
       className="app-chrome w-[250px] shrink-0 bg-background border-r border-border flex flex-col min-h-0 h-full overflow-hidden"
     >
       <Command shouldFilter={false} className="flex-1 min-h-0 flex flex-col rounded-none bg-transparent">
-        <CommandInput
-          placeholder="Buscar producto…"
-          value={query}
-          onValueChange={setQuery}
-        />
+        <div className="flex flex-col gap-2 border-b border-border p-2 [&_[data-slot=command-input-wrapper]]:rounded-md [&_[data-slot=command-input-wrapper]]:border [&_[data-slot=command-input-wrapper]]:border-input [&_[data-slot=command-input-wrapper]]:bg-background">
+          <CommandInput
+            placeholder="Buscar producto…"
+            value={query}
+            onValueChange={setQuery}
+          />
+          {onManageProducts && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onManageProducts}
+              className="w-full cursor-pointer"
+            >
+              <ListPlus /> Gestionar productos
+            </Button>
+          )}
+        </div>
 
         {trimmedQuery ? (
           <CommandList className="flex-1 min-h-0 max-h-none">
@@ -251,6 +270,7 @@ export default function PageNavigator({ pages, sections, searchItems = [], rootR
                   </Collapsible>
                 )
               })}
+
             </div>
           </div>
         )}

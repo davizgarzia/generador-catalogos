@@ -22,7 +22,6 @@ import {
 import { useCatalog } from "../context/CatalogContext"
 import {
   createManualProduct,
-  setProductActive,
   updateProduct,
   uploadProductImage,
   withCacheBust,
@@ -35,12 +34,11 @@ const EMPTY_FORM = {
   stock_units: 0,
   units_per_case: "",
   category_id: "",
-  active: true,
   discontinued: false,
 }
 
 export default function ProductFormSheet({ open, onOpenChange, product = null }) {
-  const { catalog, categories, products, reloadProducts } = useCatalog()
+  const { categories, products, reloadProducts } = useCatalog()
   const isEdit = Boolean(product)
   const liveProduct = useMemo(() => {
     if (!product?.id) return product
@@ -66,7 +64,6 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
         stock_units: product.stockUnits ?? 0,
         units_per_case: product.unitsPerCase ?? "",
         category_id: String(product.categoryId ?? categories[0]?.id ?? ""),
-        active: product.active ?? true,
         discontinued: product.discontinued ?? false,
       })
     } else {
@@ -81,7 +78,7 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
     setUploadStatus("loading")
     setError("")
     try {
-      await uploadProductImage(catalog.id, product.id, file, "original")
+      await uploadProductImage(product.id, file, "original")
       await reloadProducts()
       setUploadStatus("ok")
       setTimeout(() => setUploadStatus(null), 2000)
@@ -127,16 +124,14 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
           category_id: Number(form.category_id),
           discontinued: form.discontinued,
         })
-        await setProductActive(catalog.id, form.id, form.active)
       } else {
-        await createManualProduct(catalog.id, {
+        await createManualProduct({
           id: form.id.trim(),
           articleName: form.article_name.trim(),
           displayName: form.display_name.trim(),
           stockUnits: Number(form.stock_units || 0),
           unitsPerCase: form.units_per_case ? Number(form.units_per_case) : null,
           categoryId: Number(form.category_id),
-          sortOrder: 0,
         })
       }
       await reloadProducts()
@@ -312,13 +307,6 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
 
           {isEdit && (
             <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-              <ToggleField
-                id="pf-active"
-                label="Incluido en el catálogo"
-                description="Si lo desactivas, no aparecerá en la vista pública del catálogo."
-                checked={form.active}
-                onChange={value => setForm({ ...form, active: value })}
-              />
               <ToggleField
                 id="pf-disc"
                 label="Producto de baja"

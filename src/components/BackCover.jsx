@@ -2,16 +2,16 @@ import { useCatalog } from "../context/CatalogContext"
 import styles from "./BackCover.module.css"
 
 export default function BackCover() {
-  const { catalog } = useCatalog()
+  const { catalog, company } = useCatalog()
   const logo = catalog.logoWhite || catalog.logo
 
   const contactLines = [
     [
-      catalog.phone && `Tel. ${catalog.phone}`,
-      catalog.whatsapp && `WhatsApp ${catalog.whatsapp}`,
+      company.phone && `Tel. ${company.phone}`,
+      company.whatsapp && `WhatsApp ${company.whatsapp}`,
     ].filter(Boolean).join("  ·  "),
-    [catalog.email, catalog.website].filter(Boolean).join("  ·  "),
-    catalog.business_hours,
+    [company.email, company.website].filter(Boolean).join("  ·  "),
+    company.business_hours,
   ].filter(Boolean)
 
   return (
@@ -33,7 +33,7 @@ export default function BackCover() {
 
       {contactLines.length > 0 && (
         <div className={styles.contact}>
-          <div className={styles.contactName}>{catalog.name}</div>
+          <div className={styles.contactName}>{company.name ?? catalog.name}</div>
           {contactLines.map((line, index) => (
             <div key={index} className={styles.contactLine}>{line}</div>
           ))}

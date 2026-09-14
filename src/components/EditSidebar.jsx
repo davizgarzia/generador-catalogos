@@ -51,7 +51,7 @@ function SliderRow({ label, value, min, max, step = 1, unit = "", onChange, onRe
 export default function EditSidebar() {
   const { editingProduct, setEditingProduct } = useEdit()
   const { overrides, patchOverride } = useOverrides()
-  const { products } = useCatalog()
+  const { catalogItems: products } = useCatalog()
   const [editFormOpen, setEditFormOpen] = useState(false)
   const [imageFallbackIndex, setImageFallbackIndex] = useState(0)
 

@@ -111,26 +111,26 @@ async function uploadProductImageVariants(file, productId, variant) {
 }
 
 
-function mapCatalogProduct(row) {
-  const product = row.product
-  const originalImage = getStorageUrl("catalog-images", row.original_image_path)
-  const processedImage = getStorageUrl("catalog-images", row.processed_image_path)
-  const thumb = getProductVariantUrl(row.original_image_path, "thumb", "original", THUMB_TRANSFORM)
-  const processedThumb = getProductVariantUrl(row.processed_image_path, "thumb", "processed", THUMB_TRANSFORM)
-  const preview = getProductVariantUrl(row.original_image_path, "preview", "original", PREVIEW_TRANSFORM)
-  const processedPreview = getProductVariantUrl(row.processed_image_path, "preview", "processed", PREVIEW_TRANSFORM)
-  const catalogImage = getProductVariantUrl(row.original_image_path, "catalog", "original", CATALOG_TRANSFORM)
-  const catalogProcessed = getProductVariantUrl(row.processed_image_path, "catalog", "processed", CATALOG_TRANSFORM)
+// Producto del maestro (tabla products), con las URLs de imagen derivadas.
+function mapMasterProduct(product) {
+  const originalImage = getStorageUrl("catalog-images", product.original_image_path)
+  const processedImage = getStorageUrl("catalog-images", product.processed_image_path)
+  const thumb = getProductVariantUrl(product.original_image_path, "thumb", "original", THUMB_TRANSFORM)
+  const processedThumb = getProductVariantUrl(product.processed_image_path, "thumb", "processed", THUMB_TRANSFORM)
+  const preview = getProductVariantUrl(product.original_image_path, "preview", "original", PREVIEW_TRANSFORM)
+  const processedPreview = getProductVariantUrl(product.processed_image_path, "preview", "processed", PREVIEW_TRANSFORM)
+  const catalogImage = getProductVariantUrl(product.original_image_path, "catalog", "original", CATALOG_TRANSFORM)
+  const catalogProcessed = getProductVariantUrl(product.processed_image_path, "catalog", "processed", CATALOG_TRANSFORM)
 
   return {
-    id: row.product_id,
+    id: product.id,
     name: product.display_name,
     fullName: product.article_name,
     stockUnits: product.stock_units,
     unitsPerCase: product.units_per_case,
     unitsLabel: product.units_per_case ? `${product.units_per_case} uds./caja` : null,
     categoryId: product.category_id,
-    category: product.category.display_name,
+    category: product.category?.display_name ?? null,
     sourceType: product.source_type,
     discontinued: product.discontinued,
     image: originalImage,
@@ -148,6 +148,20 @@ function mapCatalogProduct(row) {
     processedPreview,
     catalogImage,
     catalogProcessed,
+    imgMode: product.img_mode,
+    imageVariant: product.image_variant,
+    imageVersion: product.image_version,
+    nobgVersion: product.nobg_version,
+    addedAt: product.imported_at ?? product.created_at,
+    updatedAt: product.updated_at,
+  }
+}
+
+// Producto dentro de un catálogo: maestro + inclusión y encuadre del vínculo.
+function mapCatalogProduct(row) {
+  return {
+    ...mapMasterProduct(row.product),
+    id: row.product_id,
     sortOrder: row.sort_order,
     active: row.active,
     addedAt: row.created_at,
@@ -156,10 +170,6 @@ function mapCatalogProduct(row) {
     imgX: Number(row.img_x),
     imgY: Number(row.img_y),
     imgScale: Number(row.img_scale),
-    imgMode: row.img_mode,
-    imageVariant: row.image_variant,
-    imageVersion: row.image_version,
-    nobgVersion: row.nobg_version,
   }
 }
 
@@ -173,14 +183,116 @@ function mapCatalogRow(catalog) {
   }
 }
 
-export async function loadCatalogRow() {
+export async function loadCatalogRow(slug = CATALOG_SLUG) {
   const { data, error } = await supabase
     .from("catalogs")
     .select("*")
-    .eq("slug", CATALOG_SLUG)
+    .eq("slug", slug)
     .single()
   if (error) throw error
   return mapCatalogRow(data)
+}
+
+export async function loadCatalogs() {
+  const { data, error } = await supabase
+    .from("catalogs")
+    .select("id,slug,name,edition,active,created_at,updated_at")
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function deleteCatalog(catalogId) {
+  const { error: coverError } = await supabase
+    .from("catalog_cover_products")
+    .delete()
+    .eq("catalog_id", catalogId)
+  if (coverError) throw coverError
+
+  const { error: linksError } = await supabase
+    .from("catalog_products")
+    .delete()
+    .eq("catalog_id", catalogId)
+  if (linksError) throw linksError
+
+  const { error } = await supabase
+    .from("catalogs")
+    .delete()
+    .eq("id", catalogId)
+  if (error) throw error
+}
+
+export async function countCatalogProducts(catalogId) {
+  const { count, error } = await supabase
+    .from("catalog_products")
+    .select("product_id", { count: "exact", head: true })
+    .eq("catalog_id", catalogId)
+  if (error) throw error
+  return count ?? 0
+}
+
+function slugify(value) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+export async function createCatalog({ name, edition, slug, sourceCatalogId, includeAllProducts }) {
+  const finalSlug = slugify(slug || name)
+  if (!finalSlug) throw new Error("El nombre del catálogo no es válido.")
+
+  const { data: created, error } = await supabase
+    .from("catalogs")
+    .insert({ name, slug: finalSlug, active: true, ...(edition ? { edition } : {}) })
+    .select("id,slug,name")
+    .single()
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(`Ya existe un catálogo con el identificador "${finalSlug}".`)
+    }
+    throw error
+  }
+
+  if (sourceCatalogId) {
+    const { data: links, error: linksError } = await supabase
+      .from("catalog_products")
+      .select("product_id,sort_order,active,img_hidden,img_x,img_y,img_scale")
+      .eq("catalog_id", sourceCatalogId)
+    if (linksError) throw linksError
+    if (links.length) {
+      const { error: insertError } = await supabase
+        .from("catalog_products")
+        .insert(links.map(link => ({ ...link, catalog_id: created.id })))
+      if (insertError) throw insertError
+    }
+  } else if (includeAllProducts) {
+    const { data: master, error: masterError } = await supabase
+      .from("products")
+      .select("id, category:catalog_categories(sort_order)")
+      .eq("discontinued", false)
+      .order("article_name")
+    if (masterError) throw masterError
+    const ordered = [...master].sort(
+      (a, b) => (a.category?.sort_order ?? 0) - (b.category?.sort_order ?? 0)
+    )
+    if (ordered.length) {
+      const { error: insertError } = await supabase.from("catalog_products").insert(
+        ordered.map((product, index) => ({
+          catalog_id: created.id,
+          product_id: product.id,
+          sort_order: index,
+          active: true,
+        }))
+      )
+      if (insertError) throw insertError
+    }
+  }
+
+  return created
 }
 
 export async function loadCategories() {
@@ -196,41 +308,101 @@ export async function loadCategories() {
   }))
 }
 
+// Maestro global: todos los productos, estén o no en algún catálogo.
+export async function loadProducts() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*, category:catalog_categories(display_name)")
+    .order("article_name")
+  if (error) throw error
+  return data.map(mapMasterProduct)
+}
+
 export async function loadCatalogProducts(catalogId) {
   const { data, error } = await supabase
     .from("catalog_products")
-    .select(`
-      *,
-      product:products(
-        article_name,
-        display_name,
-        stock_units,
-        units_per_case,
-        category_id,
-        source_type,
-        discontinued,
-        category:catalog_categories(display_name)
-      )
-    `)
+    .select("*, product:products(*, category:catalog_categories(display_name))")
     .eq("catalog_id", catalogId)
     .order("sort_order")
   if (error) throw error
-  return data.map(mapCatalogProduct)
+  // El RLS oculta los productos dados de baja: su join llega null y se descarta.
+  return data.filter(row => row.product).map(mapCatalogProduct)
 }
 
-export async function loadCatalogBundle() {
-  const catalog = await loadCatalogRow()
-  const [categories, products] = await Promise.all([
-    loadCategories(),
-    loadCatalogProducts(catalog.id),
-  ])
-  return { catalog, categories, products }
+export async function loadCompanyProfile() {
+  const { data, error } = await supabase
+    .from("company_profile")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle()
+  if (error) throw error
+  return data ?? { id: 1, settings: {} }
+}
+
+export async function updateCompanyProfile(fields) {
+  const { error } = await supabase
+    .from("company_profile")
+    .upsert({ id: 1, ...fields, updated_at: new Date().toISOString() })
+  if (error) throw error
+}
+
+export async function addProductsToCatalog(catalogId, productIds) {
+  if (!productIds.length) return
+  const { data: maxRow, error: maxError } = await supabase
+    .from("catalog_products")
+    .select("sort_order")
+    .eq("catalog_id", catalogId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (maxError) throw maxError
+
+  const base = (maxRow?.sort_order ?? 0) + 1
+  const { error } = await supabase
+    .from("catalog_products")
+    .upsert(
+      productIds.map((productId, index) => ({
+        catalog_id: catalogId,
+        product_id: productId,
+        sort_order: base + index,
+        active: true,
+      })),
+      { onConflict: "catalog_id,product_id", ignoreDuplicates: true }
+    )
+  if (error) throw error
+  await touchCatalog(catalogId)
+}
+
+async function touchCatalog(catalogId) {
+  const { error } = await supabase
+    .from("catalogs")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", catalogId)
+  if (error) throw error
+}
+
+export async function removeProductsFromCatalog(catalogId, productIds) {
+  if (!productIds.length) return
+  const { error: coverError } = await supabase
+    .from("catalog_cover_products")
+    .delete()
+    .eq("catalog_id", catalogId)
+    .in("product_id", productIds)
+  if (coverError) throw coverError
+
+  const { error } = await supabase
+    .from("catalog_products")
+    .delete()
+    .eq("catalog_id", catalogId)
+    .in("product_id", productIds)
+  if (error) throw error
+  await touchCatalog(catalogId)
 }
 
 export async function loadProductOverrides(catalogId) {
   const { data, error } = await supabase
     .from("catalog_products")
-    .select("product_id,img_hidden,img_x,img_y,img_scale,img_mode,nobg_version")
+    .select("product_id,img_hidden,img_x,img_y,img_scale,product:products(img_mode,nobg_version)")
     .eq("catalog_id", catalogId)
   if (error) throw error
 
@@ -239,25 +411,28 @@ export async function loadProductOverrides(catalogId) {
     imgX: Number(row.img_x),
     imgY: Number(row.img_y),
     imgScale: Number(row.img_scale),
-    imgMode: row.img_mode,
-    nobgVersion: row.nobg_version,
+    imgMode: row.product?.img_mode,
+    nobgVersion: row.product?.nobg_version,
   }]))
 }
 
 export async function saveProductOverride(catalogId, productId, fields) {
   const catalogPayload = { updated_at: new Date().toISOString() }
   const productPayload = { updated_at: new Date().toISOString() }
-  const fieldMap = {
+  const catalogFieldMap = {
     imgHidden: "img_hidden",
     imgX: "img_x",
     imgY: "img_y",
     imgScale: "img_scale",
+  }
+  const productFieldMap = {
     imgMode: "img_mode",
     nobgVersion: "nobg_version",
   }
 
   for (const [key, value] of Object.entries(fields)) {
-    if (fieldMap[key]) catalogPayload[fieldMap[key]] = value
+    if (catalogFieldMap[key]) catalogPayload[catalogFieldMap[key]] = value
+    if (productFieldMap[key]) productPayload[productFieldMap[key]] = value
     if (key === "name") productPayload.display_name = value
     if (key === "unitsLabel") {
       const match = value?.match(/^\s*(\d+)/)
@@ -279,8 +454,8 @@ export async function saveProductOverride(catalogId, productId, fields) {
   }
 }
 
-export async function createManualProduct(catalogId, product) {
-  const { error: productError } = await supabase.from("products").insert({
+export async function createManualProduct(product) {
+  const { error } = await supabase.from("products").insert({
     id: product.id,
     article_name: product.articleName,
     display_name: product.displayName || product.articleName,
@@ -290,15 +465,7 @@ export async function createManualProduct(catalogId, product) {
     source_type: "manual",
     discontinued: false,
   })
-  if (productError) throw productError
-
-  const { error: catalogError } = await supabase.from("catalog_products").insert({
-    catalog_id: catalogId,
-    product_id: product.id,
-    sort_order: product.sortOrder,
-    active: true,
-  })
-  if (catalogError) throw catalogError
+  if (error) throw error
 }
 
 export async function updateProduct(productId, fields) {
@@ -306,15 +473,6 @@ export async function updateProduct(productId, fields) {
     .from("products")
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq("id", productId)
-  if (error) throw error
-}
-
-export async function setProductActive(catalogId, productId, active) {
-  const { error } = await supabase
-    .from("catalog_products")
-    .update({ active, updated_at: new Date().toISOString() })
-    .eq("catalog_id", catalogId)
-    .eq("product_id", productId)
   if (error) throw error
 }
 
@@ -345,7 +503,7 @@ async function callNetlifyFunction(name, body, fallbackMessage) {
   return result ?? {}
 }
 
-export async function uploadProductImage(catalogId, productId, file, variant = "original") {
+export async function uploadProductImage(productId, file, variant = "original") {
   if (PRODUCT_IMAGE_UPLOADS_USE_R2) {
     const presign = await callNetlifyFunction(
       "r2-presign-product-image",
@@ -369,7 +527,7 @@ export async function uploadProductImage(catalogId, productId, file, variant = "
 
     const processed = await callNetlifyFunction(
       "r2-process-product-image",
-      { catalogId, productId, variant, path: presign.path },
+      { productId, variant, path: presign.path },
       "No se pudieron generar las variantes de imagen."
     )
     return processed.path
@@ -386,7 +544,7 @@ export async function uploadProductImage(catalogId, productId, file, variant = "
 
   const field = variant === "processed" ? "processed_image_path" : "original_image_path"
   const { error } = await supabase
-    .from("catalog_products")
+    .from("products")
     .update({
       [field]: path,
       image_variant: variant,
@@ -394,27 +552,25 @@ export async function uploadProductImage(catalogId, productId, file, variant = "
       image_version: Date.now(),
       updated_at: new Date().toISOString(),
     })
-    .eq("catalog_id", catalogId)
-    .eq("product_id", productId)
+    .eq("id", productId)
   if (error) throw error
   return path
 }
 
-export async function deleteProduct(catalogId, productId) {
+export async function deleteProduct(productId) {
   return callNetlifyFunction(
     "r2-delete-product",
-    { catalogId, productId },
+    { productId },
     "No se pudo eliminar el producto."
   )
 }
 
-export async function importCatalogProducts(products) {
-  const { data, error } = await supabase.functions.invoke("import-catalog-products", {
-    body: { products, catalogSlug: CATALOG_SLUG },
-  })
-  if (error) throw error
-  if (data?.error) throw new Error(data.error)
-  return data
+export async function importMasterProducts(products, { markMissing = true } = {}) {
+  return callNetlifyFunction(
+    "import-master-products",
+    { products, markMissing },
+    "No se pudo completar la importación."
+  )
 }
 
 export async function updateCatalog(catalogId, fields) {
