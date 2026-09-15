@@ -1,36 +1,56 @@
+import { useMemo } from "react"
 import { useCatalog } from "../context/CatalogContext"
 import styles from "./FillerPage.module.css"
 
-// Hoja de imagen corporativa usada para completar la versión impresa
-// hasta un número de páginas múltiplo de 4.
+// Barajado determinista: la misma semilla produce siempre el mismo orden,
+// así la hoja no cambia entre re-renders ni entre la vista y el PDF.
+function seededShuffle(items, seed) {
+  const result = [...items]
+  let state = seed
+  for (let i = result.length - 1; i > 0; i--) {
+    state = (state * 9301 + 49297) % 233280
+    const j = Math.floor((state / 233280) * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
+// Hoja de imagen usada para completar la versión impresa hasta un número de
+// páginas múltiplo de 4: cabecera corporativa (logo + datos de la empresa)
+// y una portada de categoría elegida de forma estable por hoja.
 export default function FillerPage({ index = 0 }) {
-  const { catalog } = useCatalog()
-  const fillers = catalog.fillerImages ?? []
-  const filler = fillers[index] ?? fillers[fillers.length - 1]
-  const image = filler?.image ?? catalog.coverImage
-  const fallback = filler?.fallback ?? catalog.coverImageFallback
-  const logo = catalog.logoWhite || catalog.logo
+  const { catalog, categories, company } = useCatalog()
+  const logo = catalog.logo || catalog.logoWhite
+
+  const image = useMemo(() => {
+    const covers = categories.map(category => category.coverImage).filter(Boolean)
+    if (!covers.length) return catalog.coverImage
+    const seed = (catalog.slug?.length ?? 0) * 131 + 7919
+    const shuffled = seededShuffle(covers, seed)
+    return shuffled[index % shuffled.length]
+  }, [categories, index, catalog.slug, catalog.coverImage])
+
+  const contactLines = [
+    [
+      company.phone && `Tel. ${company.phone}`,
+      company.whatsapp && `WhatsApp ${company.whatsapp}`,
+    ].filter(Boolean).join("  ·  "),
+    [company.email, company.website].filter(Boolean).join("  ·  "),
+  ].filter(Boolean)
 
   return (
     <div className={styles.page}>
-      {image ? (
-        <img
-          className={styles.image}
-          src={image}
-          data-fallback-src={fallback || undefined}
-          alt=""
-          onError={event => {
-            const fallbackSrc = event.currentTarget.dataset.fallbackSrc
-            if (fallbackSrc && event.currentTarget.src !== fallbackSrc) {
-              event.currentTarget.src = fallbackSrc
-            } else {
-              event.currentTarget.style.display = "none"
-            }
-          }}
-        />
-      ) : (
-        logo && <img className={styles.logo} src={logo} alt={catalog.name} />
+      {image && (
+        <img className={styles.image} src={image} alt="" loading="lazy" decoding="async" />
       )}
+
+      <div className={styles.header}>
+        {logo && <img className={styles.logo} src={logo} alt={company.name ?? ""} />}
+        {company.name && <div className={styles.name}>{company.name}</div>}
+        {contactLines.map((line, lineIndex) => (
+          <div key={lineIndex} className={styles.line}>{line}</div>
+        ))}
+      </div>
     </div>
   )
 }

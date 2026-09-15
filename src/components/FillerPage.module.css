@@ -2,11 +2,8 @@
   width: 210mm;
   min-height: 297mm;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
-  background: #1a3f66;
+  background: #fff;
 }
 
 :global(body.mode-print) .page {
@@ -16,18 +13,52 @@
   height: 303mm;
 }
 
+/* La imagen de categoría llena la hoja anclada abajo: deja la zona blanca
+   superior libre para el logo y los datos. */
 .image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: bottom center;
   display: block;
+}
+
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2mm;
+  padding: 16mm 20mm 0;
+  text-align: center;
+  color: #1a3f66;
 }
 
 .logo {
   display: block;
-  width: 72mm;
-  max-height: 42mm;
+  width: 64mm;
+  max-height: 34mm;
   object-fit: contain;
+  margin-bottom: 3mm;
+  /* El logo es un JPG con fondo blanco: multiply lo funde con el fondo claro. */
+  mix-blend-mode: multiply;
+}
+
+.name {
+  font-family: "Montserrat", sans-serif;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.line {
+  font-size: 9pt;
+  font-weight: 500;
+  color: rgba(26, 63, 102, 0.75);
 }

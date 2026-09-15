@@ -68,7 +68,7 @@ export default function ProductsTable({
   onDeleteClick,
 }) {
   const [sort, setSort] = useState({ key: "addedAt", direction: "desc" })
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(100)
   const [pageIndex, setPageIndex] = useState(0)
 
   const columns = COLUMNS
