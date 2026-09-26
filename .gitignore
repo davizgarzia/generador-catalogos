@@ -8,6 +8,7 @@ dist
 .env.supabase
 *.pdf
 data/
+backups/
 
 # Local Netlify folder
 .netlify
