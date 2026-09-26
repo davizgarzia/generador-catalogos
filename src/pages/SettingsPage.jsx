@@ -1,18 +1,28 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { Pencil, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useCatalog } from "../context/CatalogContext"
 import { useAuth } from "../context/AuthContext"
-import { updateCompanyProfile, updateCategory } from "../lib/catalog"
+import { createCategory, updateCompanyProfile, updateCategory } from "../lib/catalog"
 
 const TEXT_FIELDS = [
   ["name", "Nombre de la empresa"], ["phone", "Teléfono"],
@@ -34,7 +44,8 @@ function SettingsForm() {
   const { company, categories, reloadMeta } = useCatalog()
   const { isAdmin } = useAuth()
   const [form, setForm] = useState(company)
-  const [categoryRows, setCategoryRows] = useState(categories)
+  // undefined = cerrado · null = crear · objeto = editar esa categoría
+  const [categoryDialog, setCategoryDialog] = useState(undefined)
   const [error, setError] = useState("")
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -52,10 +63,6 @@ function SettingsForm() {
         website: form.website,
         business_hours: form.business_hours,
       })
-      await Promise.all(categoryRows.map(category => updateCategory(category.id, {
-        display_name: category.display_name,
-        subtitle: category.subtitle,
-      })))
       await reloadMeta()
       setSaved(true)
     } catch (saveError) {
@@ -123,35 +130,131 @@ function SettingsForm() {
           <CardDescription>
             Nombre visible y subtítulo por categoría, compartidos por todos los catálogos.
           </CardDescription>
+          {isAdmin && (
+            <CardAction>
+              <Button variant="outline" size="sm" onClick={() => setCategoryDialog(null)}>
+                <Plus /> Añadir
+              </Button>
+            </CardAction>
+          )}
         </CardHeader>
-        <CardContent className="grid gap-3">
-          {categoryRows.map((category, index) => (
-            <div key={category.id} className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-2 items-center rounded-lg border border-border bg-card p-2">
-              <Input
-                value={category.display_name}
-                aria-label={`Nombre de ${category.code}`}
-                disabled={disabled}
-                onChange={event => {
-                  const next = [...categoryRows]
-                  next[index] = { ...category, display_name: event.target.value }
-                  setCategoryRows(next)
-                }}
-              />
-              <Input
-                value={category.subtitle ?? ""}
-                placeholder="Subtítulo"
-                aria-label={`Subtítulo de ${category.code}`}
-                disabled={disabled}
-                onChange={event => {
-                  const next = [...categoryRows]
-                  next[index] = { ...category, subtitle: event.target.value }
-                  setCategoryRows(next)
-                }}
-              />
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {categories.map(category => (
+            <div
+              key={category.id}
+              className="group relative rounded-lg border border-border bg-card p-3 pr-10"
+            >
+              <p className="text-sm font-medium leading-snug">{category.display_name}</p>
+              <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+                {category.subtitle || "Sin subtítulo"}
+              </p>
+              {isAdmin && (
+                <button
+                  type="button"
+                  aria-label={`Editar ${category.display_name}`}
+                  onClick={() => setCategoryDialog(category)}
+                  className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:size-4"
+                >
+                  <Pencil />
+                </button>
+              )}
             </div>
           ))}
         </CardContent>
       </Card>
+
+      <CategoryDialog
+        open={categoryDialog !== undefined}
+        category={categoryDialog ?? null}
+        onOpenChange={open => !open && setCategoryDialog(undefined)}
+        reloadMeta={reloadMeta}
+      />
     </div>
+  )
+}
+
+function CategoryDialog({ open, category, onOpenChange, reloadMeta }) {
+  const isEdit = Boolean(category)
+  const [displayName, setDisplayName] = useState("")
+  const [subtitle, setSubtitle] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (!open) return
+    setDisplayName(category?.display_name ?? "")
+    setSubtitle(category?.subtitle ?? "")
+    setError("")
+  }, [open, category])
+
+  async function handleSave() {
+    if (!displayName.trim()) return
+    setError("")
+    setSaving(true)
+    try {
+      if (isEdit) {
+        await updateCategory(category.id, {
+          display_name: displayName.trim(),
+          subtitle: subtitle.trim(),
+        })
+      } else {
+        await createCategory({ displayName, subtitle })
+      }
+      await reloadMeta()
+      onOpenChange(false)
+    } catch (saveError) {
+      setError(saveError.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={value => !saving && onOpenChange(value)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Editar categoría" : "Nueva categoría"}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? `Cambia el nombre visible y el subtítulo de «${category.display_name}».`
+              : "Escribe el nombre tal como aparece en la columna «Nombre de familia» del Excel (ej.: ALCOHOLES) para que las importaciones la reconozcan."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="cd-name">Nombre</Label>
+            <Input
+              id="cd-name"
+              value={displayName}
+              placeholder="Ej: ALCOHOLES"
+              disabled={saving}
+              onChange={event => setDisplayName(event.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="cd-subtitle">Subtítulo</Label>
+            <Input
+              id="cd-subtitle"
+              value={subtitle}
+              placeholder="Opcional"
+              disabled={saving}
+              onChange={event => setSubtitle(event.target.value)}
+            />
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <DialogFooter>
+          <Button variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button disabled={saving || !displayName.trim()} onClick={handleSave}>
+            {saving ? "Guardando…" : isEdit ? "Guardar" : "Añadir categoría"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

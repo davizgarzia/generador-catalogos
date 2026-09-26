@@ -22,17 +22,18 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import ImportSection from "./import/ImportSection"
-import { importMasterProducts } from "../lib/catalog"
+import { createCategory, importMasterProducts } from "../lib/catalog"
 import { EXPECTED_HEADERS, computeImportDiff, parseImportFile } from "../lib/importExcel"
 import { useCatalog } from "../context/CatalogContext"
 
 export default function ImportExcelButton() {
   const inputRef = useRef(null)
-  const { products: currentProducts, categories, reloadProducts } = useCatalog()
+  const { products: currentProducts, categories, reloadProducts, reloadMeta } = useCatalog()
   const [state, setState] = useState("idle")
   const [diff, setDiff] = useState(null)
   const [discarded, setDiscarded] = useState([])
   const [markMissing, setMarkMissing] = useState(true)
+  const [createFamilies, setCreateFamilies] = useState(true)
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState("")
 
@@ -61,6 +62,7 @@ export default function ImportExcelButton() {
       setDiff(computeImportDiff({ fileProducts: products, currentProducts, categories }))
       setDiscarded(discardedRows)
       setMarkMissing(!masterIsEmpty)
+      setCreateFamilies(true)
       setState("preview")
     } catch (parseError) {
       setError(parseError.message)
@@ -72,6 +74,17 @@ export default function ImportExcelButton() {
     setState("saving")
     setError("")
     try {
+      if (diff.unknownFamilies.length > 0 && createFamilies) {
+        for (const family of diff.unknownFamilies) {
+          try {
+            await createCategory({ displayName: family, sourceName: family })
+          } catch (categoryError) {
+            // Ya creada en un intento anterior o por otro usuario: seguimos.
+            if (!/Ya existe/.test(categoryError.message)) throw categoryError
+          }
+        }
+        await reloadMeta()
+      }
       const result = await importMasterProducts(diff.toSend, {
         markMissing: masterIsEmpty ? false : markMissing,
       })
@@ -92,7 +105,7 @@ export default function ImportExcelButton() {
     setError("")
   }
 
-  const blocked = diff?.unknownFamilies.length > 0
+  const blocked = diff?.unknownFamilies.length > 0 && !createFamilies
 
   return (
     <>
@@ -169,13 +182,31 @@ export default function ImportExcelButton() {
                 )}
               </div>
 
-              {blocked && (
-                <Alert variant="destructive">
-                  <AlertTitle>Familias desconocidas</AlertTitle>
+              {diff.unknownFamilies.length > 0 && (
+                <Alert variant={createFamilies ? "default" : "destructive"}>
+                  <AlertTitle>Familias nuevas</AlertTitle>
                   <AlertDescription>
-                    Estas familias no existen como categoría y bloquean la importación:{" "}
-                    <strong>{diff.unknownFamilies.join(", ")}</strong>. Corrige el fichero
-                    o crea las categorías antes de continuar.
+                    <p>
+                      Estas familias del fichero no existen como categoría:{" "}
+                      <strong>{diff.unknownFamilies.join(", ")}</strong>.
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Checkbox
+                        id="import-create-families"
+                        checked={createFamilies}
+                        onCheckedChange={value => setCreateFamilies(Boolean(value))}
+                        disabled={state === "saving"}
+                      />
+                      <Label htmlFor="import-create-families" className="text-sm font-normal">
+                        Crear estas categorías automáticamente al confirmar
+                      </Label>
+                    </div>
+                    {!createFamilies && (
+                      <p className="mt-1">
+                        Sin crearlas, la importación queda bloqueada: corrige el fichero o
+                        crea las categorías en Ajustes.
+                      </p>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}

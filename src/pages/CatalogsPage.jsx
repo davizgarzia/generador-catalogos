@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { Copy, ExternalLink, MoreHorizontal, Plus, Trash2 } from "lucide-react"
+import { Copy, ExternalLink, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/table"
 import { useCatalog } from "../context/CatalogContext"
 import { useAuth } from "../context/AuthContext"
-import { countCatalogProducts, createCatalog, deleteCatalog } from "../lib/catalog"
+import { countCatalogProducts, createCatalog, deleteCatalog, updateCatalog } from "../lib/catalog"
 
 const EMPTY_SOURCE = "empty"
 const ALL_SOURCE = "all"
@@ -60,6 +60,7 @@ export default function CatalogsPage() {
   const [deleting, setDeleting] = useState(null)
   const [deleteError, setDeleteError] = useState("")
   const [deletePending, setDeletePending] = useState(false)
+  const [renaming, setRenaming] = useState(null)
 
   useEffect(() => {
     if (searchParams.get("nuevo")) {
@@ -184,6 +185,10 @@ export default function CatalogsPage() {
                         </DropdownMenuItem>
                         {isAdmin && (
                           <>
+                            <DropdownMenuItem className="cursor-pointer" onSelect={() => setRenaming(item)}>
+                              <Pencil />
+                              Editar
+                            </DropdownMenuItem>
                             <DropdownMenuItem className="cursor-pointer" onSelect={() => openDuplicate(item)}>
                               <Copy />
                               Duplicar
@@ -223,6 +228,11 @@ export default function CatalogsPage() {
         onOpenChange={setDialogOpen}
         catalogs={catalogs}
         initialSourceId={sourceId}
+      />
+
+      <RenameCatalogDialog
+        catalog={renaming}
+        onOpenChange={open => !open && setRenaming(null)}
       />
 
       <Dialog open={Boolean(deleting)} onOpenChange={open => !open && !deletePending && setDeleting(null)}>
@@ -268,6 +278,70 @@ function DateCell({ value }) {
     <span className="block whitespace-nowrap text-xs tabular-nums text-muted-foreground">
       {DATE_FORMATTER.format(date)}
     </span>
+  )
+}
+
+function RenameCatalogDialog({ catalog, onOpenChange }) {
+  const { reloadMeta } = useCatalog()
+  const [name, setName] = useState("")
+  const [error, setError] = useState("")
+  const [saving, setSaving] = useState(false)
+  const open = Boolean(catalog)
+
+  useEffect(() => {
+    if (catalog) {
+      setName(catalog.name)
+      setError("")
+    }
+  }, [catalog])
+
+  async function handleSave() {
+    setError("")
+    setSaving(true)
+    try {
+      await updateCatalog(catalog.id, { name: name.trim() })
+      await reloadMeta()
+      onOpenChange(false)
+    } catch (saveError) {
+      setError(saveError.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={value => !saving && onOpenChange(value)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar catálogo</DialogTitle>
+          <DialogDescription>
+            Cambia el nombre de «{catalog?.name}». Su selección de productos y
+            sus encuadres no se tocan.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-2">
+          <Label htmlFor="rc-name">Nombre</Label>
+          <Input
+            id="rc-name"
+            value={name}
+            onChange={event => setName(event.target.value)}
+            disabled={saving}
+          />
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <DialogFooter>
+          <Button variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button disabled={saving || !name.trim()} onClick={handleSave}>
+            {saving ? "Guardando…" : "Guardar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

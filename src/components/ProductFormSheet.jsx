@@ -49,13 +49,28 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
   const [saving, setSaving] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [imageFallbackIndex, setImageFallbackIndex] = useState(0)
+  const [pendingImage, setPendingImage] = useState(null)
+  // Referencia ya insertada en el maestro: evita duplicar el alta si falla la
+  // subida de la imagen y el usuario reintenta con Guardar.
+  const [createdId, setCreatedId] = useState(null)
   const fileInputRef = useRef(null)
+
+  const pendingImageUrl = useMemo(
+    () => (pendingImage ? URL.createObjectURL(pendingImage) : null),
+    [pendingImage]
+  )
+  useEffect(() => {
+    if (!pendingImageUrl) return
+    return () => URL.revokeObjectURL(pendingImageUrl)
+  }, [pendingImageUrl])
 
   useEffect(() => {
     if (!open) return
     setError("")
     setUploadStatus(null)
     setImageFallbackIndex(0)
+    setPendingImage(null)
+    setCreatedId(null)
     if (isEdit) {
       setForm({
         id: product.id,
@@ -74,7 +89,11 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
   async function handleImageUpload(event) {
     const file = event.target.files?.[0]
     event.target.value = ""
-    if (!file || !isEdit) return
+    if (!file) return
+    if (!isEdit) {
+      setPendingImage(file)
+      return
+    }
     setUploadStatus("loading")
     setError("")
     try {
@@ -125,14 +144,30 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
           discontinued: form.discontinued,
         })
       } else {
-        await createManualProduct({
-          id: form.id.trim(),
-          articleName: form.article_name.trim(),
-          displayName: form.display_name.trim(),
-          stockUnits: Number(form.stock_units || 0),
-          unitsPerCase: form.units_per_case ? Number(form.units_per_case) : null,
-          categoryId: Number(form.category_id),
-        })
+        const productId = createdId ?? form.id.trim()
+        if (!createdId) {
+          await createManualProduct({
+            id: productId,
+            articleName: form.article_name.trim(),
+            displayName: form.display_name.trim(),
+            stockUnits: Number(form.stock_units || 0),
+            unitsPerCase: form.units_per_case ? Number(form.units_per_case) : null,
+            categoryId: Number(form.category_id),
+          })
+          setCreatedId(productId)
+        }
+        if (pendingImage) {
+          try {
+            await uploadProductImage(productId, pendingImage, "original")
+          } catch (uploadError) {
+            await reloadProducts()
+            throw new Error(
+              `El producto se ha creado, pero la imagen no se pudo subir (${uploadError.message}). ` +
+              "Pulsa Guardar para reintentar la subida.",
+              { cause: uploadError }
+            )
+          }
+        }
       }
       await reloadProducts()
       onOpenChange(false)
@@ -166,79 +201,88 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
         </SheetHeader>
 
         <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 pb-6 flex flex-col gap-4">
-          {isEdit && (
-            <div className="grid gap-2">
-              <Label>Imagen</Label>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadStatus === "loading"}
-                className="group relative aspect-square w-full overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center transition-opacity disabled:opacity-60"
-              >
-                {imagePreviewSrc ? (
-                  <img
-                    src={withCacheBust(imagePreviewSrc, liveProduct.imageVersion || liveProduct.nobgVersion)}
-                    data-thumb-src={liveProduct.processedThumb || liveProduct.thumb || undefined}
-                    alt={liveProduct.name}
-                    className="size-full object-contain"
-                    onError={() => {
-                      if (imageFallbackIndex < imageCandidates.length - 1) {
-                        setImageFallbackIndex(value => value + 1)
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
-                    <ImageIcon className="size-6" />
-                    <span className="text-xs">Sin imagen</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white">
-                  {uploadStatus === "loading" ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Upload className="size-5" />
-                      <span className="text-xs font-medium">
-                        {liveProduct?.image ? "Reemplazar" : "Subir imagen"}
-                      </span>
-                    </>
-                  )}
+          <div className="grid gap-2">
+            <Label>Imagen</Label>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadStatus === "loading"}
+              className="group relative aspect-square w-full overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center transition-opacity disabled:opacity-60"
+            >
+              {isEdit && imagePreviewSrc ? (
+                <img
+                  src={withCacheBust(imagePreviewSrc, liveProduct.imageVersion || liveProduct.nobgVersion)}
+                  data-thumb-src={liveProduct.processedThumb || liveProduct.thumb || undefined}
+                  alt={liveProduct.name}
+                  className="size-full object-contain"
+                  onError={() => {
+                    if (imageFallbackIndex < imageCandidates.length - 1) {
+                      setImageFallbackIndex(value => value + 1)
+                    }
+                  }}
+                />
+              ) : !isEdit && pendingImageUrl ? (
+                <img
+                  src={pendingImageUrl}
+                  alt={form.display_name || "Imagen seleccionada"}
+                  className="size-full object-contain"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                  <ImageIcon className="size-6" />
+                  <span className="text-xs">Sin imagen</span>
                 </div>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageUpload}
-              />
-              {uploadStatus === "ok" && (
-                <p className="text-xs text-emerald-600">Imagen guardada.</p>
               )}
-              {uploadStatus === "error" && (
-                <p className="text-xs text-destructive">No se pudo subir la imagen.</p>
-              )}
-              {liveProduct?.originalImage && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadOriginal}
-                  className="w-full"
-                >
-                  <Download /> Descargar imagen original
-                </Button>
-              )}
-            </div>
-          )}
+              <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white">
+                {uploadStatus === "loading" ? (
+                  <Loader2 className="size-5 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="size-5" />
+                    <span className="text-xs font-medium">
+                      {(isEdit ? liveProduct?.image : pendingImage) ? "Reemplazar" : "Subir imagen"}
+                    </span>
+                  </>
+                )}
+              </div>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            {!isEdit && pendingImage && (
+              <p className="text-xs text-muted-foreground">
+                La imagen se subirá al guardar el producto.
+              </p>
+            )}
+            {uploadStatus === "ok" && (
+              <p className="text-xs text-emerald-600">Imagen guardada.</p>
+            )}
+            {uploadStatus === "error" && (
+              <p className="text-xs text-destructive">No se pudo subir la imagen.</p>
+            )}
+            {isEdit && liveProduct?.originalImage && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadOriginal}
+                className="w-full"
+              >
+                <Download /> Descargar imagen original
+              </Button>
+            )}
+          </div>
 
           <div className="grid gap-2">
             <Label htmlFor="pf-id">Referencia</Label>
             <Input
               id="pf-id"
               required
-              disabled={isEdit}
+              disabled={isEdit || Boolean(createdId)}
               value={form.id}
               onChange={event => setForm({ ...form, id: event.target.value })}
               placeholder="Ej: IP12050"

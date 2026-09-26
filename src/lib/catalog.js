@@ -581,6 +581,43 @@ export async function updateCatalog(catalogId, fields) {
   if (error) throw error
 }
 
+// El source_name es la familia con la que casa el Excel (comparación literal
+// en la RPC). Desde Ajustes se deriva del nombre en mayúsculas; la importación
+// pasa `sourceName` con la familia exacta del fichero.
+export async function createCategory({ displayName, subtitle, sourceName }) {
+  const code = slugify(displayName)
+  if (!code) throw new Error("El nombre de la categoría no es válido.")
+  const finalSourceName = sourceName?.trim() || displayName.trim().toUpperCase()
+
+  const { data: maxRow, error: maxError } = await supabase
+    .from("catalog_categories")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (maxError) throw maxError
+
+  const { data, error } = await supabase
+    .from("catalog_categories")
+    .insert({
+      code,
+      source_name: finalSourceName,
+      display_name: displayName.trim(),
+      subtitle: subtitle?.trim() || "",
+      sort_order: (maxRow?.sort_order ?? 0) + 10,
+      active: true,
+    })
+    .select("*")
+    .single()
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(`Ya existe una categoría con ese nombre o esa familia ("${finalSourceName}").`)
+    }
+    throw error
+  }
+  return { ...data, coverImage: categoryCoverUrl(data.code) }
+}
+
 export async function updateCategory(categoryId, fields) {
   const { error } = await supabase
     .from("catalog_categories")
