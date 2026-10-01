@@ -16,22 +16,22 @@ function seededShuffle(items, seed) {
   return result
 }
 
-// Hoja de imagen usada para completar la versión impresa hasta un número de
-// páginas múltiplo de 4. Si el catálogo tiene una imagen propia para esta hoja
-// se pinta a página completa; si no, fallback de marca: cabecera corporativa
-// (logo + datos de la empresa) y una portada de categoría estable por hoja.
-export default function FillerPage({ index = 0 }) {
+// Hoja de imagen. Con `image` (hoja colocada por el usuario) se pinta a página
+// completa; sin ella (hoja automática que completa la versión impresa a
+// múltiplos de 4) usa el fallback de marca: cabecera corporativa y una portada
+// de categoría estable por hoja. `entryIndex` identifica la entrada en
+// filler_images (null en las hojas automáticas).
+export default function FillerPage({ image = null, entryIndex = null, seedIndex = 0 }) {
   const { catalog, categories, company } = useCatalog()
   const logo = catalog.logo || catalog.logoWhite
-  const customImage = catalog.fillerImages?.[index] ?? null
 
   const fallbackImage = useMemo(() => {
     const covers = categories.map(category => category.coverImage).filter(Boolean)
-    if (!covers.length) return catalog.coverImage
+    if (!covers.length) return catalog.coverImageFallback
     const seed = (catalog.slug?.length ?? 0) * 131 + 7919
     const shuffled = seededShuffle(covers, seed)
-    return shuffled[index % shuffled.length]
-  }, [categories, index, catalog.slug, catalog.coverImage])
+    return shuffled[seedIndex % shuffled.length]
+  }, [categories, seedIndex, catalog.slug, catalog.coverImageFallback])
 
   const contactLines = [
     [
@@ -43,8 +43,8 @@ export default function FillerPage({ index = 0 }) {
 
   return (
     <div className={styles.page}>
-      {customImage ? (
-        <img key={customImage} className={styles.customImage} src={customImage} alt="" loading="lazy" decoding="async" />
+      {image ? (
+        <img key={image} className={styles.customImage} src={image} alt="" loading="lazy" decoding="async" />
       ) : (
         <>
           {fallbackImage && (
@@ -61,7 +61,7 @@ export default function FillerPage({ index = 0 }) {
         </>
       )}
 
-      <PageEditOverlay kind="filler" index={index} />
+      <PageEditOverlay kind="filler" index={entryIndex} />
     </div>
   )
 }

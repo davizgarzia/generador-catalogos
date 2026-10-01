@@ -1,4 +1,4 @@
-import { createRef, useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, createRef, useEffect, useMemo, useRef, useState } from "react"
 import { useParams } from "react-router-dom"
 import { useCatalog } from "../context/CatalogContext"
 import CatalogProductsManager from "../components/CatalogProductsManager"
@@ -6,7 +6,7 @@ import { usePrint } from "../context/PrintContext"
 import { useEdit } from "../context/EditContext"
 import { useAuth } from "../context/AuthContext"
 import { paginateBalanced } from "../lib/pagination"
-import { saveCategoryOrder, updateCatalog } from "../lib/catalog"
+import { saveCatalogFillerEntries, saveCategoryOrder } from "../lib/catalog"
 import Cover from "../components/Cover"
 import BackCover from "../components/BackCover"
 import FillerPage from "../components/FillerPage"
@@ -111,14 +111,45 @@ export default function CatalogPage() {
     return map
   }, [categoryOrder, grouped, perPage])
 
-  const { pageMeta, navSections, searchItems, fillerCount } = useMemo(() => {
+  const fillerEntries = useMemo(() => catalog?.fillerEntries ?? [], [catalog])
+
+  const { pageMeta, navSections, searchItems, autoFillerCount, entriesByAnchor } = useMemo(() => {
     const list = []
     const sections = []
     const search = []
     const pushPage = meta => list.push(meta) - 1
+    let imageNumber = 1
+
+    // Hojas de imagen colocadas, agrupadas por su ancla: "start" (antes de la
+    // primera categoría), el id de una categoría visible, o "end" (tramo
+    // final; también las ancladas a categorías sin páginas en este catálogo).
+    const visibleIds = new Set(
+      categoryOrder
+        .filter(name => pagesByCategory[name])
+        .map(name => String(categoryByName[name]?.id))
+    )
+    const entriesByAnchor = {}
+    fillerEntries.forEach((entry, entryIndex) => {
+      const id = entry.after != null ? String(entry.after) : null
+      const anchor = entry.after === "start" ? "start" : id && visibleIds.has(id) ? id : "end"
+      ;(entriesByAnchor[anchor] ??= []).push({ ...entry, entryIndex })
+    })
+
+    const pushImagePages = anchor => {
+      for (const entry of entriesByAnchor[anchor] ?? []) {
+        const label = `Imagen ${imageNumber++}`
+        sections.push({
+          type: "page",
+          label,
+          imgEntry: entry.entryIndex,
+          index: pushPage({ label, color: null }),
+        })
+      }
+    }
 
     sections.push({ type: "page", label: "Portada", index: pushPage({ label: "Portada", color: "#1b3da6" }) })
     sections.push({ type: "page", label: "Información", index: pushPage({ label: "Información", color: null }) })
+    pushImagePages("start")
     for (const category of categoryOrder) {
       const categoryPages = pagesByCategory[category]
       if (!categoryPages) continue
@@ -141,17 +172,21 @@ export default function CatalogPage() {
         categoryId: cfg.id,
         children,
       })
+      pushImagePages(String(cfg.id))
     }
+    pushImagePages("end")
 
     // Versión impresa: la imprenta necesita un total de páginas múltiplo de 4
-    // (pliegos), así que completamos con hojas de imagen antes de la contraportada.
-    const fillerCount = printMode ? (4 - ((list.length + 1) % 4)) % 4 : 0
-    for (let i = 0; i < fillerCount; i++) {
+    // (pliegos), así que completamos con hojas automáticas antes de la
+    // contraportada.
+    const autoFillerCount = printMode ? (4 - ((list.length + 1) % 4)) % 4 : 0
+    for (let i = 0; i < autoFillerCount; i++) {
+      const label = `Imagen ${imageNumber++}`
       sections.push({
         type: "page",
-        label: `Imagen ${i + 1}`,
-        fillerIndex: i,
-        index: pushPage({ label: `Imagen ${i + 1}`, color: null }),
+        label,
+        autoFiller: i,
+        index: pushPage({ label, color: null }),
       })
     }
 
@@ -163,9 +198,10 @@ export default function CatalogPage() {
       pageMeta: list.map(p => ({ ...p, pageNum: pageNum++, total })),
       navSections: sections,
       searchItems: search,
-      fillerCount,
+      autoFillerCount,
+      entriesByAnchor,
     }
-  }, [categoryByName, categoryOrder, pagesByCategory, printMode])
+  }, [categoryByName, categoryOrder, pagesByCategory, printMode, fillerEntries])
 
   // Refs estables por índice: recrearlas reiniciaría los IntersectionObserver
   // de las páginas lazy y de las miniaturas en cada cambio de vista.
@@ -208,37 +244,64 @@ export default function CatalogPage() {
     )
   }
 
-  async function handleReorderCategories(orderedIds) {
+  // Un único arrastre puede reordenar secciones (orden global de categorías)
+  // y/o recolocar hojas de imagen (ancla por catálogo): se recorre la lista
+  // soltada y se persiste solo lo que cambió.
+  async function handleReorderMiddle(items) {
     try {
-      // El sidebar solo lista categorías con productos: las demás conservan su
-      // posición relativa y solo se reordena la subsecuencia visible.
-      const visible = new Set(orderedIds)
-      const queue = [...orderedIds]
-      const fullOrder = categories.map(category =>
-        visible.has(String(category.id)) ? queue.shift() : String(category.id)
-      )
-      await saveCategoryOrder(fullOrder)
-      await reloadMeta()
-    } catch (error) {
-      console.error("No se pudo guardar el orden de secciones", error)
-    }
-  }
+      const newCategoryIds = items.filter(item => item.type === "cat").map(item => String(item.id))
+      const currentCategoryIds = categoryOrder
+        .filter(name => pagesByCategory[name])
+        .map(name => String(categoryByName[name]?.id))
 
-  async function handleReorderFillers(orderedIndices) {
-    try {
-      const paths = catalog.fillerImagePaths ?? []
-      const padded = Array.from({ length: fillerCount }, (_, i) => paths[i] ?? null)
-      const next = orderedIndices.map(i => padded[i])
-      while (next.length && next[next.length - 1] === null) next.pop()
-      await updateCatalog(catalog.id, { filler_images: next })
-      await reloadCatalogRow()
+      let lastAnchor = "start"
+      const nextEntries = []
+      for (const item of items) {
+        if (item.type === "cat") {
+          lastAnchor = String(item.id)
+        } else if (fillerEntries[item.entryIndex]) {
+          nextEntries.push({ path: fillerEntries[item.entryIndex].path, after: lastAnchor })
+        }
+      }
+      const currentEntries = fillerEntries.map(entry => ({ path: entry.path, after: entry.after ?? null }))
+
+      if (JSON.stringify(newCategoryIds) !== JSON.stringify(currentCategoryIds)) {
+        // El sidebar solo lista categorías con productos: las demás conservan
+        // su posición relativa y solo se reordena la subsecuencia visible.
+        const visible = new Set(newCategoryIds)
+        const queue = [...newCategoryIds]
+        const fullOrder = categories.map(category =>
+          visible.has(String(category.id)) ? queue.shift() : String(category.id)
+        )
+        await saveCategoryOrder(fullOrder)
+        await reloadMeta()
+      }
+      if (JSON.stringify(nextEntries) !== JSON.stringify(currentEntries)) {
+        await saveCatalogFillerEntries(catalog, nextEntries)
+        await reloadCatalogRow()
+      }
     } catch (error) {
-      console.error("No se pudo guardar el orden de las hojas de imagen", error)
+      console.error("No se pudo guardar el nuevo orden", error)
     }
   }
 
   let ri = 0
   const forceRenderPages = exporting
+
+  const renderPlacedImages = anchor =>
+    (entriesByAnchor[anchor] ?? []).map(entry => {
+      const idx = ri++
+      return (
+        <LazyPageWrapper
+          key={`img-${entry.entryIndex}`}
+          ref={pageRefs[idx]}
+          rootRef={catalogAreaRef}
+          forceRender={forceRenderPages}
+        >
+          <FillerPage image={entry.image} entryIndex={entry.entryIndex} />
+        </LazyPageWrapper>
+      )
+    })
 
   return (
     <div className="flex flex-col h-full">
@@ -258,8 +321,7 @@ export default function CatalogPage() {
           searchItems={searchItems}
           rootRef={catalogAreaRef}
           onManageProducts={isAdmin ? () => setManagerOpen(true) : undefined}
-          onReorderCategories={isAdmin ? handleReorderCategories : undefined}
-          onReorderFillers={isAdmin ? handleReorderFillers : undefined}
+          onReorderMiddle={isAdmin ? handleReorderMiddle : undefined}
         />
 
         <div ref={catalogAreaRef} id="catalog-area" className="flex-1 overflow-auto">
@@ -274,6 +336,8 @@ export default function CatalogPage() {
               </LazyPageWrapper>
             )})()}
 
+            {renderPlacedImages("start")}
+
             {categoryOrder.map((category) => {
               const categoryPages = pagesByCategory[category]
               if (!categoryPages) return null
@@ -284,28 +348,33 @@ export default function CatalogPage() {
               ri += numPages
 
               return (
-                <section key={category}>
-                  <LazyPageWrapper ref={dividerRef} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
-                    <CategoryDivider category={category} />
-                  </LazyPageWrapper>
-                  <ProductGrid
-                    productPages={categoryPages}
-                    category={category}
-                    perPage={perPage}
-                    pageRefs={gridRefs}
-                    pageMeta={gridMeta}
-                    rootRef={catalogAreaRef}
-                    forceRenderPages={forceRenderPages}
-                  />
-                </section>
+                <Fragment key={category}>
+                  <section>
+                    <LazyPageWrapper ref={dividerRef} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
+                      <CategoryDivider category={category} />
+                    </LazyPageWrapper>
+                    <ProductGrid
+                      productPages={categoryPages}
+                      category={category}
+                      perPage={perPage}
+                      pageRefs={gridRefs}
+                      pageMeta={gridMeta}
+                      rootRef={catalogAreaRef}
+                      forceRenderPages={forceRenderPages}
+                    />
+                  </section>
+                  {renderPlacedImages(String(categoryByName[category]?.id))}
+                </Fragment>
               )
             })}
 
-            {Array.from({ length: fillerCount }, (_, i) => {
+            {renderPlacedImages("end")}
+
+            {Array.from({ length: autoFillerCount }, (_, i) => {
               const idx = ri++
               return (
-                <LazyPageWrapper key={`filler-${i}`} ref={pageRefs[idx]} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
-                  <FillerPage index={i} />
+                <LazyPageWrapper key={`autofiller-${i}`} ref={pageRefs[idx]} rootRef={catalogAreaRef} forceRender={forceRenderPages}>
+                  <FillerPage seedIndex={i} />
                 </LazyPageWrapper>
               )
             })}

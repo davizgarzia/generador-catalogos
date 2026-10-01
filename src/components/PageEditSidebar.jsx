@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import {
   deleteCatalogPageImage,
+  saveCatalogFillerEntries,
   setCatalogBackCoverImage,
   setCatalogCoverImage,
-  setCatalogFillerImage,
   uploadCatalogPageImage,
 } from "../lib/catalog"
 
@@ -45,22 +45,19 @@ export default function PageEditSidebar() {
 
   if (!editingPage) return null
 
-  const { kind, index = 0 } = editingPage
+  const { kind, index = null } = editingPage
+  const fillerEntries = catalog.fillerEntries ?? []
+  // En las hojas, index es la posición en filler_images; null = hoja
+  // automática de relleno (aún sin entrada).
+  const fillerEntry = kind === "filler" && index != null ? fillerEntries[index] ?? null : null
   const currentPath =
     kind === "cover" ? catalog.coverImagePath
     : kind === "backcover" ? catalog.backCoverImagePath
-    : catalog.fillerImagePaths?.[index] ?? null
+    : fillerEntry?.path ?? null
   const currentImage =
     kind === "cover" ? (currentPath ? catalog.coverImage : null)
     : kind === "backcover" ? catalog.backCoverImage
-    : catalog.fillerImages?.[index] ?? null
-
-  async function persist(path) {
-    if (kind === "cover") await setCatalogCoverImage(catalog, path)
-    else if (kind === "backcover") await setCatalogBackCoverImage(catalog, path)
-    else await setCatalogFillerImage(catalog, index, path)
-    await reloadCatalogRow()
-  }
+    : fillerEntry?.image ?? null
 
   async function handleFile(event) {
     const file = event.target.files?.[0]
@@ -74,8 +71,29 @@ export default function PageEditSidebar() {
       const resolution = `${bitmap.width}×${bitmap.height}`
       bitmap.close?.()
 
-      const path = await uploadCatalogPageImage(catalog.id, file, kind, index, currentPath)
-      await persist(path)
+      const path = await uploadCatalogPageImage(
+        catalog.id,
+        file,
+        kind,
+        index ?? fillerEntries.length,
+        currentPath
+      )
+
+      if (kind === "cover") {
+        await setCatalogCoverImage(catalog, path)
+      } else if (kind === "backcover") {
+        await setCatalogBackCoverImage(catalog, path)
+      } else if (fillerEntry) {
+        const next = fillerEntries.map((entry, i) => (i === index ? { ...entry, path } : entry))
+        await saveCatalogFillerEntries(catalog, next)
+      } else {
+        // Hoja automática: al subir imagen se convierte en entrada colocada
+        // al final (luego se puede arrastrar entre secciones).
+        await saveCatalogFillerEntries(catalog, [...fillerEntries, { path, after: null }])
+        setEditingPage({ kind: "filler", index: fillerEntries.length })
+      }
+      await reloadCatalogRow()
+
       if (lowRes) {
         setNotice({
           tone: "warning",
@@ -95,7 +113,15 @@ export default function PageEditSidebar() {
     setNotice(null)
     try {
       await deleteCatalogPageImage(catalog.id, currentPath)
-      await persist(null)
+      if (kind === "cover") {
+        await setCatalogCoverImage(catalog, null)
+      } else if (kind === "backcover") {
+        await setCatalogBackCoverImage(catalog, null)
+      } else {
+        await saveCatalogFillerEntries(catalog, fillerEntries.filter((_, i) => i !== index))
+        setEditingPage(null)
+      }
+      await reloadCatalogRow()
     } catch (error) {
       setNotice({ tone: "error", text: error.message })
     } finally {
@@ -111,7 +137,11 @@ export default function PageEditSidebar() {
             Editar {KIND_LABELS[kind].toLowerCase()}
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            {kind === "filler" ? `Hoja ${index + 1} de la versión impresa` : catalog.name}
+            {kind !== "filler"
+              ? catalog.name
+              : fillerEntry
+                ? "Hoja colocada — arrástrala en el índice para moverla"
+                : "Hoja automática de relleno (versión impresa)"}
           </div>
         </div>
         <Button variant="ghost" size="icon-sm" onClick={() => setEditingPage(null)}>
