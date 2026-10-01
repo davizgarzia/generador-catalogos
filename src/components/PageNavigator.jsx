@@ -42,13 +42,15 @@ export default function PageNavigator({
   searchItems = [],
   rootRef,
   onManageProducts,
-  onReorderMiddle,
+  onReorderCategories,
+  onReorderFillers,
 }) {
   const [active, setActive] = useState(0)
   const [openSections, setOpenSections] = useState(() => new Set())
   const [query, setQuery] = useState("")
-  // Orden optimista (ids) mientras se persiste un arrastre; null = natural.
-  const [middleOrder, setMiddleOrder] = useState(null)
+  // Orden optimista mientras se persiste un arrastre; null = orden natural.
+  const [categoryOrder, setCategoryOrder] = useState(null)
+  const [fillerOrder, setFillerOrder] = useState(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -154,54 +156,66 @@ export default function PageNavigator({
     }
   }
 
-  // Segmentos de la lista: páginas fijas iniciales (Portada, Información), el
-  // tramo central reordenable (categorías y hojas de imagen colocadas,
-  // mezclables entre sí) y páginas fijas finales (hojas automáticas de
-  // relleno y Contraportada).
-  const middleIdOf = section =>
-    section.type === "category" ? `cat:${section.categoryId}` : `img:${section.imgEntry}`
-
+  // Segmentos de la lista: páginas fijas iniciales (Portada, Información),
+  // bloque de categorías reordenable, hojas de imagen reordenables y páginas
+  // fijas finales (Contraportada).
   const preSections = []
-  const middleSections = []
+  const categorySections = []
+  const fillerSections = []
   const postSections = []
-  let seenMiddle = false
+  let seenCategory = false
   for (const section of sections) {
-    if (section.type === "category" || section.imgEntry != null) {
-      seenMiddle = true
-      middleSections.push(section)
+    if (section.type === "category") {
+      seenCategory = true
+      categorySections.push(section)
+    } else if (section.fillerIndex != null) {
+      fillerSections.push(section)
     } else {
-      ;(seenMiddle ? postSections : preSections).push(section)
+      ;(seenCategory ? postSections : preSections).push(section)
     }
   }
 
-  const orderedMiddleSections = middleOrder
-    ? middleOrder
-        .map(id => middleSections.find(s => middleIdOf(s) === id))
+  const orderedCategorySections = categoryOrder
+    ? categoryOrder
+        .map(id => categorySections.find(s => String(s.categoryId) === id))
         .filter(Boolean)
-    : middleSections
+    : categorySections
+  const orderedFillerSections = fillerOrder
+    ? fillerOrder
+        .map(index => fillerSections.find(s => s.fillerIndex === index))
+        .filter(Boolean)
+    : fillerSections
 
   // Al llegar un orden nuevo desde los datos, el optimista deja de hacer falta.
   useEffect(() => {
-    setMiddleOrder(null)
+    setCategoryOrder(null)
+    setFillerOrder(null)
   }, [sections])
 
   async function handleDragEnd(event) {
     const { active: dragged, over } = event
-    if (!over || dragged.id === over.id || !onReorderMiddle) return
+    if (!over || dragged.id === over.id) return
+    const a = String(dragged.id)
+    const o = String(over.id)
 
-    const ids = orderedMiddleSections.map(middleIdOf)
-    const next = arrayMove(ids, ids.indexOf(String(dragged.id)), ids.indexOf(String(over.id)))
-    setMiddleOrder(next)
-    try {
-      await onReorderMiddle(
-        next.map(id =>
-          id.startsWith("cat:")
-            ? { type: "cat", id: id.slice(4) }
-            : { type: "img", entryIndex: Number(id.slice(4)) }
-        )
-      )
-    } finally {
-      setMiddleOrder(null)
+    if (a.startsWith("cat:") && o.startsWith("cat:") && onReorderCategories) {
+      const ids = orderedCategorySections.map(s => String(s.categoryId))
+      const next = arrayMove(ids, ids.indexOf(a.slice(4)), ids.indexOf(o.slice(4)))
+      setCategoryOrder(next)
+      try {
+        await onReorderCategories(next)
+      } finally {
+        setCategoryOrder(null)
+      }
+    } else if (a.startsWith("filler:") && o.startsWith("filler:") && onReorderFillers) {
+      const indices = orderedFillerSections.map(s => s.fillerIndex)
+      const next = arrayMove(indices, indices.indexOf(Number(a.slice(7))), indices.indexOf(Number(o.slice(7))))
+      setFillerOrder(next)
+      try {
+        await onReorderFillers(next)
+      } finally {
+        setFillerOrder(null)
+      }
     }
   }
 
@@ -270,35 +284,10 @@ export default function PageNavigator({
 
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext
-                  items={orderedMiddleSections.map(middleIdOf)}
+                  items={orderedCategorySections.map(s => `cat:${s.categoryId}`)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {orderedMiddleSections.map(section => {
-                    if (section.type !== "category") {
-                      return (
-                        <SortableRow
-                          key={`img-${section.imgEntry}`}
-                          id={`img:${section.imgEntry}`}
-                          disabled={!onReorderMiddle}
-                        >
-                          {handle => (
-                            <div className="flex w-full min-w-0 items-center">
-                              {handle}
-                              <div className="min-w-0 flex-1">
-                                <PageRow
-                                  ref={registerItem(section.index)}
-                                  label={section.label}
-                                  pageNum={pages[section.index]?.pageNum}
-                                  isActive={active === section.index}
-                                  onClick={() => goTo(section.index)}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </SortableRow>
-                      )
-                    }
-
+                  {orderedCategorySections.map(section => {
                     const containsActive = section.children.some(child => child.index === active)
                     const open = openSections.has(section.label)
 
@@ -306,7 +295,7 @@ export default function PageNavigator({
                       <SortableRow
                         key={`cat-${section.label}`}
                         id={`cat:${section.categoryId}`}
-                        disabled={!onReorderMiddle}
+                        disabled={!onReorderCategories}
                       >
                         {handle => (
                           <Collapsible
@@ -380,6 +369,34 @@ export default function PageNavigator({
                       </SortableRow>
                     )
                   })}
+                </SortableContext>
+
+                <SortableContext
+                  items={orderedFillerSections.map(s => `filler:${s.fillerIndex}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {orderedFillerSections.map(section => (
+                    <SortableRow
+                      key={`page-${section.index}`}
+                      id={`filler:${section.fillerIndex}`}
+                      disabled={!onReorderFillers}
+                    >
+                      {handle => (
+                        <div className="flex w-full min-w-0 items-center">
+                          {handle}
+                          <div className="min-w-0 flex-1">
+                            <PageRow
+                              ref={registerItem(section.index)}
+                              label={section.label}
+                              pageNum={pages[section.index]?.pageNum}
+                              isActive={active === section.index}
+                              onClick={() => goTo(section.index)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </SortableRow>
+                  ))}
                 </SortableContext>
               </DndContext>
 

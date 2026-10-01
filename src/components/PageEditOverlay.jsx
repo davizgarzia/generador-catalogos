@@ -5,7 +5,7 @@ import styles from "./PageEditOverlay.module.css"
 // Overlay de edición de las páginas especiales (portada, hojas de relleno y
 // contraportada): al pasar el ratón aparece el botón Editar, como en los
 // productos. Solo en pantalla — nunca se imprime.
-export default function PageEditOverlay({ kind, index = null }) {
+export default function PageEditOverlay({ kind, index = 0 }) {
   const { isAdmin } = useAuth()
   const { setEditingPage } = useEdit()
 

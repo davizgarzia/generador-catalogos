@@ -119,19 +119,10 @@ function mapCatalogRow(catalog) {
     coverImageFallback: BRAND_ASSETS.cover,
     logo: BRAND_ASSETS.logo,
     logoWhite: BRAND_ASSETS.logoWhite,
-    // Imágenes propias por catálogo (rutas R2); null = fallback de marca.
+    // Imágenes propias por catálogo (rutas R2); hueco/null = fallback de marca.
     coverImagePath: catalog.cover_image_path ?? null,
-    // Hojas de imagen colocables: {path, after} — after = id de la categoría
-    // tras cuya sección va la hoja, "start" (antes de la primera) o null
-    // (tramo final, antes de la contraportada).
-    fillerEntries: (catalog.filler_images ?? [])
-      .map(entry => (typeof entry === "string" ? { path: entry, after: null } : entry))
-      .filter(entry => entry?.path)
-      .map(entry => ({
-        path: entry.path,
-        after: entry.after ?? null,
-        image: getR2ImageUrl(entry.path),
-      })),
+    fillerImagePaths: catalog.filler_images ?? [],
+    fillerImages: (catalog.filler_images ?? []).map(path => getR2ImageUrl(path)),
     backCoverImagePath: catalog.back_cover_image_path ?? null,
     backCoverImage: getR2ImageUrl(catalog.back_cover_image_path),
   }
@@ -607,10 +598,13 @@ export async function deleteCatalogPageImage(catalogId, path) {
   )
 }
 
-export async function saveCatalogFillerEntries(catalog, entries) {
-  await updateCatalog(catalog.id, {
-    filler_images: entries.map(({ path, after }) => ({ path, after: after ?? null })),
-  })
+export async function setCatalogFillerImage(catalog, index, path) {
+  const paths = [...(catalog.fillerImagePaths ?? [])]
+  while (paths.length <= index) paths.push(null)
+  paths[index] = path
+  // Recorta los huecos finales para no acumular nulls.
+  while (paths.length && paths[paths.length - 1] === null) paths.pop()
+  await updateCatalog(catalog.id, { filler_images: paths })
 }
 
 export async function setCatalogBackCoverImage(catalog, path) {
