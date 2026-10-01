@@ -119,10 +119,22 @@ function mapCatalogRow(catalog) {
     coverImageFallback: BRAND_ASSETS.cover,
     logo: BRAND_ASSETS.logo,
     logoWhite: BRAND_ASSETS.logoWhite,
-    // Imágenes propias por catálogo (rutas R2); hueco/null = fallback de marca.
+    // Imágenes propias por catálogo (rutas R2); null = fallback de marca.
     coverImagePath: catalog.cover_image_path ?? null,
-    fillerImagePaths: catalog.filler_images ?? [],
-    fillerImages: (catalog.filler_images ?? []).map(path => getR2ImageUrl(path)),
+    // Descriptores de las hojas automáticas de relleno: {path, after} — path
+    // es la imagen propia (null = diseño de marca) y after el id de la
+    // categoría tras cuya sección va la hoja ("start" o null = tramo final).
+    // La cantidad de hojas no se guarda: la calcula la paginación (múltiplo
+    // de 4 en impresión).
+    fillerSlots: (catalog.filler_images ?? []).map(slot => {
+      const normalized =
+        slot == null || typeof slot === "string" ? { path: slot ?? null, after: null } : slot
+      return {
+        path: normalized.path ?? null,
+        after: normalized.after ?? null,
+        image: getR2ImageUrl(normalized.path),
+      }
+    }),
     backCoverImagePath: catalog.back_cover_image_path ?? null,
     backCoverImage: getR2ImageUrl(catalog.back_cover_image_path),
   }
@@ -598,13 +610,18 @@ export async function deleteCatalogPageImage(catalogId, path) {
   )
 }
 
-export async function setCatalogFillerImage(catalog, index, path) {
-  const paths = [...(catalog.fillerImagePaths ?? [])]
-  while (paths.length <= index) paths.push(null)
-  paths[index] = path
-  // Recorta los huecos finales para no acumular nulls.
-  while (paths.length && paths[paths.length - 1] === null) paths.pop()
-  await updateCatalog(catalog.id, { filler_images: paths })
+export async function saveCatalogFillerSlots(catalog, slots) {
+  const trimmed = [...slots]
+  // Las hojas finales sin imagen ni ancla equivalen al relleno que la
+  // paginación sintetiza sola: no hace falta guardarlas.
+  while (trimmed.length) {
+    const last = trimmed[trimmed.length - 1]
+    if (last.path || last.after != null) break
+    trimmed.pop()
+  }
+  await updateCatalog(catalog.id, {
+    filler_images: trimmed.map(({ path, after }) => ({ path: path ?? null, after: after ?? null })),
+  })
 }
 
 export async function setCatalogBackCoverImage(catalog, path) {

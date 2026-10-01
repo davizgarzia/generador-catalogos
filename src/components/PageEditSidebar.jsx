@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import {
   deleteCatalogPageImage,
+  saveCatalogFillerSlots,
   setCatalogBackCoverImage,
   setCatalogCoverImage,
-  setCatalogFillerImage,
   uploadCatalogPageImage,
 } from "../lib/catalog"
 
@@ -20,7 +20,7 @@ const MIN_PRINT_HEIGHT = 2800
 
 const KIND_LABELS = {
   cover: "Portada",
-  filler: "Hoja de imagen",
+  filler: "Hoja de relleno",
   backcover: "Contraportada",
 }
 
@@ -46,19 +46,29 @@ export default function PageEditSidebar() {
   if (!editingPage) return null
 
   const { kind, index = 0 } = editingPage
+  const fillerSlots = catalog.fillerSlots ?? []
   const currentPath =
     kind === "cover" ? catalog.coverImagePath
     : kind === "backcover" ? catalog.backCoverImagePath
-    : catalog.fillerImagePaths?.[index] ?? null
+    : fillerSlots[index]?.path ?? null
   const currentImage =
     kind === "cover" ? (currentPath ? catalog.coverImage : null)
     : kind === "backcover" ? catalog.backCoverImage
-    : catalog.fillerImages?.[index] ?? null
+    : fillerSlots[index]?.image ?? null
 
   async function persist(path) {
-    if (kind === "cover") await setCatalogCoverImage(catalog, path)
-    else if (kind === "backcover") await setCatalogBackCoverImage(catalog, path)
-    else await setCatalogFillerImage(catalog, index, path)
+    if (kind === "cover") {
+      await setCatalogCoverImage(catalog, path)
+    } else if (kind === "backcover") {
+      await setCatalogBackCoverImage(catalog, path)
+    } else {
+      // La hoja de relleno sigue existiendo (su cantidad es automática):
+      // solo cambia la imagen de su descriptor, conservando el ancla.
+      const slots = fillerSlots.map(slot => ({ path: slot.path ?? null, after: slot.after ?? null }))
+      while (slots.length <= index) slots.push({ path: null, after: null })
+      slots[index] = { ...slots[index], path }
+      await saveCatalogFillerSlots(catalog, slots)
+    }
     await reloadCatalogRow()
   }
 
@@ -111,7 +121,7 @@ export default function PageEditSidebar() {
             Editar {KIND_LABELS[kind].toLowerCase()}
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            {kind === "filler" ? `Hoja ${index + 1} de la versión impresa` : catalog.name}
+            {kind === "filler" ? "Versión impresa — arrástrala en el índice para moverla" : catalog.name}
           </div>
         </div>
         <Button variant="ghost" size="icon-sm" onClick={() => setEditingPage(null)}>

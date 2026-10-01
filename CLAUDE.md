@@ -45,14 +45,17 @@ VITE_R2_PUBLIC_URL=...   # obligatoria: dominio público R2 de las imágenes de 
   encuadre visual (`img_hidden`, `img_x`, `img_y`, `img_scale`).
 - `catalog_categories`: globales — nombre, orden, colores, subtítulo.
 - `catalogs`: nombre, edición, slug e imágenes propias de las páginas
-  especiales — `cover_image_path` (portada), `filler_images` (jsonb, rutas R2
-  por hoja de relleno) y `back_cover_image_path`; null/hueco = fallback de
-  marca (los datos comerciales viven en `company_profile`; las columnas de
-  contacto de `catalogs` quedaron sin uso). Pulsar la portada, una hoja de
-  relleno o la contraportada en la vista del catálogo abre `PageEditSidebar`
-  (subir/quitar imagen). Al duplicar un catálogo se copian las rutas (los
-  objetos R2 se comparten y `r2-catalog-asset` solo borra rutas del catálogo
-  propietario).
+  especiales — `cover_image_path` (portada), `back_cover_image_path` y
+  `filler_images` (jsonb de descriptores `{path, after}` de las hojas
+  automáticas de relleno: su cantidad la calcula la paginación para llegar a
+  múltiplo de 4 en impresión y no se guarda; `path` es la imagen propia, null
+  = diseño de marca, y `after` el id de la categoría tras cuya sección va la
+  hoja, `"start"` o null = tramo final). El hover sobre esas páginas abre
+  `PageEditSidebar` (subir/quitar imagen) y en el navegador lateral las hojas
+  se arrastran en la misma lista que las secciones (orden de secciones:
+  global; anclas de hojas: por catálogo). Al duplicar un catálogo se copian
+  los descriptores (los objetos R2 se comparten y `r2-catalog-asset` solo
+  borra rutas del catálogo propietario).
 - `company_profile`: fila única con nombre, contacto, horario y `settings`
   (textos de la página de información).
 - `catalog_cover_products`: mosaico ordenado de portada (aún sin render).
