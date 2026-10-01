@@ -1,5 +1,21 @@
 import { forwardRef, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronRight, ListPlus } from "lucide-react"
+import { ChevronRight, GripVertical, ListPlus } from "lucide-react"
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -26,10 +42,19 @@ export default function PageNavigator({
   searchItems = [],
   rootRef,
   onManageProducts,
+  onReorderCategories,
+  onReorderFillers,
 }) {
   const [active, setActive] = useState(0)
   const [openSections, setOpenSections] = useState(() => new Set())
   const [query, setQuery] = useState("")
+  // Orden optimista mientras se persiste un arrastre; null = orden natural.
+  const [categoryOrder, setCategoryOrder] = useState(null)
+  const [fillerOrder, setFillerOrder] = useState(null)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
   const itemRefs = useRef([])
   const hasScrolledOnceRef = useRef(false)
   const suppressObserverRef = useRef(false)
@@ -131,6 +156,69 @@ export default function PageNavigator({
     }
   }
 
+  // Segmentos de la lista: páginas fijas iniciales (Portada, Información),
+  // bloque de categorías reordenable, hojas de imagen reordenables y páginas
+  // fijas finales (Contraportada).
+  const preSections = []
+  const categorySections = []
+  const fillerSections = []
+  const postSections = []
+  let seenCategory = false
+  for (const section of sections) {
+    if (section.type === "category") {
+      seenCategory = true
+      categorySections.push(section)
+    } else if (section.fillerIndex != null) {
+      fillerSections.push(section)
+    } else {
+      ;(seenCategory ? postSections : preSections).push(section)
+    }
+  }
+
+  const orderedCategorySections = categoryOrder
+    ? categoryOrder
+        .map(id => categorySections.find(s => String(s.categoryId) === id))
+        .filter(Boolean)
+    : categorySections
+  const orderedFillerSections = fillerOrder
+    ? fillerOrder
+        .map(index => fillerSections.find(s => s.fillerIndex === index))
+        .filter(Boolean)
+    : fillerSections
+
+  // Al llegar un orden nuevo desde los datos, el optimista deja de hacer falta.
+  useEffect(() => {
+    setCategoryOrder(null)
+    setFillerOrder(null)
+  }, [sections])
+
+  async function handleDragEnd(event) {
+    const { active: dragged, over } = event
+    if (!over || dragged.id === over.id) return
+    const a = String(dragged.id)
+    const o = String(over.id)
+
+    if (a.startsWith("cat:") && o.startsWith("cat:") && onReorderCategories) {
+      const ids = orderedCategorySections.map(s => String(s.categoryId))
+      const next = arrayMove(ids, ids.indexOf(a.slice(4)), ids.indexOf(o.slice(4)))
+      setCategoryOrder(next)
+      try {
+        await onReorderCategories(next)
+      } finally {
+        setCategoryOrder(null)
+      }
+    } else if (a.startsWith("filler:") && o.startsWith("filler:") && onReorderFillers) {
+      const indices = orderedFillerSections.map(s => s.fillerIndex)
+      const next = arrayMove(indices, indices.indexOf(Number(a.slice(7))), indices.indexOf(Number(o.slice(7))))
+      setFillerOrder(next)
+      try {
+        await onReorderFillers(next)
+      } finally {
+        setFillerOrder(null)
+      }
+    }
+  }
+
   return (
     <nav
       aria-label="Páginas del catálogo"
@@ -183,99 +271,182 @@ export default function PageNavigator({
         ) : (
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             <div className="flex flex-col gap-0.5 p-2">
-              {sections.map(section => {
-                if (section.type === "page") {
-                  return (
-                    <PageRow
-                      key={`page-${section.index}`}
-                      ref={registerItem(section.index)}
-                      label={section.label}
-                      pageNum={pages[section.index]?.pageNum}
-                      isActive={active === section.index}
-                      onClick={() => goTo(section.index)}
-                    />
-                  )
-                }
+              {preSections.map(section => (
+                <PageRow
+                  key={`page-${section.index}`}
+                  ref={registerItem(section.index)}
+                  label={section.label}
+                  pageNum={pages[section.index]?.pageNum}
+                  isActive={active === section.index}
+                  onClick={() => goTo(section.index)}
+                />
+              ))}
 
-                const containsActive = section.children.some(child => child.index === active)
-                const open = openSections.has(section.label)
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext
+                  items={orderedCategorySections.map(s => `cat:${s.categoryId}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {orderedCategorySections.map(section => {
+                    const containsActive = section.children.some(child => child.index === active)
+                    const open = openSections.has(section.label)
 
-                return (
-                  <Collapsible
-                    key={`cat-${section.label}`}
-                    open={open}
-                    onOpenChange={value => {
-                      setOpenSections(prev => {
-                        const next = new Set(prev)
-                        if (value) next.add(section.label)
-                        else next.delete(section.label)
-                        return next
-                      })
-                    }}
-                  >
-                    <div
-                      className={cn(
-                        "flex w-full min-w-0 items-center rounded-md",
-                        containsActive ? "bg-accent/60" : "hover:bg-accent/40"
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          goTo(section.children[0].index)
-                          setOpenSections(prev => new Set(prev).add(section.label))
-                        }}
-                        className={cn(
-                          "flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 py-1.5 text-left text-xs",
-                          containsActive
-                            ? "font-semibold text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                        title={section.label}
+                    return (
+                      <SortableRow
+                        key={`cat-${section.label}`}
+                        id={`cat:${section.categoryId}`}
+                        disabled={!onReorderCategories}
                       >
-                        <span
-                          aria-hidden="true"
-                          className="size-2.5 shrink-0 rounded-full border border-black/10"
-                          style={{ background: section.color ?? "var(--muted)" }}
-                        />
-                        <span className="min-w-0 truncate">{section.label}</span>
-                      </button>
-                      <CollapsibleTrigger asChild>
-                        <button
-                          type="button"
-                          aria-label={`${open ? "Contraer" : "Expandir"} ${section.label}`}
-                          className="shrink-0 cursor-pointer p-1.5 text-muted-foreground hover:text-foreground"
-                        >
-                          <ChevronRight
-                            className={cn("size-3.5 transition-transform", open && "rotate-90")}
-                          />
-                        </button>
-                      </CollapsibleTrigger>
-                    </div>
+                        {handle => (
+                          <Collapsible
+                            open={open}
+                            onOpenChange={value => {
+                              setOpenSections(prev => {
+                                const next = new Set(prev)
+                                if (value) next.add(section.label)
+                                else next.delete(section.label)
+                                return next
+                              })
+                            }}
+                          >
+                            <div
+                              className={cn(
+                                "flex w-full min-w-0 items-center rounded-md",
+                                containsActive ? "bg-accent/60" : "hover:bg-accent/40"
+                              )}
+                            >
+                              {handle}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  goTo(section.children[0].index)
+                                  setOpenSections(prev => new Set(prev).add(section.label))
+                                }}
+                                className={cn(
+                                  "flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 py-1.5 text-left text-xs",
+                                  containsActive
+                                    ? "font-semibold text-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                                )}
+                                title={section.label}
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className="size-2.5 shrink-0 rounded-full border border-black/10"
+                                  style={{ background: section.color ?? "var(--muted)" }}
+                                />
+                                <span className="min-w-0 truncate">{section.label}</span>
+                              </button>
+                              <CollapsibleTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-label={`${open ? "Contraer" : "Expandir"} ${section.label}`}
+                                  className="shrink-0 cursor-pointer p-1.5 text-muted-foreground hover:text-foreground"
+                                >
+                                  <ChevronRight
+                                    className={cn("size-3.5 transition-transform", open && "rotate-90")}
+                                  />
+                                </button>
+                              </CollapsibleTrigger>
+                            </div>
 
-                    <CollapsibleContent>
-                      <div className="ml-3 flex flex-col gap-0.5 border-l border-border pl-1.5 pt-0.5">
-                        {section.children.map(child => (
-                          <PageRow
-                            key={`page-${child.index}`}
-                            ref={registerItem(child.index)}
-                            label={child.label}
-                            pageNum={pages[child.index]?.pageNum}
-                            isActive={active === child.index}
-                            onClick={() => goTo(child.index)}
-                          />
-                        ))}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )
-              })}
+                            <CollapsibleContent>
+                              <div className="ml-3 flex flex-col gap-0.5 border-l border-border pl-1.5 pt-0.5">
+                                {section.children.map(child => (
+                                  <PageRow
+                                    key={`page-${child.index}`}
+                                    ref={registerItem(child.index)}
+                                    label={child.label}
+                                    pageNum={pages[child.index]?.pageNum}
+                                    isActive={active === child.index}
+                                    onClick={() => goTo(child.index)}
+                                  />
+                                ))}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
+                      </SortableRow>
+                    )
+                  })}
+                </SortableContext>
+
+                <SortableContext
+                  items={orderedFillerSections.map(s => `filler:${s.fillerIndex}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {orderedFillerSections.map(section => (
+                    <SortableRow
+                      key={`page-${section.index}`}
+                      id={`filler:${section.fillerIndex}`}
+                      disabled={!onReorderFillers}
+                    >
+                      {handle => (
+                        <div className="flex w-full min-w-0 items-center">
+                          {handle}
+                          <div className="min-w-0 flex-1">
+                            <PageRow
+                              ref={registerItem(section.index)}
+                              label={section.label}
+                              pageNum={pages[section.index]?.pageNum}
+                              isActive={active === section.index}
+                              onClick={() => goTo(section.index)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </SortableRow>
+                  ))}
+                </SortableContext>
+              </DndContext>
+
+              {postSections.map(section => (
+                <PageRow
+                  key={`page-${section.index}`}
+                  ref={registerItem(section.index)}
+                  label={section.label}
+                  pageNum={pages[section.index]?.pageNum}
+                  isActive={active === section.index}
+                  onClick={() => goTo(section.index)}
+                />
+              ))}
 
             </div>
           </div>
         )}
       </Command>
     </nav>
+  )
+}
+
+// Fila arrastrable: expone el asa (visible al pasar el ratón) vía render-prop
+// para colocarla dentro del layout de cada tipo de fila.
+function SortableRow({ id, disabled, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled,
+  })
+
+  const handle = disabled ? null : (
+    <button
+      type="button"
+      {...attributes}
+      {...listeners}
+      aria-label="Reordenar"
+      className="shrink-0 cursor-grab touch-none p-1 text-muted-foreground/40 opacity-0 transition-opacity group-hover/drag:opacity-100 focus-visible:opacity-100 hover:text-foreground active:cursor-grabbing"
+    >
+      <GripVertical className="size-3.5" />
+    </button>
+  )
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn("group/drag relative", isDragging && "z-10 opacity-90")}
+    >
+      {children(handle)}
+    </div>
   )
 }
 

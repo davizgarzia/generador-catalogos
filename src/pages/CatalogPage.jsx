@@ -6,6 +6,7 @@ import { usePrint } from "../context/PrintContext"
 import { useEdit } from "../context/EditContext"
 import { useAuth } from "../context/AuthContext"
 import { paginateBalanced } from "../lib/pagination"
+import { saveCategoryOrder, updateCatalog } from "../lib/catalog"
 import Cover from "../components/Cover"
 import BackCover from "../components/BackCover"
 import FillerPage from "../components/FillerPage"
@@ -28,6 +29,8 @@ export default function CatalogPage() {
     detailError,
     openCatalog,
     reloadCatalogDetail,
+    reloadCatalogRow,
+    reloadMeta,
   } = useCatalog()
   const { printMode, printSize, productGrid, hideNoImage } = usePrint()
   const { editingProduct, editingPage, setEditingPage } = useEdit()
@@ -131,7 +134,13 @@ export default function CatalogPage() {
           search.push({ id: product.id, name: product.name, category, index })
         }
       }
-      sections.push({ type: "category", label: category, color: cfg.background_color, children })
+      sections.push({
+        type: "category",
+        label: category,
+        color: cfg.background_color,
+        categoryId: cfg.id,
+        children,
+      })
     }
 
     // Versión impresa: la imprenta necesita un total de páginas múltiplo de 4
@@ -141,6 +150,7 @@ export default function CatalogPage() {
       sections.push({
         type: "page",
         label: `Imagen ${i + 1}`,
+        fillerIndex: i,
         index: pushPage({ label: `Imagen ${i + 1}`, color: null }),
       })
     }
@@ -198,6 +208,35 @@ export default function CatalogPage() {
     )
   }
 
+  async function handleReorderCategories(orderedIds) {
+    try {
+      // El sidebar solo lista categorías con productos: las demás conservan su
+      // posición relativa y solo se reordena la subsecuencia visible.
+      const visible = new Set(orderedIds)
+      const queue = [...orderedIds]
+      const fullOrder = categories.map(category =>
+        visible.has(String(category.id)) ? queue.shift() : String(category.id)
+      )
+      await saveCategoryOrder(fullOrder)
+      await reloadMeta()
+    } catch (error) {
+      console.error("No se pudo guardar el orden de secciones", error)
+    }
+  }
+
+  async function handleReorderFillers(orderedIndices) {
+    try {
+      const paths = catalog.fillerImagePaths ?? []
+      const padded = Array.from({ length: fillerCount }, (_, i) => paths[i] ?? null)
+      const next = orderedIndices.map(i => padded[i])
+      while (next.length && next[next.length - 1] === null) next.pop()
+      await updateCatalog(catalog.id, { filler_images: next })
+      await reloadCatalogRow()
+    } catch (error) {
+      console.error("No se pudo guardar el orden de las hojas de imagen", error)
+    }
+  }
+
   let ri = 0
   const forceRenderPages = exporting
 
@@ -219,6 +258,8 @@ export default function CatalogPage() {
           searchItems={searchItems}
           rootRef={catalogAreaRef}
           onManageProducts={isAdmin ? () => setManagerOpen(true) : undefined}
+          onReorderCategories={isAdmin ? handleReorderCategories : undefined}
+          onReorderFillers={isAdmin ? handleReorderFillers : undefined}
         />
 
         <div ref={catalogAreaRef} id="catalog-area" className="flex-1 overflow-auto">

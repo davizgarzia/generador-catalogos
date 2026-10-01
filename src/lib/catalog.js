@@ -652,6 +652,21 @@ export async function createCategory({ displayName, subtitle, sourceName }) {
   return { ...data, coverImage: categoryCoverUrl(data.code) }
 }
 
+// Reordena las categorías globalmente (el orden de secciones es compartido
+// por todos los catálogos).
+export async function saveCategoryOrder(orderedIds) {
+  const results = await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase
+        .from("catalog_categories")
+        .update({ sort_order: (index + 1) * 10 })
+        .eq("id", id)
+    )
+  )
+  const failed = results.find(result => result.error)
+  if (failed) throw failed.error
+}
+
 export async function updateCategory(categoryId, fields) {
   const { error } = await supabase
     .from("catalog_categories")
