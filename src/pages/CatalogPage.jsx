@@ -15,6 +15,7 @@ import ProductGrid from "../components/ProductGrid"
 import LazyPageWrapper from "../components/LazyPageWrapper"
 import PageNavigator from "../components/PageNavigator"
 import EditSidebar from "../components/EditSidebar"
+import PageEditSidebar from "../components/PageEditSidebar"
 import CatalogPageHeader from "../components/CatalogPageHeader"
 
 export default function CatalogPage() {
@@ -29,14 +30,15 @@ export default function CatalogPage() {
     reloadCatalogDetail,
   } = useCatalog()
   const { printMode, printSize, productGrid, hideNoImage } = usePrint()
-  const { editingProduct } = useEdit()
+  const { editingProduct, editingPage, setEditingPage } = useEdit()
   const { isAdmin } = useAuth()
   const [exporting, setExporting] = useState(false)
   const [managerOpen, setManagerOpen] = useState(false)
 
   useEffect(() => {
     openCatalog(slug)
-  }, [slug, openCatalog])
+    setEditingPage(null)
+  }, [slug, openCatalog, setEditingPage])
 
   const detailReady = catalog?.slug === slug
 
@@ -273,9 +275,9 @@ export default function CatalogPage() {
           </div>
         </div>
 
-        {editingProduct && isAdmin && (
-          <aside className="w-80 shrink-0 bg-background border-l border-border flex flex-col min-h-0 h-full">
-            <EditSidebar />
+        {(editingProduct || editingPage) && isAdmin && (
+          <aside className="app-chrome w-80 shrink-0 bg-background border-l border-border flex flex-col min-h-0 h-full">
+            {editingProduct ? <EditSidebar /> : <PageEditSidebar />}
           </aside>
         )}
       </div>

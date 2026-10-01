@@ -10,8 +10,8 @@ import {
   requireSupabaseAdmin,
 } from "./lib/r2-catalog.mjs"
 
-// Imágenes propias de las páginas del catálogo (hojas de relleno y
-// contraportada). Tres acciones: presign (URL de subida directa a R2),
+// Imágenes propias de las páginas especiales del catálogo (portada, hojas de
+// relleno y contraportada). Tres acciones: presign (URL de subida directa a R2),
 // process (genera el WebP final de calidad de impresión y limpia la subida)
 // y delete (borra una imagen al volver al fallback). La fila de `catalogs`
 // la actualiza el cliente; aquí solo se tocan objetos de R2.
@@ -33,10 +33,10 @@ function sanitizeCatalogId(catalogId) {
 }
 
 function sanitizeKindIndex(kind, index) {
-  if (kind !== "filler" && kind !== "backcover") throw new Error("Tipo de página inválido.")
+  if (!["cover", "filler", "backcover"].includes(kind)) throw new Error("Tipo de página inválido.")
   const n = Number.parseInt(index ?? 0, 10)
   if (!Number.isInteger(n) || n < 0 || n > 99) throw new Error("Índice de página inválido.")
-  return { kind, index: kind === "backcover" ? 0 : n }
+  return { kind, index: kind === "filler" ? n : 0 }
 }
 
 // Prefijos propiedad de este catálogo: solo dentro de ellos se puede borrar.

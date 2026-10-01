@@ -115,10 +115,12 @@ function mapCatalogProduct(row) {
 function mapCatalogRow(catalog) {
   return {
     ...catalog,
-    coverImage: BRAND_ASSETS.cover,
+    coverImage: getR2ImageUrl(catalog.cover_image_path) || BRAND_ASSETS.cover,
+    coverImageFallback: BRAND_ASSETS.cover,
     logo: BRAND_ASSETS.logo,
     logoWhite: BRAND_ASSETS.logoWhite,
     // Imágenes propias por catálogo (rutas R2); hueco/null = fallback de marca.
+    coverImagePath: catalog.cover_image_path ?? null,
     fillerImagePaths: catalog.filler_images ?? [],
     fillerImages: (catalog.filler_images ?? []).map(path => getR2ImageUrl(path)),
     backCoverImagePath: catalog.back_cover_image_path ?? null,
@@ -218,14 +220,15 @@ export async function createCatalog({ name, edition, slug, sourceCatalogId, incl
     // nunca borra rutas que no pertenezcan al propio catálogo).
     const { data: sourceRow, error: sourceError } = await supabase
       .from("catalogs")
-      .select("filler_images,back_cover_image_path")
+      .select("cover_image_path,filler_images,back_cover_image_path")
       .eq("id", sourceCatalogId)
       .single()
     if (sourceError) throw sourceError
-    if (sourceRow.filler_images?.length || sourceRow.back_cover_image_path) {
+    if (sourceRow.cover_image_path || sourceRow.filler_images?.length || sourceRow.back_cover_image_path) {
       const { error: copyError } = await supabase
         .from("catalogs")
         .update({
+          cover_image_path: sourceRow.cover_image_path,
           filler_images: sourceRow.filler_images ?? [],
           back_cover_image_path: sourceRow.back_cover_image_path,
         })
@@ -584,6 +587,10 @@ export async function setCatalogFillerImage(catalog, index, path) {
 
 export async function setCatalogBackCoverImage(catalog, path) {
   await updateCatalog(catalog.id, { back_cover_image_path: path })
+}
+
+export async function setCatalogCoverImage(catalog, path) {
+  await updateCatalog(catalog.id, { cover_image_path: path })
 }
 
 // El source_name es la familia con la que casa el Excel (comparación literal

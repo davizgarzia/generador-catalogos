@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useCatalog } from "../context/CatalogContext"
-import PageImageControl from "./PageImageControl"
+import { useEdit } from "../context/EditContext"
 import styles from "./FillerPage.module.css"
 
 // Barajado determinista: la misma semilla produce siempre el mismo orden,
@@ -22,6 +22,7 @@ function seededShuffle(items, seed) {
 // (logo + datos de la empresa) y una portada de categoría estable por hoja.
 export default function FillerPage({ index = 0 }) {
   const { catalog, categories, company } = useCatalog()
+  const { setEditingPage } = useEdit()
   const logo = catalog.logo || catalog.logoWhite
   const customImage = catalog.fillerImages?.[index] ?? null
 
@@ -42,7 +43,12 @@ export default function FillerPage({ index = 0 }) {
   ].filter(Boolean)
 
   return (
-    <div className={styles.page}>
+    <div
+      className={styles.page}
+      title="Editar hoja de imagen"
+      style={{ cursor: "pointer" }}
+      onClick={() => setEditingPage({ kind: "filler", index })}
+    >
       {customImage ? (
         <img className={styles.customImage} src={customImage} alt="" loading="lazy" decoding="async" />
       ) : (
@@ -60,8 +66,6 @@ export default function FillerPage({ index = 0 }) {
           </div>
         </>
       )}
-
-      <PageImageControl kind="filler" index={index} currentPath={catalog.fillerImagePaths?.[index] ?? null} />
     </div>
   )
 }

@@ -44,13 +44,15 @@ VITE_R2_PUBLIC_URL=...   # obligatoria: dominio público R2 de las imágenes de 
 - `catalog_products`: inclusión por catálogo — `active`, `sort_order` y el
   encuadre visual (`img_hidden`, `img_x`, `img_y`, `img_scale`).
 - `catalog_categories`: globales — nombre, orden, colores, subtítulo.
-- `catalogs`: nombre, edición, slug e imágenes propias de la versión impresa —
-  `filler_images` (jsonb, rutas R2 por hoja de relleno; hueco = fallback de
-  marca) y `back_cover_image_path` (los datos comerciales viven en
-  `company_profile`; las columnas de contacto de `catalogs` quedaron sin uso).
-  Se editan desde la propia página (relleno/contraportada) en la vista del
-  catálogo; al duplicar un catálogo se copian las rutas (los objetos R2 se
-  comparten y `r2-catalog-asset` solo borra rutas del catálogo propietario).
+- `catalogs`: nombre, edición, slug e imágenes propias de las páginas
+  especiales — `cover_image_path` (portada), `filler_images` (jsonb, rutas R2
+  por hoja de relleno) y `back_cover_image_path`; null/hueco = fallback de
+  marca (los datos comerciales viven en `company_profile`; las columnas de
+  contacto de `catalogs` quedaron sin uso). Pulsar la portada, una hoja de
+  relleno o la contraportada en la vista del catálogo abre `PageEditSidebar`
+  (subir/quitar imagen). Al duplicar un catálogo se copian las rutas (los
+  objetos R2 se comparten y `r2-catalog-asset` solo borra rutas del catálogo
+  propietario).
 - `company_profile`: fila única con nombre, contacto, horario y `settings`
   (textos de la página de información).
 - `catalog_cover_products`: mosaico ordenado de portada (aún sin render).
@@ -83,11 +85,13 @@ No existe generación de PDF en servidor.
 
 ## Imágenes de marca
 
-Portada, logos, portadas de categoría y hojas de relleno viven versionadas en
-`public/brand/` y se despliegan con la app — no se editan desde Ajustes. Para
-cambiarlas: sustituir el archivo (mismo nombre) y desplegar. Las rutas están
-centralizadas en `src/lib/brand.js`; las portadas de categoría se resuelven por
-código: `public/brand/categories/{code}.png`.
+Portada, logos y portadas de categoría viven versionadas en `public/brand/` y
+se despliegan con la app — no se editan desde Ajustes. Para cambiarlas:
+sustituir el archivo (mismo nombre) y desplegar. Las rutas están centralizadas
+en `src/lib/brand.js`; las portadas de categoría se resuelven por código:
+`public/brand/categories/{code}.png`. Son el fallback de las páginas
+especiales: cada catálogo puede sustituir portada, hojas de relleno y
+contraportada por imágenes propias (ver modelo y `r2-catalog-asset`).
 
 ## Storage
 

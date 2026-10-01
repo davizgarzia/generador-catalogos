@@ -1,10 +1,17 @@
 import styles from "./Cover.module.css"
 import { useCatalog } from "../context/CatalogContext"
+import { useEdit } from "../context/EditContext"
 
 export default function Cover() {
   const { catalog } = useCatalog()
+  const { setEditingPage } = useEdit()
   return (
-    <div className={styles.page}>
+    <div
+      className={styles.page}
+      title="Editar portada"
+      style={{ cursor: "pointer" }}
+      onClick={() => setEditingPage({ kind: "cover" })}
+    >
       {catalog.coverImage && (
         <img
           className={styles.coverImage}
