@@ -530,7 +530,28 @@ export async function updateCatalog(catalogId, fields) {
   if (error) throw error
 }
 
-// ── Imágenes propias de hojas de relleno y contraportada (R2) ─────────────
+// ── Imágenes propias de portada, hojas de relleno y contraportada (R2) ─────
+
+// El dominio público de R2 pasa por la caché de Cloudflare: justo después de
+// subir, la primera petición puede fallar y los <img> con onError caerían al
+// fallback de marca. Se precarga con reintentos antes de refrescar la vista.
+function waitForR2Image(url, attempts = 6) {
+  if (!url) return Promise.resolve(false)
+  return new Promise(resolve => {
+    let attempt = 0
+    const tryLoad = () => {
+      const probe = new Image()
+      probe.onload = () => resolve(true)
+      probe.onerror = () => {
+        attempt += 1
+        if (attempt >= attempts) resolve(false)
+        else setTimeout(tryLoad, 400 * attempt)
+      }
+      probe.src = url
+    }
+    tryLoad()
+  })
+}
 
 export async function uploadCatalogPageImage(catalogId, file, kind, index = 0, previousPath = null) {
   if (!R2_PUBLIC_URL) {
@@ -564,6 +585,7 @@ export async function uploadCatalogPageImage(catalogId, file, kind, index = 0, p
     { action: "process", catalogId, kind, index, path: presign.path, previousPath },
     "No se pudo procesar la imagen."
   )
+  await waitForR2Image(getR2ImageUrl(processed.path))
   return processed.path
 }
 

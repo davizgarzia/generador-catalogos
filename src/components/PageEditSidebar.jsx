@@ -1,5 +1,5 @@
 import { useRef, useState } from "react"
-import { Upload, X } from "lucide-react"
+import { Trash2, Upload, X } from "lucide-react"
 import { useEdit } from "../context/EditContext"
 import { useCatalog } from "../context/CatalogContext"
 import { Button } from "@/components/ui/button"
@@ -79,7 +79,7 @@ export default function PageEditSidebar() {
       if (lowRes) {
         setNotice({
           tone: "warning",
-          text: `La imagen (${resolution} px) es pequeña para imprimir a página completa; se recomienda al menos 2500×3500 px.`,
+          text: `Aviso: la imagen (${resolution} px) puede verse pixelada al imprimir. Recomendado: 2500×3500 px o más.`,
         })
       }
     } catch (error) {
@@ -130,11 +130,6 @@ export default function PageEditSidebar() {
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {currentPath
-              ? "Imagen propia a página completa."
-              : "Se está usando el diseño por defecto de la marca."}
-          </p>
         </Field>
 
         <Separator />
@@ -145,13 +140,9 @@ export default function PageEditSidebar() {
           </Button>
           {currentPath && (
             <Button type="button" variant="outline" disabled={busy} onClick={handleRemove} className="w-full">
-              Quitar y volver al diseño por defecto
+              <Trash2 className="size-4" /> Eliminar imagen
             </Button>
           )}
-          <p className="text-xs text-muted-foreground">
-            Para imprimir a página completa se recomienda una imagen de al menos 2500×3500 px
-            (JPG, PNG o WebP, máx. 20 MB).
-          </p>
         </div>
 
         {notice && (

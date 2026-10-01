@@ -1,25 +1,18 @@
 import { useCatalog } from "../context/CatalogContext"
-import { useEdit } from "../context/EditContext"
+import PageEditOverlay from "./PageEditOverlay"
 import styles from "./BackCover.module.css"
 
 // Contraportada: imagen propia a página completa si el catálogo la tiene;
 // si no, la versión corporativa generada (logo + datos de contacto).
 export default function BackCover() {
   const { catalog, company } = useCatalog()
-  const { setEditingPage } = useEdit()
   const logo = catalog.logoWhite || catalog.logo
-
-  const pageProps = {
-    className: styles.page,
-    title: "Editar contraportada",
-    style: { cursor: "pointer" },
-    onClick: () => setEditingPage({ kind: "backcover" }),
-  }
 
   if (catalog.backCoverImage) {
     return (
-      <div {...pageProps}>
-        <img className={styles.customImage} src={catalog.backCoverImage} alt="" loading="lazy" decoding="async" />
+      <div className={styles.page}>
+        <img key={catalog.backCoverImage} className={styles.customImage} src={catalog.backCoverImage} alt="" loading="lazy" decoding="async" />
+        <PageEditOverlay kind="backcover" />
       </div>
     )
   }
@@ -34,7 +27,7 @@ export default function BackCover() {
   ].filter(Boolean)
 
   return (
-    <div {...pageProps}>
+    <div className={styles.page}>
       {logo && (
         <img
           className={styles.logo}
@@ -58,6 +51,8 @@ export default function BackCover() {
           ))}
         </div>
       )}
+
+      <PageEditOverlay kind="backcover" />
     </div>
   )
 }
