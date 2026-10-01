@@ -2,28 +2,21 @@ import { supabase } from "./supabase"
 import { BRAND_ASSETS, categoryCoverUrl } from "./brand"
 
 export const CATALOG_SLUG = import.meta.env.VITE_CATALOG_SLUG ?? "catalogo-principal"
-const SUPABASE_IMAGE_TRANSFORMS_ENABLED =
-  import.meta.env.VITE_SUPABASE_IMAGE_TRANSFORMS === "true"
 const R2_PUBLIC_URL = import.meta.env.VITE_R2_PUBLIC_URL?.replace(/\/+$/, "")
-const PRODUCT_IMAGE_UPLOADS_USE_R2 = Boolean(R2_PUBLIC_URL)
 
-function getSupabaseStorageUrl(bucket, path, transform = null) {
-  const options = transform && SUPABASE_IMAGE_TRANSFORMS_ENABLED ? { transform } : undefined
-  return supabase.storage.from(bucket).getPublicUrl(path, options).data.publicUrl
+if (!R2_PUBLIC_URL) {
+  console.warn(
+    "VITE_R2_PUBLIC_URL no está definida: las imágenes de producto no se mostrarán."
+  )
 }
 
-function getR2CatalogImageUrl(path) {
-  if (!R2_PUBLIC_URL || !path) return null
-  return `${R2_PUBLIC_URL}/${path.replace(/^\/+/, "")}`
-}
-
-export function getStorageUrl(bucket, path, transform = null) {
+// Las imágenes de producto (originales y variantes) viven en Cloudflare R2 y se
+// sirven desde el dominio público del bucket.
+function getProductImageUrl(path) {
   if (!path) return null
   if (/^https?:\/\//.test(path)) return path
-  if (bucket === "catalog-images" && !SUPABASE_IMAGE_TRANSFORMS_ENABLED) {
-    return getR2CatalogImageUrl(path) || getSupabaseStorageUrl(bucket, path, transform)
-  }
-  return getSupabaseStorageUrl(bucket, path, transform)
+  if (!R2_PUBLIC_URL) return null
+  return `${R2_PUBLIC_URL}/${path.replace(/^\/+/, "")}`
 }
 
 const CACHE_BUST_WINDOW_MS = 5 * 60 * 1000
@@ -35,21 +28,10 @@ export function withCacheBust(url, version) {
   return `${url}${sep}v=${version}`
 }
 
-const THUMB_TRANSFORM = { width: 160, height: 160, resize: "contain", quality: 75 }
-const PREVIEW_TRANSFORM = { width: 600, height: 600, resize: "contain", quality: 80 }
-const CATALOG_TRANSFORM = { width: 1000, height: 1000, resize: "contain", quality: 85 }
-
-const PRODUCT_VARIANTS = {
-  original: {
-    thumb: { folder: "thumb", width: 160, height: 160, quality: 0.7 },
-    preview: { folder: "preview", width: 600, height: 600, quality: 0.78 },
-    catalog: { folder: "catalog", width: 1000, height: 1000, quality: 0.84 },
-  },
-  processed: {
-    thumb: { folder: "nobg-thumb", width: 160, height: 160, quality: 0.7 },
-    preview: { folder: "nobg-preview", width: 600, height: 600, quality: 0.78 },
-    catalog: { folder: "nobg-catalog", width: 1000, height: 1000, quality: 0.84 },
-  },
+// Carpetas en R2 de las variantes WebP que genera r2-process-product-image.
+const PRODUCT_VARIANT_FOLDERS = {
+  original: { thumb: "thumb", preview: "preview", catalog: "catalog" },
+  processed: { thumb: "nobg-thumb", preview: "nobg-preview", catalog: "nobg-catalog" },
 }
 
 function extensionlessName(path) {
@@ -59,68 +41,25 @@ function extensionlessName(path) {
 function productVariantPath(path, size, variant = "original") {
   if (!path || /^https?:\/\//.test(path)) return null
   const name = extensionlessName(path)
-  const config = PRODUCT_VARIANTS[variant]?.[size]
-  if (!name || !config) return null
-  return `${config.folder}/${name}.webp`
+  const folder = PRODUCT_VARIANT_FOLDERS[variant]?.[size]
+  if (!name || !folder) return null
+  return `${folder}/${name}.webp`
 }
 
-function getProductVariantUrl(path, size, variant = "original", transform = null) {
-  if (SUPABASE_IMAGE_TRANSFORMS_ENABLED) return getStorageUrl("catalog-images", path, transform)
-  return getStorageUrl("catalog-images", productVariantPath(path, size, variant))
+function getProductVariantUrl(path, size, variant = "original") {
+  return getProductImageUrl(productVariantPath(path, size, variant))
 }
-
-async function imageBlobToVariant(source, { width, height, quality }) {
-  const bitmap = await createImageBitmap(source)
-  const scale = Math.min(width / bitmap.width, height / bitmap.height, 1)
-  const targetWidth = Math.max(1, Math.round(bitmap.width * scale))
-  const targetHeight = Math.max(1, Math.round(bitmap.height * scale))
-  const canvas = document.createElement("canvas")
-  canvas.width = targetWidth
-  canvas.height = targetHeight
-  const context = canvas.getContext("2d")
-  context.drawImage(bitmap, 0, 0, targetWidth, targetHeight)
-  bitmap.close?.()
-
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      blob => blob ? resolve(blob) : reject(new Error("No se pudo optimizar la imagen.")),
-      "image/webp",
-      quality
-    )
-  })
-}
-
-async function uploadStorageObject(bucket, path, body, contentType) {
-  const { error } = await supabase.storage
-    .from(bucket)
-    .upload(path, body, { upsert: true, contentType, cacheControl: "31536000" })
-  if (error) throw error
-}
-
-async function uploadProductImageVariants(file, productId, variant) {
-  const sizes = PRODUCT_VARIANTS[variant]
-  await Promise.all(Object.entries(sizes).map(async ([size, config]) => {
-    const blob = await imageBlobToVariant(file, config)
-    await uploadStorageObject(
-      "catalog-images",
-      productVariantPath(`${variant === "processed" ? "nobg" : "original"}/${productId}.png`, size, variant),
-      blob,
-      "image/webp"
-    )
-  }))
-}
-
 
 // Producto del maestro (tabla products), con las URLs de imagen derivadas.
 function mapMasterProduct(product) {
-  const originalImage = getStorageUrl("catalog-images", product.original_image_path)
-  const processedImage = getStorageUrl("catalog-images", product.processed_image_path)
-  const thumb = getProductVariantUrl(product.original_image_path, "thumb", "original", THUMB_TRANSFORM)
-  const processedThumb = getProductVariantUrl(product.processed_image_path, "thumb", "processed", THUMB_TRANSFORM)
-  const preview = getProductVariantUrl(product.original_image_path, "preview", "original", PREVIEW_TRANSFORM)
-  const processedPreview = getProductVariantUrl(product.processed_image_path, "preview", "processed", PREVIEW_TRANSFORM)
-  const catalogImage = getProductVariantUrl(product.original_image_path, "catalog", "original", CATALOG_TRANSFORM)
-  const catalogProcessed = getProductVariantUrl(product.processed_image_path, "catalog", "processed", CATALOG_TRANSFORM)
+  const originalImage = getProductImageUrl(product.original_image_path)
+  const processedImage = getProductImageUrl(product.processed_image_path)
+  const thumb = getProductVariantUrl(product.original_image_path, "thumb", "original")
+  const processedThumb = getProductVariantUrl(product.processed_image_path, "thumb", "processed")
+  const preview = getProductVariantUrl(product.original_image_path, "preview", "original")
+  const processedPreview = getProductVariantUrl(product.processed_image_path, "preview", "processed")
+  const catalogImage = getProductVariantUrl(product.original_image_path, "catalog", "original")
+  const catalogProcessed = getProductVariantUrl(product.processed_image_path, "catalog", "processed")
 
   return {
     id: product.id,
@@ -504,57 +443,36 @@ async function callNetlifyFunction(name, body, fallbackMessage) {
 }
 
 export async function uploadProductImage(productId, file, variant = "original") {
-  if (PRODUCT_IMAGE_UPLOADS_USE_R2) {
-    const presign = await callNetlifyFunction(
-      "r2-presign-product-image",
-      {
-        productId,
-        variant,
-        fileName: file.name,
-        contentType: file.type || "application/octet-stream",
-      },
-      "No se pudo preparar la subida a R2."
-    )
-
-    const uploadResponse = await fetch(presign.uploadUrl, {
-      method: "PUT",
-      headers: presign.headers || { "content-type": file.type || "application/octet-stream" },
-      body: file,
-    })
-    if (!uploadResponse.ok) {
-      throw new Error(`No se pudo subir la imagen a R2: HTTP ${uploadResponse.status}`)
-    }
-
-    const processed = await callNetlifyFunction(
-      "r2-process-product-image",
-      { productId, variant, path: presign.path },
-      "No se pudieron generar las variantes de imagen."
-    )
-    return processed.path
+  if (!R2_PUBLIC_URL) {
+    throw new Error("Falta VITE_R2_PUBLIC_URL: no se pueden subir imágenes de producto.")
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg"
-  const folder = variant === "processed" ? "nobg" : "original"
-  const path = `${folder}/${productId}.${variant === "processed" ? "png" : extension}`
-  const { error: uploadError } = await supabase.storage
-    .from("catalog-images")
-    .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "31536000" })
-  if (uploadError) throw uploadError
-  await uploadProductImageVariants(file, productId, variant)
+  const presign = await callNetlifyFunction(
+    "r2-presign-product-image",
+    {
+      productId,
+      variant,
+      fileName: file.name,
+      contentType: file.type || "application/octet-stream",
+    },
+    "No se pudo preparar la subida a R2."
+  )
 
-  const field = variant === "processed" ? "processed_image_path" : "original_image_path"
-  const { error } = await supabase
-    .from("products")
-    .update({
-      [field]: path,
-      image_variant: variant,
-      img_mode: variant === "processed" ? "nobg" : "original",
-      image_version: Date.now(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", productId)
-  if (error) throw error
-  return path
+  const uploadResponse = await fetch(presign.uploadUrl, {
+    method: "PUT",
+    headers: presign.headers || { "content-type": file.type || "application/octet-stream" },
+    body: file,
+  })
+  if (!uploadResponse.ok) {
+    throw new Error(`No se pudo subir la imagen a R2: HTTP ${uploadResponse.status}`)
+  }
+
+  const processed = await callNetlifyFunction(
+    "r2-process-product-image",
+    { productId, variant, path: presign.path },
+    "No se pudieron generar las variantes de imagen."
+  )
+  return processed.path
 }
 
 export async function deleteProduct(productId) {

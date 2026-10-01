@@ -1,9 +1,10 @@
 # Generador de catálogos IMPORMED
 
 Aplicación React/Vite desplegada en Netlify. Supabase es la única fuente de
-verdad para productos, catálogos y configuración. Las imágenes de producto se
-almacenan y sirven desde Cloudflare R2; los assets del catálogo (portada,
-logos, portadas de categoría) desde Supabase Storage.
+verdad para productos, catálogos y configuración (solo base de datos y Auth —
+no se usa Supabase Storage). Las imágenes de producto se almacenan y sirven
+desde Cloudflare R2; los assets de marca (portada, logos, portadas de
+categoría) viven en `public/brand/` y se despliegan con la app.
 
 ## Desarrollo
 
@@ -19,7 +20,7 @@ Variables locales (ver `.env.example`):
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_PUBLISHABLE_KEY=...
 VITE_CATALOG_SLUG=catalogo-principal
-VITE_R2_PUBLIC_URL=...   # activa el camino R2 para imágenes de producto
+VITE_R2_PUBLIC_URL=...   # obligatoria: dominio público R2 de las imágenes de producto
 ```
 
 ## Arquitectura de la app
@@ -83,11 +84,12 @@ código: `public/brand/categories/{code}.png`.
 
 ## Storage
 
-- Cloudflare R2 (`impormed-catalog`): originales y variantes WebP de producto
-  (`thumb`, `preview`, `catalog`), servidas desde `VITE_R2_PUBLIC_URL`.
-- `catalog-images` (Supabase): bucket heredado, solo fallback de lectura.
-- `catalog-assets` (Supabase): heredado, sin uso desde que los activos de marca
-  se sirven desde `public/brand/`.
+Cloudflare R2 (`impormed-catalog`) es el único almacenamiento de imágenes de
+producto: originales y variantes WebP (`thumb`, `preview`, `catalog`), servidas
+desde `VITE_R2_PUBLIC_URL`. Supabase Storage no se usa: los buckets heredados
+(`catalog-images`, `catalog-assets`, `catalog-pdfs`) se eliminaron desde el
+dashboard y la migración `20261001090000_retire_supabase_storage.sql` retiró
+sus políticas.
 
 La subida de imágenes usa funciones Netlify: `r2-presign-product-image` firma
 una URL de subida directa a R2 y `r2-process-product-image` genera las
