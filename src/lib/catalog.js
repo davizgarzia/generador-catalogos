@@ -10,9 +10,9 @@ if (!R2_PUBLIC_URL) {
   )
 }
 
-// Las imágenes de producto (originales y variantes) viven en Cloudflare R2 y se
-// sirven desde el dominio público del bucket.
-function getProductImageUrl(path) {
+// Las imágenes subidas (producto y páginas de catálogo) viven en Cloudflare R2
+// y se sirven desde el dominio público del bucket.
+function getR2ImageUrl(path) {
   if (!path) return null
   if (/^https?:\/\//.test(path)) return path
   if (!R2_PUBLIC_URL) return null
@@ -47,13 +47,13 @@ function productVariantPath(path, size, variant = "original") {
 }
 
 function getProductVariantUrl(path, size, variant = "original") {
-  return getProductImageUrl(productVariantPath(path, size, variant))
+  return getR2ImageUrl(productVariantPath(path, size, variant))
 }
 
 // Producto del maestro (tabla products), con las URLs de imagen derivadas.
 function mapMasterProduct(product) {
-  const originalImage = getProductImageUrl(product.original_image_path)
-  const processedImage = getProductImageUrl(product.processed_image_path)
+  const originalImage = getR2ImageUrl(product.original_image_path)
+  const processedImage = getR2ImageUrl(product.processed_image_path)
   const thumb = getProductVariantUrl(product.original_image_path, "thumb", "original")
   const processedThumb = getProductVariantUrl(product.processed_image_path, "thumb", "processed")
   const preview = getProductVariantUrl(product.original_image_path, "preview", "original")
@@ -118,7 +118,11 @@ function mapCatalogRow(catalog) {
     coverImage: BRAND_ASSETS.cover,
     logo: BRAND_ASSETS.logo,
     logoWhite: BRAND_ASSETS.logoWhite,
-    fillerImages: BRAND_ASSETS.fillers.map(image => ({ image })),
+    // Imágenes propias por catálogo (rutas R2); hueco/null = fallback de marca.
+    fillerImagePaths: catalog.filler_images ?? [],
+    fillerImages: (catalog.filler_images ?? []).map(path => getR2ImageUrl(path)),
+    backCoverImagePath: catalog.back_cover_image_path ?? null,
+    backCoverImage: getR2ImageUrl(catalog.back_cover_image_path),
   }
 }
 
@@ -180,7 +184,7 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "")
 }
 
-export async function createCatalog({ name, edition, slug, sourceCatalogId, includeAllProducts }) {
+export async function createCatalog({ name, edition, slug, sourceCatalogId, includeAllProducts, minStock }) {
   const finalSlug = slugify(slug || name)
   if (!finalSlug) throw new Error("El nombre del catálogo no es válido.")
 
@@ -208,12 +212,36 @@ export async function createCatalog({ name, edition, slug, sourceCatalogId, incl
         .insert(links.map(link => ({ ...link, catalog_id: created.id })))
       if (insertError) throw insertError
     }
+
+    // La copia también hereda las imágenes propias de relleno y contraportada
+    // (referencian los objetos R2 del original; la función r2-catalog-asset
+    // nunca borra rutas que no pertenezcan al propio catálogo).
+    const { data: sourceRow, error: sourceError } = await supabase
+      .from("catalogs")
+      .select("filler_images,back_cover_image_path")
+      .eq("id", sourceCatalogId)
+      .single()
+    if (sourceError) throw sourceError
+    if (sourceRow.filler_images?.length || sourceRow.back_cover_image_path) {
+      const { error: copyError } = await supabase
+        .from("catalogs")
+        .update({
+          filler_images: sourceRow.filler_images ?? [],
+          back_cover_image_path: sourceRow.back_cover_image_path,
+        })
+        .eq("id", created.id)
+      if (copyError) throw copyError
+    }
   } else if (includeAllProducts) {
-    const { data: master, error: masterError } = await supabase
+    let query = supabase
       .from("products")
       .select("id, category:catalog_categories(sort_order)")
       .eq("discontinued", false)
       .order("article_name")
+    // Filtro de foto fija: solo aplica al componer el catálogo; los cambios de
+    // stock posteriores no lo modifican.
+    if (minStock > 0) query = query.gte("stock_units", minStock)
+    const { data: master, error: masterError } = await query
     if (masterError) throw masterError
     const ordered = [...master].sort(
       (a, b) => (a.category?.sort_order ?? 0) - (b.category?.sort_order ?? 0)
@@ -497,6 +525,65 @@ export async function updateCatalog(catalogId, fields) {
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq("id", catalogId)
   if (error) throw error
+}
+
+// ── Imágenes propias de hojas de relleno y contraportada (R2) ─────────────
+
+export async function uploadCatalogPageImage(catalogId, file, kind, index = 0, previousPath = null) {
+  if (!R2_PUBLIC_URL) {
+    throw new Error("Falta VITE_R2_PUBLIC_URL: no se pueden subir imágenes.")
+  }
+
+  const presign = await callNetlifyFunction(
+    "r2-catalog-asset",
+    {
+      action: "presign",
+      catalogId,
+      kind,
+      index,
+      fileName: file.name,
+      contentType: file.type || "application/octet-stream",
+    },
+    "No se pudo preparar la subida a R2."
+  )
+
+  const uploadResponse = await fetch(presign.uploadUrl, {
+    method: "PUT",
+    headers: presign.headers || { "content-type": file.type || "application/octet-stream" },
+    body: file,
+  })
+  if (!uploadResponse.ok) {
+    throw new Error(`No se pudo subir la imagen a R2: HTTP ${uploadResponse.status}`)
+  }
+
+  const processed = await callNetlifyFunction(
+    "r2-catalog-asset",
+    { action: "process", catalogId, kind, index, path: presign.path, previousPath },
+    "No se pudo procesar la imagen."
+  )
+  return processed.path
+}
+
+export async function deleteCatalogPageImage(catalogId, path) {
+  if (!path) return
+  await callNetlifyFunction(
+    "r2-catalog-asset",
+    { action: "delete", catalogId, path },
+    "No se pudo eliminar la imagen."
+  )
+}
+
+export async function setCatalogFillerImage(catalog, index, path) {
+  const paths = [...(catalog.fillerImagePaths ?? [])]
+  while (paths.length <= index) paths.push(null)
+  paths[index] = path
+  // Recorta los huecos finales para no acumular nulls.
+  while (paths.length && paths[paths.length - 1] === null) paths.pop()
+  await updateCatalog(catalog.id, { filler_images: paths })
+}
+
+export async function setCatalogBackCoverImage(catalog, path) {
+  await updateCatalog(catalog.id, { back_cover_image_path: path })
 }
 
 // El source_name es la familia con la que casa el Excel (comparación literal

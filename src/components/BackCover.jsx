@@ -1,9 +1,21 @@
 import { useCatalog } from "../context/CatalogContext"
+import PageImageControl from "./PageImageControl"
 import styles from "./BackCover.module.css"
 
+// Contraportada: imagen propia a página completa si el catálogo la tiene;
+// si no, la versión corporativa generada (logo + datos de contacto).
 export default function BackCover() {
   const { catalog, company } = useCatalog()
   const logo = catalog.logoWhite || catalog.logo
+
+  if (catalog.backCoverImage) {
+    return (
+      <div className={styles.page}>
+        <img className={styles.customImage} src={catalog.backCoverImage} alt="" loading="lazy" decoding="async" />
+        <PageImageControl kind="backcover" currentPath={catalog.backCoverImagePath} />
+      </div>
+    )
+  }
 
   const contactLines = [
     [
@@ -39,6 +51,8 @@ export default function BackCover() {
           ))}
         </div>
       )}
+
+      <PageImageControl kind="backcover" currentPath={catalog.backCoverImagePath} />
     </div>
   )
 }

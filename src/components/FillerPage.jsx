@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { useCatalog } from "../context/CatalogContext"
+import PageImageControl from "./PageImageControl"
 import styles from "./FillerPage.module.css"
 
 // Barajado determinista: la misma semilla produce siempre el mismo orden,
@@ -16,13 +17,15 @@ function seededShuffle(items, seed) {
 }
 
 // Hoja de imagen usada para completar la versión impresa hasta un número de
-// páginas múltiplo de 4: cabecera corporativa (logo + datos de la empresa)
-// y una portada de categoría elegida de forma estable por hoja.
+// páginas múltiplo de 4. Si el catálogo tiene una imagen propia para esta hoja
+// se pinta a página completa; si no, fallback de marca: cabecera corporativa
+// (logo + datos de la empresa) y una portada de categoría estable por hoja.
 export default function FillerPage({ index = 0 }) {
   const { catalog, categories, company } = useCatalog()
   const logo = catalog.logo || catalog.logoWhite
+  const customImage = catalog.fillerImages?.[index] ?? null
 
-  const image = useMemo(() => {
+  const fallbackImage = useMemo(() => {
     const covers = categories.map(category => category.coverImage).filter(Boolean)
     if (!covers.length) return catalog.coverImage
     const seed = (catalog.slug?.length ?? 0) * 131 + 7919
@@ -40,17 +43,25 @@ export default function FillerPage({ index = 0 }) {
 
   return (
     <div className={styles.page}>
-      {image && (
-        <img className={styles.image} src={image} alt="" loading="lazy" decoding="async" />
+      {customImage ? (
+        <img className={styles.customImage} src={customImage} alt="" loading="lazy" decoding="async" />
+      ) : (
+        <>
+          {fallbackImage && (
+            <img className={styles.image} src={fallbackImage} alt="" loading="lazy" decoding="async" />
+          )}
+
+          <div className={styles.header}>
+            {logo && <img className={styles.logo} src={logo} alt={company.name ?? ""} />}
+            {company.name && <div className={styles.name}>{company.name}</div>}
+            {contactLines.map((line, lineIndex) => (
+              <div key={lineIndex} className={styles.line}>{line}</div>
+            ))}
+          </div>
+        </>
       )}
 
-      <div className={styles.header}>
-        {logo && <img className={styles.logo} src={logo} alt={company.name ?? ""} />}
-        {company.name && <div className={styles.name}>{company.name}</div>}
-        {contactLines.map((line, lineIndex) => (
-          <div key={lineIndex} className={styles.line}>{line}</div>
-        ))}
-      </div>
+      <PageImageControl kind="filler" index={index} currentPath={catalog.fillerImagePaths?.[index] ?? null} />
     </div>
   )
 }

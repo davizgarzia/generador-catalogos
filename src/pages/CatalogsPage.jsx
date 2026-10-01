@@ -350,6 +350,7 @@ function NewCatalogDialog({ open, onOpenChange, catalogs, initialSourceId }) {
   const navigate = useNavigate()
   const [name, setName] = useState("")
   const [sourceId, setSourceId] = useState(EMPTY_SOURCE)
+  const [minStock, setMinStock] = useState("")
   const [error, setError] = useState("")
   const [creating, setCreating] = useState(false)
 
@@ -361,6 +362,7 @@ function NewCatalogDialog({ open, onOpenChange, catalogs, initialSourceId }) {
       const source = catalogs.find(item => item.id === initialSourceId)
       setName(source ? `${source.name} (copia)` : "")
       setSourceId(initialSourceId)
+      setMinStock("")
       setError("")
     }
   }, [open, initialSourceId, catalogs])
@@ -369,10 +371,12 @@ function NewCatalogDialog({ open, onOpenChange, catalogs, initialSourceId }) {
     setError("")
     setCreating(true)
     try {
+      const parsedMinStock = Number.parseInt(minStock, 10)
       const created = await createCatalog({
         name: name.trim(),
         sourceCatalogId: sourceId === EMPTY_SOURCE || sourceId === ALL_SOURCE ? null : sourceId,
         includeAllProducts: sourceId === ALL_SOURCE,
+        minStock: sourceId === ALL_SOURCE && parsedMinStock > 0 ? parsedMinStock : null,
       })
       onOpenChange(false)
       await reloadMeta()
@@ -419,6 +423,24 @@ function NewCatalogDialog({ open, onOpenChange, catalogs, initialSourceId }) {
                   <SelectItem value={ALL_SOURCE}>Todos los productos activos</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          {!isDuplicate && sourceId === ALL_SOURCE && (
+            <div className="grid gap-2">
+              <Label htmlFor="nc-min-stock">Stock mínimo (opcional)</Label>
+              <Input
+                id="nc-min-stock"
+                type="number"
+                min="1"
+                value={minStock}
+                placeholder="Vacío: todos, incluidos 0 uds."
+                onChange={event => setMinStock(event.target.value)}
+                disabled={creating}
+              />
+              <p className="text-xs text-muted-foreground">
+                Solo se incluirán los productos con al menos ese stock en el momento de crear
+                el catálogo; los cambios de stock posteriores no lo modifican.
+              </p>
             </div>
           )}
         </div>

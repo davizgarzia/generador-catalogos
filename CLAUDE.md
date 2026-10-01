@@ -28,9 +28,11 @@ VITE_R2_PUBLIC_URL=...   # obligatoria: dominio público R2 de las imágenes de 
 - **Productos** (`/products`): el maestro global. Importar Excel/CSV de stock,
   subir imágenes en lote, crear productos manuales, dar de baja o eliminar.
 - **Catálogos** (`/catalogs`): listado; crear vacío, con todos los productos
-  activos o duplicando otro. `/catalogs/:slug` es el detalle: la vista de
-  páginas, el PDF y el gestor de composición ("Gestionar productos": selección
-  manual con buscador o desde un Excel con las referencias a incluir).
+  activos (con stock mínimo opcional — foto fija al crear, los cambios de
+  stock posteriores no modifican el catálogo) o duplicando otro.
+  `/catalogs/:slug` es el detalle: la vista de páginas, el PDF y el gestor de
+  composición ("Gestionar productos": selección manual con buscador o desde un
+  Excel con las referencias a incluir).
 - **Ajustes** (`/settings`): datos de la empresa (`company_profile`, una sola
   fila) y categorías — todo compartido por todos los catálogos.
 
@@ -42,8 +44,13 @@ VITE_R2_PUBLIC_URL=...   # obligatoria: dominio público R2 de las imágenes de 
 - `catalog_products`: inclusión por catálogo — `active`, `sort_order` y el
   encuadre visual (`img_hidden`, `img_x`, `img_y`, `img_scale`).
 - `catalog_categories`: globales — nombre, orden, colores, subtítulo.
-- `catalogs`: nombre, edición y slug (los datos comerciales viven en
+- `catalogs`: nombre, edición, slug e imágenes propias de la versión impresa —
+  `filler_images` (jsonb, rutas R2 por hoja de relleno; hueco = fallback de
+  marca) y `back_cover_image_path` (los datos comerciales viven en
   `company_profile`; las columnas de contacto de `catalogs` quedaron sin uso).
+  Se editan desde la propia página (relleno/contraportada) en la vista del
+  catálogo; al duplicar un catálogo se copian las rutas (los objetos R2 se
+  comparten y `r2-catalog-asset` solo borra rutas del catálogo propietario).
 - `company_profile`: fila única con nombre, contacto, horario y `settings`
   (textos de la página de información).
 - `catalog_cover_products`: mosaico ordenado de portada (aún sin render).
@@ -94,7 +101,10 @@ sus políticas.
 La subida de imágenes usa funciones Netlify: `r2-presign-product-image` firma
 una URL de subida directa a R2 y `r2-process-product-image` genera las
 variantes WebP con `sharp` antes de actualizar `catalog_products`.
-`r2-delete-product` borra el producto y sus imágenes.
+`r2-delete-product` borra el producto y sus imágenes. `r2-catalog-asset`
+(acciones presign/process/delete) gestiona las imágenes propias de hojas de
+relleno y contraportada en `catalog/{catalog_id}/…` (WebP de calidad de
+imprenta, ~3600 px). Eliminar un catálogo no limpia su prefijo en R2.
 
 ## Netlify
 

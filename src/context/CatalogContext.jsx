@@ -128,6 +128,19 @@ export function CatalogProvider({ children }) {
     }
   }, [detail.catalog?.id])
 
+  // Refresco ligero de la fila del catálogo (sin pasar por detailLoading,
+  // que desmontaría la vista y perdería el scroll).
+  const reloadCatalogRow = useCallback(async () => {
+    if (!detail.catalog?.slug) return
+    try {
+      const catalog = await loadCatalogRow(detail.catalog.slug)
+      setDetail(current => ({ ...current, catalog }))
+    } catch (loadError) {
+      console.error(loadError)
+      setDetailError("No se pudo actualizar el catálogo.")
+    }
+  }, [detail.catalog?.slug])
+
   return (
     <CatalogContext.Provider
       value={{
@@ -150,6 +163,7 @@ export function CatalogProvider({ children }) {
         openCatalog,
         reloadCatalogDetail: loadDetail,
         reloadCatalogItems,
+        reloadCatalogRow,
       }}
     >
       {children}
