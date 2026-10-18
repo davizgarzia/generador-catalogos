@@ -1,11 +1,11 @@
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import sharp from "sharp"
 import {
+  IMAGE_CACHE_CONTROL,
   PRODUCT_VARIANTS,
   assertExpectedSourcePath,
   bodyToBuffer,
   jsonResponse,
-  normalizeVariant,
   productVariantPath,
   requireCatalogAdmin,
   requireR2Config,
@@ -29,9 +29,8 @@ export default async function handler(request) {
     const { bucket, client } = requireR2Config()
     const body = await request.json()
     const productId = sanitizeProductId(body.productId)
-    const variant = normalizeVariant(body.variant)
     const sourcePath = String(body.path || "")
-    assertExpectedSourcePath(sourcePath, productId, variant)
+    assertExpectedSourcePath(sourcePath, productId)
 
     const source = await client.send(new GetObjectCommand({ Bucket: bucket, Key: sourcePath }))
     if (source.ContentLength > MAX_SOURCE_BYTES) {
@@ -39,7 +38,7 @@ export default async function handler(request) {
     }
     const input = await bodyToBuffer(source.Body)
 
-    await Promise.all(Object.entries(PRODUCT_VARIANTS[variant]).map(async ([size, config]) => {
+    await Promise.all(Object.entries(PRODUCT_VARIANTS).map(async ([size, config]) => {
       const output = await sharp(input, { limitInputPixels: MAX_SOURCE_PIXELS })
         .rotate()
         .resize({ width: config.width, height: config.width, fit: "inside", withoutEnlargement: true })
@@ -48,23 +47,21 @@ export default async function handler(request) {
 
       await client.send(new PutObjectCommand({
         Bucket: bucket,
-        Key: productVariantPath(productId, size, variant),
+        Key: productVariantPath(productId, size),
         Body: output,
         ContentType: "image/webp",
-        CacheControl: "public, max-age=31536000, immutable",
+        CacheControl: IMAGE_CACHE_CONTROL,
       }))
     }))
 
     const timestamp = Date.now()
-    const field = variant === "processed" ? "processed_image_path" : "original_image_path"
     const payload = {
-      [field]: sourcePath,
-      image_variant: variant,
-      img_mode: variant === "processed" ? "nobg" : "original",
+      original_image_path: sourcePath,
+      image_variant: "original",
+      img_mode: "original",
       image_version: timestamp,
       updated_at: new Date().toISOString(),
     }
-    if (variant === "processed") payload.nobg_version = timestamp
 
     const { error } = await supabase
       .from("products")

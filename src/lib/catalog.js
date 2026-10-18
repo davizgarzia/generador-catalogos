@@ -19,47 +19,61 @@ function getR2ImageUrl(path) {
   return `${R2_PUBLIC_URL}/${path.replace(/^\/+/, "")}`
 }
 
-const CACHE_BUST_WINDOW_MS = 5 * 60 * 1000
-
+// Las claves en R2 son estables por producto (`original/REF.jpg`,
+// `catalog/REF.webp`…): al reemplazar una foto se sobrescribe el mismo objeto
+// y la URL no cambia. Como las variantes se sirven con
+// `Cache-Control: immutable, max-age=1 año`, sin versión en la URL el
+// navegador y el edge de Cloudflare seguirían mostrando la imagen anterior.
+// Por eso `image_version` viaja SIEMPRE en la query: cada reemplazo estrena
+// URL y la caché larga pasa a ser correcta.
 export function withCacheBust(url, version) {
-  if (!url) return url
-  if (!version || Date.now() - version > CACHE_BUST_WINDOW_MS) return url
+  if (!url || !version) return url
+  if (/[?&]v=/.test(url)) return url
   const sep = url.includes("?") ? "&" : "?"
   return `${url}${sep}v=${version}`
 }
 
 // Carpetas en R2 de las variantes WebP que genera r2-process-product-image.
-const PRODUCT_VARIANT_FOLDERS = {
-  original: { thumb: "thumb", preview: "preview", catalog: "catalog" },
-  processed: { thumb: "nobg-thumb", preview: "nobg-preview", catalog: "nobg-catalog" },
-}
+// El modo "sin fondo" (variantes nobg-*) se retiró: su pipeline llevaba muerto
+// desde julio de 2026 y las variantes nunca se regeneraban al reemplazar una
+// foto, así que la app mostraba recortes que ya no correspondían a la imagen
+// del producto. Los objetos `nobg*` siguen en R2 y las columnas
+// `processed_image_path`/`nobg_version` en la tabla, pero nada los lee.
+const PRODUCT_VARIANT_FOLDERS = { thumb: "thumb", preview: "preview", catalog: "catalog" }
 
 function extensionlessName(path) {
   return path.split("/").pop()?.replace(/\.[^.]+$/, "") || null
 }
 
-function productVariantPath(path, size, variant = "original") {
+function productVariantPath(path, size) {
   if (!path || /^https?:\/\//.test(path)) return null
   const name = extensionlessName(path)
-  const folder = PRODUCT_VARIANT_FOLDERS[variant]?.[size]
+  const folder = PRODUCT_VARIANT_FOLDERS[size]
   if (!name || !folder) return null
   return `${folder}/${name}.webp`
 }
 
-function getProductVariantUrl(path, size, variant = "original") {
-  return getR2ImageUrl(productVariantPath(path, size, variant))
+function getProductVariantUrl(path, size) {
+  return getR2ImageUrl(productVariantPath(path, size))
+}
+
+// "nobg" sigue en la columna img_mode de productos antiguos: se lee como
+// "original" para no tener que reescribir la tabla.
+function normalizeImgMode(imgMode) {
+  return imgMode === "nobg" ? "original" : imgMode
 }
 
 // Producto del maestro (tabla products), con las URLs de imagen derivadas.
 function mapMasterProduct(product) {
-  const originalImage = getR2ImageUrl(product.original_image_path)
-  const processedImage = getR2ImageUrl(product.processed_image_path)
-  const thumb = getProductVariantUrl(product.original_image_path, "thumb", "original")
-  const processedThumb = getProductVariantUrl(product.processed_image_path, "thumb", "processed")
-  const preview = getProductVariantUrl(product.original_image_path, "preview", "original")
-  const processedPreview = getProductVariantUrl(product.processed_image_path, "preview", "processed")
-  const catalogImage = getProductVariantUrl(product.original_image_path, "catalog", "original")
-  const catalogProcessed = getProductVariantUrl(product.processed_image_path, "catalog", "processed")
+  // La versión se aplica aquí, una sola vez, para que TODA la app reciba las
+  // URLs ya versionadas (tarjetas del catálogo, barra de edición, gestor de
+  // productos, PDF) sin tener que acordarse de llamar a withCacheBust.
+  const bust = url => withCacheBust(url, product.image_version)
+
+  const originalImage = bust(getR2ImageUrl(product.original_image_path))
+  const thumb = bust(getProductVariantUrl(product.original_image_path, "thumb"))
+  const preview = bust(getProductVariantUrl(product.original_image_path, "preview"))
+  const catalogImage = bust(getProductVariantUrl(product.original_image_path, "catalog"))
 
   return {
     id: product.id,
@@ -74,23 +88,15 @@ function mapMasterProduct(product) {
     discontinued: product.discontinued,
     image: originalImage,
     originalImage,
-    processedImage,
     originalThumb: originalImage,
-    processedThumbFallback: processedImage,
     previewFallback: originalImage,
-    processedPreviewFallback: processedImage,
     catalogImageFallback: originalImage,
-    catalogProcessedFallback: processedImage,
     thumb,
-    processedThumb,
     preview,
-    processedPreview,
     catalogImage,
-    catalogProcessed,
-    imgMode: product.img_mode,
+    imgMode: normalizeImgMode(product.img_mode),
     imageVariant: product.image_variant,
     imageVersion: product.image_version,
-    nobgVersion: product.nobg_version,
     addedAt: product.imported_at ?? product.created_at,
     updatedAt: product.updated_at,
   }
@@ -384,7 +390,7 @@ export async function removeProductsFromCatalog(catalogId, productIds) {
 export async function loadProductOverrides(catalogId) {
   const { data, error } = await supabase
     .from("catalog_products")
-    .select("product_id,img_hidden,img_x,img_y,img_scale,product:products(img_mode,nobg_version)")
+    .select("product_id,img_hidden,img_x,img_y,img_scale,product:products(img_mode)")
     .eq("catalog_id", catalogId)
   if (error) throw error
 
@@ -393,8 +399,7 @@ export async function loadProductOverrides(catalogId) {
     imgX: Number(row.img_x),
     imgY: Number(row.img_y),
     imgScale: Number(row.img_scale),
-    imgMode: row.product?.img_mode,
-    nobgVersion: row.product?.nobg_version,
+    imgMode: normalizeImgMode(row.product?.img_mode),
   }]))
 }
 
@@ -409,7 +414,6 @@ export async function saveProductOverride(catalogId, productId, fields) {
   }
   const productFieldMap = {
     imgMode: "img_mode",
-    nobgVersion: "nobg_version",
   }
 
   for (const [key, value] of Object.entries(fields)) {
@@ -485,7 +489,7 @@ async function callNetlifyFunction(name, body, fallbackMessage) {
   return result ?? {}
 }
 
-export async function uploadProductImage(productId, file, variant = "original") {
+export async function uploadProductImage(productId, file) {
   if (!R2_PUBLIC_URL) {
     throw new Error("Falta VITE_R2_PUBLIC_URL: no se pueden subir imágenes de producto.")
   }
@@ -494,7 +498,6 @@ export async function uploadProductImage(productId, file, variant = "original") 
     "r2-presign-product-image",
     {
       productId,
-      variant,
       fileName: file.name,
       contentType: file.type || "application/octet-stream",
     },
@@ -512,7 +515,7 @@ export async function uploadProductImage(productId, file, variant = "original") 
 
   const processed = await callNetlifyFunction(
     "r2-process-product-image",
-    { productId, variant, path: presign.path },
+    { productId, path: presign.path },
     "No se pudieron generar las variantes de imagen."
   )
   return processed.path

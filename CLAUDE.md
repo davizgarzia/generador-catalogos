@@ -40,7 +40,9 @@ VITE_R2_PUBLIC_URL=...   # obligatoria: dominio público R2 de las imágenes de 
 
 - `products`: maestro global — stock, categoría, origen, baja **e imagen**
   (`original_image_path`, `image_version`, `img_mode`, …). La imagen es única
-  por producto y se ve igual en todos los catálogos.
+  por producto y se ve igual en todos los catálogos. `img_mode` solo distingue
+  ya `original` de `blend` (multiply sobre fondo blanco); ver la retirada del
+  modo sin fondo más abajo.
 - `catalog_products`: inclusión por catálogo — `active`, `sort_order` y el
   encuadre visual (`img_hidden`, `img_x`, `img_y`, `img_scale`).
 - `catalog_categories`: globales — nombre, orden, colores, subtítulo.
@@ -113,6 +115,44 @@ variantes WebP con `sharp` antes de actualizar `catalog_products`.
 relleno y contraportada en `catalog/{catalog_id}/…` (WebP de calidad de
 imprenta, ~3600 px). Eliminar un catálogo no limpia su prefijo en R2.
 
+**Caché e invalidación.** Las claves de imagen de producto son estables por
+referencia (`original/{REF}.{ext}`, `catalog/{REF}.webp`…): reemplazar una foto
+sobrescribe el mismo objeto y la URL no cambia. Todo lo que se sube a R2 lleva
+`Cache-Control: public, max-age=31536000, immutable`
+(`IMAGE_CACHE_CONTROL` en `netlify/functions/lib/r2-catalog.mjs`), así que la
+invalidación depende por completo del `?v=<image_version>` que
+`mapMasterProduct` (`src/lib/catalog.js`) añade a **todas** las URLs derivadas
+— original, `thumb`, `preview` y `catalog`.
+`r2-process-product-image` escribe `image_version` solo después
+de subir el original y generar las variantes, por lo que una URL versionada
+nunca puede cachear una imagen anterior. Nunca pintar una URL de imagen de
+producto que no venga de `mapMasterProduct`: sin el parámetro, el navegador y
+el edge de Cloudflare servirían la foto antigua durante un año. Las imágenes
+propias de catálogo (portada, relleno, contraportada) no lo necesitan: su clave
+ya incluye un timestamp.
+
+**Modo sin fondo (`nobg`): retirado, y el recorte promovido a imagen única.**
+Hubo dos imágenes por producto: la foto con fondo (`original/`) y un recorte
+generado en bloque con rembg (`nobg/`). El pipeline del recorte dejó de operar
+en julio de 2026, pero la app seguía prefiriendo las variantes `nobg-*` en la
+ficha de producto y en las tarjetas con `img_mode: nobg`. Como esas variantes
+no se regeneran al reemplazar una foto, mostraban indefinidamente un recorte
+que ya no correspondía al producto: **reemplazar una foto parecía no surtir
+efecto**. El recorte era además la imagen buena, así que el 18/10/2026 se
+unificó: `scripts/promote-nobg-to-original.mjs` convirtió el recorte en el
+original de 521 productos (PNG con transparencia), regeneró sus variantes y
+limpió `processed_image_path`/`nobg_version`. Hoy hay **una sola imagen por
+producto**, y las variantes WebP conservan el canal alfa.
+
+Quedaron fuera a propósito: 3 productos cuyo recorte era anterior a una foto
+subida después (promoverlo habría revertido ese reemplazo) y los que no tenían
+recorte. Por eso `normalizeImgMode` (`src/lib/catalog.js`) sigue leyendo
+`img_mode: nobg` como `original` y nada en la app lee ya `nobg*`. Las fotos
+con fondo quedaron respaldadas en el prefijo `original-con-fondo/` de R2 —no
+se borran sin motivo: son la única vuelta atrás— y los objetos `nobg*` siguen
+ahí, solo ignorados. `r2-delete-product` continúa borrando ambos al eliminar
+un producto.
+
 ## Netlify
 
 Variables requeridas:
@@ -135,8 +175,6 @@ las funciones Netlify y nunca deben usar prefijo `VITE_`.
 
 ## Fuera de alcance por ahora
 
-- Eliminación de fondos (`img_mode: nobg`) y autoajuste masivo: la
-  infraestructura existe (variantes `processed`, switch deshabilitado en el
-  editor) pero no hay pipeline operativo.
+- Autoajuste masivo de encuadre: no hay pipeline.
 - Mosaico de portada: editable en Ajustes y persistido en
   `catalog_cover_products`, pero la portada solo pinta `cover_image_path`.

@@ -2,17 +2,15 @@ import { createClient } from "@supabase/supabase-js"
 import { S3Client } from "@aws-sdk/client-s3"
 
 const PRODUCT_VARIANTS = {
-  original: {
-    thumb: { folder: "thumb", width: 160, quality: 70 },
-    preview: { folder: "preview", width: 600, quality: 78 },
-    catalog: { folder: "catalog", width: 1000, quality: 84 },
-  },
-  processed: {
-    thumb: { folder: "nobg-thumb", width: 160, quality: 70 },
-    preview: { folder: "nobg-preview", width: 600, quality: 78 },
-    catalog: { folder: "nobg-catalog", width: 1000, quality: 84 },
-  },
+  thumb: { folder: "thumb", width: 160, quality: 70 },
+  preview: { folder: "preview", width: 600, quality: 78 },
+  catalog: { folder: "catalog", width: 1000, quality: 84 },
 }
+
+// El modo "sin fondo" se retiró (ver src/lib/catalog.js): ya no se generan ni
+// se leen estas variantes, pero sus objetos siguen en R2 y hay que borrarlos
+// cuando se elimina un producto.
+const LEGACY_NOBG_FOLDERS = ["nobg-thumb", "nobg-preview", "nobg-catalog"]
 
 export { PRODUCT_VARIANTS }
 
@@ -85,12 +83,6 @@ export function sanitizeProductId(productId) {
   return value
 }
 
-export function normalizeVariant(variant) {
-  if (variant === "processed") return "processed"
-  if (!variant || variant === "original") return "original"
-  throw new Error("Variante de imagen inválida.")
-}
-
 export function imageExtension(filename, contentType) {
   const byType = {
     "image/jpeg": "jpg",
@@ -106,14 +98,17 @@ export function imageExtension(filename, contentType) {
   throw new Error("Formato de imagen no soportado.")
 }
 
-export function sourcePathForProduct(productId, variant, extension) {
-  return variant === "processed"
-    ? `nobg/${productId}.png`
-    : `original/${productId}.${extension}`
+// Las URLs de imagen de producto siempre llevan `?v=image_version`
+// (src/lib/catalog.js), así que cada reemplazo estrena URL y la caché larga
+// es segura tanto para el original como para las variantes WebP.
+export const IMAGE_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+export function sourcePathForProduct(productId, extension) {
+  return `original/${productId}.${extension}`
 }
 
-export function productVariantPath(productId, size, variant) {
-  const config = PRODUCT_VARIANTS[variant]?.[size]
+export function productVariantPath(productId, size) {
+  const config = PRODUCT_VARIANTS[size]
   if (!config) throw new Error("Tamaño de variante inválido.")
   return `${config.folder}/${productId}.webp`
 }
@@ -129,18 +124,18 @@ export function productImagePaths(productId, row = {}) {
     `nobg/${productId}.png`,
   ])
 
-  for (const variant of Object.keys(PRODUCT_VARIANTS)) {
-    for (const size of Object.keys(PRODUCT_VARIANTS[variant])) {
-      paths.add(productVariantPath(productId, size, variant))
-    }
+  for (const size of Object.keys(PRODUCT_VARIANTS)) {
+    paths.add(productVariantPath(productId, size))
+  }
+  for (const folder of LEGACY_NOBG_FOLDERS) {
+    paths.add(`${folder}/${productId}.webp`)
   }
 
   return [...paths].filter(Boolean)
 }
 
-export function assertExpectedSourcePath(path, productId, variant) {
-  const expectedPrefix = variant === "processed" ? `nobg/${productId}.` : `original/${productId}.`
-  if (!String(path || "").startsWith(expectedPrefix)) {
+export function assertExpectedSourcePath(path, productId) {
+  if (!String(path || "").startsWith(`original/${productId}.`)) {
     throw new Error("La ruta de imagen no coincide con el producto.")
   }
 }

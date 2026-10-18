@@ -24,7 +24,6 @@ import {
   createManualProduct,
   updateProduct,
   uploadProductImage,
-  withCacheBust,
 } from "../lib/catalog"
 
 const EMPTY_FORM = {
@@ -97,7 +96,7 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
     setUploadStatus("loading")
     setError("")
     try {
-      await uploadProductImage(product.id, file, "original")
+      await uploadProductImage(product.id, file)
       await reloadProducts()
       setUploadStatus("ok")
       setTimeout(() => setUploadStatus(null), 2000)
@@ -158,7 +157,7 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
         }
         if (pendingImage) {
           try {
-            await uploadProductImage(productId, pendingImage, "original")
+            await uploadProductImage(productId, pendingImage)
           } catch (uploadError) {
             await reloadProducts()
             throw new Error(
@@ -179,11 +178,8 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
   }
 
   const imageCandidates = [
-    liveProduct?.processedPreview,
-    liveProduct?.processedPreviewFallback,
     liveProduct?.preview,
     liveProduct?.previewFallback,
-    liveProduct?.processedImage,
     liveProduct?.originalImage,
   ].filter(Boolean)
   const imagePreviewSrc = imageCandidates[imageFallbackIndex]
@@ -211,8 +207,8 @@ export default function ProductFormSheet({ open, onOpenChange, product = null })
             >
               {isEdit && imagePreviewSrc ? (
                 <img
-                  src={withCacheBust(imagePreviewSrc, liveProduct.imageVersion || liveProduct.nobgVersion)}
-                  data-thumb-src={liveProduct.processedThumb || liveProduct.thumb || undefined}
+                  src={imagePreviewSrc}
+                  data-thumb-src={liveProduct.thumb || undefined}
                   alt={liveProduct.name}
                   className="size-full object-contain"
                   onError={() => {

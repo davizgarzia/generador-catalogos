@@ -66,7 +66,6 @@ export default function EditSidebar() {
   }, [
     liveProduct?.id,
     liveProduct?.imageVersion,
-    liveProduct?.nobgVersion,
     liveImgMode,
   ])
 
@@ -80,23 +79,12 @@ export default function EditSidebar() {
   const imgX = o.imgX ?? 0
   const imgY = o.imgY ?? 0
   const imgScale = o.imgScale ?? 1
-  const imgMode = o.imgMode ?? "original"
 
   function patch(fields) {
     patchOverride(id, fields)
   }
 
-  function handleToggleNobg(checked) {
-    if (checked && liveProduct.processedImage) {
-      patch({ imgMode: "nobg", nobgVersion: Date.now() })
-    } else {
-      patch({ imgMode: "original" })
-    }
-  }
-
-  const imgCandidates = imgMode === "nobg"
-    ? [liveProduct.processedPreview, liveProduct.processedPreviewFallback, liveProduct.processedImage].filter(Boolean)
-    : [liveProduct.preview, liveProduct.previewFallback, liveProduct.originalImage].filter(Boolean)
+  const imgCandidates = [liveProduct.preview, liveProduct.previewFallback, liveProduct.originalImage].filter(Boolean)
   const imgSrc = imgCandidates[imageFallbackIndex]
   const imgPreviewStyle = {
     width: "100%", height: "100%", objectFit: "contain",
@@ -124,7 +112,7 @@ export default function EditSidebar() {
             {imgSrc ? (
               <img
                 src={imgSrc}
-                data-thumb-src={liveProduct.processedThumb || liveProduct.thumb || undefined}
+                data-thumb-src={liveProduct.thumb || undefined}
                 alt={name}
                 style={imgPreviewStyle}
                 onError={event => {
@@ -146,16 +134,6 @@ export default function EditSidebar() {
               id="es-show"
               checked={!imgHidden}
               onCheckedChange={value => patch({ imgHidden: !value })}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="es-nobg" className="text-xs text-muted-foreground font-medium">Sin fondo</Label>
-            <Switch
-              id="es-nobg"
-              checked={imgMode === "nobg"}
-              disabled={!liveProduct.processedImage}
-              onCheckedChange={handleToggleNobg}
             />
           </div>
         </Field>

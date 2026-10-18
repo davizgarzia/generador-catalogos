@@ -104,7 +104,7 @@ export default function ImportImagesButton() {
       let entry
       while ((entry = queue.shift())) {
         try {
-          await uploadProductImage(entry.product.id, entry.file, "original")
+          await uploadProductImage(entry.product.id, entry.file)
         } catch (error) {
           errors.push({ fileName: entry.file.name, message: error.message })
         }

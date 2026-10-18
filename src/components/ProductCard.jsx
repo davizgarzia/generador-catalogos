@@ -3,7 +3,6 @@ import styles from "./ProductCard.module.css"
 import { useEdit } from "../context/EditContext"
 import { useOverrides } from "../context/OverridesContext"
 import { useAuth } from "../context/AuthContext"
-import { withCacheBust } from "../lib/catalog"
 
 export default function ProductCard({ product: rawProduct, accentColor }) {
   const { setEditingProduct }        = useEdit()
@@ -12,42 +11,24 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
   const product                      = applyOverride(rawProduct)
 
   const [imgError, setImgError]       = useState(false)
-  const [nobgFailed, setNobgFailed]   = useState(false)
   const [fallbackIndex, setFallbackIndex] = useState(0)
   // imgMode viene del override:
   //   "original" → imagen tal cual, sin multiply (fondo no blanco detectado o sin detectar)
   //   "blend"    → mix-blend-mode multiply (fondo blanco detectado automáticamente)
-  //   "nobg"     → PNG sin fondo procesado con rembg, sin multiply
+  // El antiguo "nobg" se normaliza a "original" en lib/catalog.js.
   const mode = product.imgMode ?? "original"
-  // nobgVersion se guarda en el override al procesar — sirve de cache-buster
-  const nobgVersion = product.nobgVersion ?? 0
 
-  // Reset de errores cuando cambia el producto, modo, o versión nobg
+  // Reset de errores cuando cambia el producto o el modo
   useEffect(() => {
     setImgError(false)
-    setNobgFailed(false)
     setFallbackIndex(0)
-  }, [rawProduct.id, mode, nobgVersion])
+  }, [rawProduct.id, mode])
 
   function getImgCandidates(size = "preview") {
     if (!rawProduct.image) return null
-    const originalOptimized = size === "catalog" ? rawProduct.catalogImage : rawProduct.preview
-    const originalFallback = size === "catalog" ? rawProduct.catalogImageFallback : rawProduct.previewFallback
-    const processedOptimized = size === "catalog" ? rawProduct.catalogProcessed : rawProduct.processedPreview
-    const processedFallback = size === "catalog" ? rawProduct.catalogProcessedFallback : rawProduct.processedPreviewFallback
-    if (mode === "nobg" && !nobgFailed && (processedOptimized || processedFallback || rawProduct.processedImage)) {
-      return [
-        processedOptimized,
-        processedFallback,
-        originalOptimized,
-        originalFallback,
-        rawProduct.originalImage,
-        rawProduct.image,
-      ].filter(Boolean)
-    }
     return [
-      originalOptimized,
-      originalFallback,
+      size === "catalog" ? rawProduct.catalogImage : rawProduct.preview,
+      size === "catalog" ? rawProduct.catalogImageFallback : rawProduct.previewFallback,
       rawProduct.originalImage,
       rawProduct.image,
     ].filter(Boolean)
@@ -56,17 +37,14 @@ export default function ProductCard({ product: rawProduct, accentColor }) {
   function handleImgError() {
     if (fallbackIndex < imgCandidates.length - 1) {
       setFallbackIndex(value => value + 1)
-    } else if (mode === "nobg" && !nobgFailed) {
-      // nobg no existe → caer a original
-      setNobgFailed(true)
-      setFallbackIndex(0)
     } else {
       setImgError(true)
     }
   }
 
   const imgCandidates = getImgCandidates() ?? []
-  const imgSrc = withCacheBust(imgCandidates[fallbackIndex], rawProduct.imageVersion || nobgVersion)
+  // Las URLs ya llegan versionadas desde mapMasterProduct (lib/catalog.js).
+  const imgSrc = imgCandidates[fallbackIndex]
   const isBlend = mode === "blend"  // multiply solo si fondo blanco detectado
 
   // Transform de posición y escala desde overrides
