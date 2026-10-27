@@ -28,6 +28,7 @@ export default function CatalogPage() {
     detailLoading,
     detailError,
     openCatalog,
+    reload,
     reloadCatalogDetail,
     reloadCatalogRow,
     reloadMeta,
@@ -236,6 +237,24 @@ export default function CatalogPage() {
           {detailError || "No existe este catálogo."}
         </p>
         <button onClick={() => reloadCatalogDetail(slug)} className="text-sm underline text-primary">
+          Reintentar
+        </button>
+      </div>
+    )
+  }
+
+  // Las secciones se construyen a partir de las categorías globales. Si el
+  // catálogo tiene productos pero esa carga falló, antes se pintaba un
+  // catálogo de 4 páginas (portada, información, relleno y contraportada)
+  // como si estuviera vacío — y el PDF se podía exportar así.
+  if (products.length > 0 && categories.length === 0) {
+    return (
+      <div className="p-10 flex flex-col items-start gap-3">
+        <p className="text-sm text-muted-foreground">
+          No se han podido cargar las categorías, así que el catálogo no puede
+          mostrar sus secciones. No se ha perdido nada: vuelve a intentarlo.
+        </p>
+        <button onClick={() => reload()} className="text-sm underline text-primary">
           Reintentar
         </button>
       </div>

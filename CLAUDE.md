@@ -36,6 +36,27 @@ VITE_R2_PUBLIC_URL=...   # obligatoria: dominio público R2 de las imágenes de 
 - **Ajustes** (`/settings`): datos de la empresa (`company_profile`, una sola
   fila) y categorías — todo compartido por todos los catálogos.
 
+**Orden de carga.** `CatalogContext` sirve cuatro datasets globales
+(`products`, `categories`, `catalogs`, `company`) y, aparte, el detalle del
+catálogo visitado. Dos reglas que no se pueden romper:
+
+1. **Nada se pide antes de que `AuthProvider` resuelva la sesión.** Sin token
+   el RLS devuelve listas vacías **sin error**, así que una carga prematura no
+   falla: deja la app vacía en silencio.
+2. **Cada dataset se aplica por separado** (`Promise.allSettled`), con un
+   reintento automático de los que fallen y el error visible en
+   `GlobalErrorBanner` (`src/App.jsx`). Agruparlos en un `Promise.all` con los
+   `setState` tras el `await` hacía que un fallo puntual en cualquiera de
+   ellos dejara los cuatro vacíos.
+
+Esto fue un bug real (27/10/2026): las secciones del catálogo se construyen
+recorriendo `categories`, de modo que con ese array vacío el catálogo se
+pintaba con 499 productos contados pero **4 páginas** — portada, información,
+una hoja de relleno y contraportada — y el PDF se podía exportar así. Por eso
+`CatalogPage` corta con un estado de error cuando hay productos y
+`categories` está vacío: es siempre un fallo de carga, nunca un catálogo
+legítimo.
+
 ## Modelo
 
 - `products`: maestro global — stock, categoría, origen, baja **e imagen**

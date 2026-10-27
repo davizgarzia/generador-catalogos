@@ -87,6 +87,29 @@ function useBreadcrumbItems() {
   return []
 }
 
+// Las cargas globales (productos, categorías, catálogos y empresa) pueden
+// fallar por un blip de red o un token a medio refrescar. Antes el error se
+// guardaba en el contexto y no lo pintaba nadie: la app se quedaba con datos
+// vacíos en silencio.
+function GlobalErrorBanner() {
+  const { error, refreshing, reload } = useCatalog()
+  if (!error) return null
+
+  return (
+    <div className="flex items-center gap-3 border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm lg:px-6">
+      <span className="text-destructive">{error}</span>
+      <button
+        type="button"
+        onClick={() => reload()}
+        disabled={refreshing}
+        className="underline underline-offset-2 text-destructive hover:text-destructive/80 disabled:opacity-60"
+      >
+        {refreshing ? "Reintentando…" : "Reintentar"}
+      </button>
+    </div>
+  )
+}
+
 function AppShell() {
   const items = useBreadcrumbItems()
 
@@ -140,6 +163,7 @@ function AppShell() {
             </Breadcrumb>
           </div>
         </header>
+        <GlobalErrorBanner />
         <div className="app-main flex-1 min-h-0 min-w-0 relative">
           <div className="app-scroll absolute inset-0 flex flex-col overflow-y-auto">
             <Suspense
